@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Tenant ────────────────────────────────────────────────────────────────────
+model Tenant {
+  id             String   @id @default(uuid())
+  name           String
+  slug           String   @unique
+  businessType   String   @default("CLINIC")
+  country        String   @default("GB")
+  timezone       String   @default("Europe/London")
+  locale         String   @default("en-GB")
+  currency       String   @default("GBP")
+  currencySymbol String   @default("£")
+  logoUrl        String?
+  primaryColor   String   @default("#2563EB")
+  plan             String   @default("FREE")
+  clinicStartTime  String?  // "09:00" — opening time shown on booking page
+  clinicEndTime    String?  // "17:00" — closing time
+  isActive         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  branches     Branch[]
+  adminUsers   AdminUser[]
+  doctors      Doctor[]
+  services     Service[]
+  slots        Slot[]
+  appointments Appointment[]
+  workingHours   WorkingHours[]
+  serviceConfigs ServiceBranchConfig[]
+}
+
+// ── Branch ────────────────────────────────────────────────────────────────────
+model Branch {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  slug      String
+  address   String?
+  phone     String?
+  timezone  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  adminUsers   AdminUser[]
+  doctors      Doctor[]
+  slots        Slot[]
+  appointments   Appointment[]
+  serviceConfigs ServiceBranchConfig[]
+
+  @@unique([tenantId, slug])
+}
+
+// ── AdminUser ─────────────────────────────────────────────────────────────────
+model AdminUser {
+  id        String   @id @default(uuid())
+  tenantId  String
+  branchId  String?
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
+}
+
+// ── Doctor ────────────────────────────────────────────────────────────────────
+model Doctor {
+  id         String   @id @default(uuid())
+  tenantId   String
+  branchId   String?
+  name       String
+  speciality String
+  bio        String?
+  photoUrl   String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  slots          Slot[]
+  appointments   Appointment[]
+  doctorServices DoctorService[]
+  workingHours   WorkingHours[]
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
+model Service {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  description  String?
+  durationMins Int      @default(30)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
+  appointments   Appointment[]
+  slots          Slot[]
+  doctorServices DoctorService[]
+  branchConfigs  ServiceBranchConfig[]
+}
+
+// ── ServiceBranchConfig — per-branch availability of a service ───────────────
+model ServiceBranchConfig {
+  id          String  @id @default(uuid())
+  tenantId    String
+  serviceId   String
+  branchId    String
+  isOffered   Boolean @default(true)  // false = not offered here (tenant admin)
+  isAvailable Boolean @default(true)  // false = temporarily unavailable (any admin)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId],  references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, branchId])
+}
+
+// ── DoctorService — which doctor offers which services ────────────────────────
+model DoctorService {
+  id        String @id @default(uuid())
+  doctorId  String
+  serviceId String
+
+  doctor  Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, serviceId])
+}
+
+// ── Slot ──────────────────────────────────────────────────────────────────────
+model Slot {
+  id           String   @id @default(uuid())
+  tenantId     String
+  branchId     String?
+  doctorId     String
+  serviceId    String?
+  durationMins Int      @default(30)
+  date         DateTime
+  startTime    String
+  endTime      String
+  isBooked     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  branch      Branch?      @relation(fields: [branchId], references: [id])
+  doctor      Doctor       @relation(fields: [doctorId], references: [id])
+  service     Service?     @relation(fields: [serviceId], references: [id])
+  appointment Appointment?
+}
+
+// ── Appointment ───────────────────────────────────────────────────────────────
+model Appointment {
+  id             String    @id @default(uuid())
+  tenantId       String
+  branchId       String?
+  slotId         String?   @unique       // null for new admin-assigned flow
+  serviceId      String
+  doctorId       String?                 // null until admin assigns
+  bookingRef     String    @unique
+  patientName      String
+  patientSurname   String?
+  patientEmail     String
+  patientPhone     String
+  patientAddress   String?
+  patientPostcode  String?
+  patientCity      String?
+  patientDOB       DateTime?
+  patientGender    String?
+  notes            String?
+  attachmentData   String?
+  attachmentName   String?
+  preferredDate  DateTime?               // patient's requested date
+  assignedDate   DateTime?               // admin-confirmed date
+  assignedTime   String?                 // admin-confirmed time "10:30"
+  status         String    @default("PENDING")
+  cancelToken    String    @unique
+  reminderSent   Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  branch  Branch?  @relation(fields: [branchId], references: [id])
+  slot    Slot?    @relation(fields: [slotId],    references: [id])
+  service Service  @relation(fields: [serviceId], references: [id])
+  doctor  Doctor?  @relation(fields: [doctorId],  references: [id])
+}
+
+// ── WorkingHours — per-doctor recurring weekly schedule ───────────────────────
+model WorkingHours {
+  id        String   @id @default(uuid())
+  tenantId  String
+  branchId  String?
+  doctorId  String
+  dayOfWeek Int      // 0 = Sunday … 6 = Saturday
+  startTime String   // "09:00"
+  endTime   String   // "18:00"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  doctor Doctor  @relation(fields: [doctorId], references: [id])
+
+  @@unique([doctorId, dayOfWeek])
+}

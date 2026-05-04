@@ -1,0 +1,61 @@
+import { auth } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import Link from "next/link"
+import { ExternalLink } from "lucide-react"
+import Sidebar from "@/components/admin/Sidebar"
+
+const ALLOWED_ROLES = ["TENANT_ADMIN", "BRANCH_ADMIN", "SUPER_ADMIN"]
+
+function bookingUrl(slug: string) {
+  const isDev = process.env.NODE_ENV === "development"
+  if (isDev) return `http://${slug}.localhost:3000`
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"
+  return `https://${slug}.${domain}`
+}
+
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth()
+
+  if (!session || !ALLOWED_ROLES.includes(session.user.role)) redirect("/admin/login")
+  if (session.user.role === "SUPER_ADMIN") redirect("/superadmin/tenants")
+
+  const previewUrl = bookingUrl(session.user.tenantSlug)
+  const subdomain  = `${session.user.tenantSlug}.${process.env.NODE_ENV === "development" ? "localhost:3000" : (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io")}`
+
+  return (
+    <div className="flex min-h-screen" style={{ background: "#F5F2EE" }}>
+      <Sidebar role={session.user.role} />
+
+      <div className="flex min-w-0 flex-1 flex-col overflow-auto">
+        {/* Topbar */}
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#E8E3DC] bg-white/90 px-6 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              {session.user.name}
+            </span>
+            <span className="text-[#E8D8C5]">·</span>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+              {session.user.role === "BRANCH_ADMIN" ? "Branch" : "Admin"}
+            </span>
+          </div>
+
+          <Link
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-[#E8D8C5] bg-secondary/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+          >
+            <ExternalLink className="size-3" />
+            {subdomain}
+          </Link>
+        </header>
+
+        <main className="flex-1 px-6 py-6">
+          <div className="mx-auto max-w-5xl">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
