@@ -84,7 +84,7 @@ export default async function SuperAdminDashboard() {
                 className="flex items-center justify-between px-5 py-3 hover:bg-secondary transition-colors">
                 <div>
                   <p className="text-sm font-medium text-foreground">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.slug}.pidge.io · {t._count.doctors} doctors</p>
+                  <p className="text-xs text-muted-foreground">{t.slug}.pikatym.io · {t._count.doctors} doctors</p>
                 </div>
                 <div className="text-right">
                   <PlanBadge plan={t.plan} />
@@ -109,7 +109,7 @@ export default async function SuperAdminDashboard() {
                 <span className="text-lg font-bold text-muted-foreground/40 w-6">#{i + 1}</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.slug}.pidge.io</p>
+                  <p className="text-xs text-muted-foreground">{t.slug}.pikatym.io</p>
                 </div>
                 <p className="text-sm font-semibold text-foreground">{t._count.appointments} bookings</p>
               </Link>

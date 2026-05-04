@@ -47,7 +47,9 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  const loginUrl = `https://${tenant.slug}.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"}/admin`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://pikatym.io")
+  const loginUrl = `${appUrl}/admin?__tenant=${encodeURIComponent(tenant.slug)}`
   await sendWelcomeEmail(adminName, adminEmail, adminPass, loginUrl, tenant.name)
 
   return Response.json({ data: tenant }, { status: 201 })

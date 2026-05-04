@@ -31,12 +31,12 @@ async function main() {
   }
 
   // Super admin needs a tenantId — create a system tenant for it
-  let systemTenant = await prisma.tenant.findFirst({ where: { slug: "pidge-system" } })
+  let systemTenant = await prisma.tenant.findFirst({ where: { slug: "pikatym-system" } })
   if (!systemTenant) {
     systemTenant = await prisma.tenant.create({
       data: {
-        name: "Pidge System",
-        slug: "pidge-system",
+        name: "Pikatym System",
+        slug: "pikatym-system",
         isActive: false, // hidden from booking
       },
     })

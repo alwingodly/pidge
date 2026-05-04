@@ -6,7 +6,7 @@ import { CalendarDays, ShieldCheck } from "lucide-react"
 export default async function BookingLayout({ children }: { children: React.ReactNode }) {
   const { tenantName, primaryColor, logoUrl } = await getTenantFromHeaders()
   const brand = primaryColor || "#BF4646"
-  const name = tenantName || "Pidge"
+  const name = tenantName || "Pikatym"
 
   return (
     <>
@@ -59,7 +59,7 @@ export default async function BookingLayout({ children }: { children: React.Reac
           <p className="text-xs text-muted-foreground">
             Powered by{" "}
             <span className="font-semibold" style={{ color: brand }}>
-              Pidge
+              Pikatym
             </span>
           </p>
         </footer>

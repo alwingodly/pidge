@@ -1,4 +1,4 @@
-# Pidge — Clinic Booking Platform
+# Pikatym — Clinic Booking Platform
 ### Built by OutRift Technologies
 
 > This documentation is written for Claude Code (VS Code).
@@ -28,18 +28,18 @@
 
 ## 1. Project Overview
 
-**Pidge** is a white-label, multi-tenant appointment booking SaaS platform.
+**Pikatym** is a white-label, multi-tenant appointment booking SaaS platform.
 
 - Each client (clinic, Ayurveda centre, dental, physio) is a **tenant**
-- Each tenant gets their own subdomain: `clinicname.pidge.io`
+- Each tenant gets their own subdomain: `clinicname.pikatym.io`
 - Tenants can have multiple **branches** (locations)
 - **Patients do not need a login** — they book as guests
 - **Clinic admins** manage doctors, services, slots, and appointments
 - **You (super admin)** manage all tenants from a separate dashboard
 
-**Product name:** Pidge
+**Product name:** Pikatym
 **Company name:** OutRift Technologies
-**Domain:** pidge.io
+**Domain:** pikatym.io
 
 ---
 
@@ -65,7 +65,7 @@
 Create this exact structure. Do not deviate.
 
 ```
-pidge/
+pikatym/
 ├── app/
 │   ├── (booking)/                         ← patient-facing, no login
 │   │   ├── layout.tsx                     ← loads tenant branding
@@ -174,11 +174,11 @@ NEXTAUTH_URL="http://localhost:3000"
 
 # Resend (email)
 RESEND_API_KEY="re_..."
-EMAIL_FROM="noreply@pidge.io"
+EMAIL_FROM="noreply@pikatym.io"
 
 # App
-NEXT_PUBLIC_APP_DOMAIN="pidge.io"         # used to resolve tenants
-NEXT_PUBLIC_APP_URL="https://pidge.io"
+NEXT_PUBLIC_APP_DOMAIN="pikatym.io"         # used to resolve tenants
+NEXT_PUBLIC_APP_URL="https://pikatym.io"
 
 # Cron security
 CRON_SECRET="generate-a-random-string"
@@ -212,7 +212,7 @@ datasource db {
 model Tenant {
   id             String   @id @default(uuid())
   name           String
-  slug           String   @unique        // subdomain: riverside → riverside.pidge.io
+  slug           String   @unique        // subdomain: riverside → riverside.pikatym.io
   businessType   String   @default("CLINIC") // CLINIC | AYURVEDA | DENTAL | PHYSIO
   country        String   @default("GB")
   timezone       String   @default("Europe/London")
@@ -355,7 +355,7 @@ model Appointment {
 
 ### How it works
 
-Every request to `*.pidge.io` goes through `middleware.ts` first.
+Every request to `*.pikatym.io` goes through `middleware.ts` first.
 The middleware reads the subdomain, finds the tenant, and attaches
 `tenantId` and `branchId` to the request headers.
 Every page and API route reads `tenantId` from headers — never from
@@ -369,7 +369,7 @@ import { prisma } from "@/lib/db"
 
 export async function middleware(req: NextRequest) {
   const hostname = req.headers.get("host") || ""
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "pidge.io"
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "pikatym.io"
 
   // Skip for superadmin, api, and static files
   if (
@@ -382,7 +382,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Extract slug from subdomain
-  // e.g. "riverside.pidge.io" → "riverside"
+  // e.g. "riverside.pikatym.io" → "riverside"
   const slug = hostname.replace(`.${appDomain}`, "").replace(appDomain, "")
 
   if (!slug || slug === hostname) {
@@ -582,7 +582,7 @@ Do not add extra steps. Do not skip any step.
 **Goal:** Onboard a new clinic client and hand over their credentials.
 
 ```
-1. You go to → admin.pidge.io
+1. You go to → admin.pikatym.io
 2. Log in with your SUPER_ADMIN email + password
 3. You land on → Super Admin Dashboard
    Shows: list of all tenants, their plan, active/inactive status
@@ -590,7 +590,7 @@ Do not add extra steps. Do not skip any step.
 4. Click "Add New Tenant"
 5. Fill in the form:
    - Clinic name         (e.g. "Riverside Clinic")
-   - Slug                (e.g. "riverside" → becomes riverside.pidge.io)
+   - Slug                (e.g. "riverside" → becomes riverside.pikatym.io)
    - Business type       (Clinic / Ayurveda / Dental / Physio)
    - Country             (GB / IN / US etc.)
    - Timezone            (Europe/London etc.)
@@ -611,8 +611,8 @@ Do not add extra steps. Do not skip any step.
    → Welcome email sent to admin with login link + credentials
 
 9. You hand over:
-   - Booking page URL: riverside.pidge.io
-   - Admin panel URL:  riverside.pidge.io/admin
+   - Booking page URL: riverside.pikatym.io
+   - Admin panel URL:  riverside.pikatym.io/admin
    - Email + password
 
 Done. Clinic is live.
@@ -625,7 +625,7 @@ Done. Clinic is live.
 **Goal:** Set up their clinic so patients can start booking.
 
 ```
-1. Client goes to → riverside.pidge.io/admin
+1. Client goes to → riverside.pikatym.io/admin
 2. Logs in with email + password you sent them
 3. Lands on → Admin Dashboard
    Shows: today's appointment count, pending count, approved count
@@ -667,7 +667,7 @@ Done. Clinic is live.
 
 ── Step D: Done ──────────────────────────────────────────────────
 
-20. Booking page is now live at riverside.pidge.io
+20. Booking page is now live at riverside.pikatym.io
     Patients can see services, doctors, and available slots
 ```
 
@@ -678,7 +678,7 @@ Done. Clinic is live.
 **Goal:** Book an appointment in under 2 minutes.
 
 ```
-1. Patient visits → riverside.pidge.io
+1. Patient visits → riverside.pikatym.io
    Sees: clinic logo, name, list of services with duration
 
 ── Step 1: Pick a Service ────────────────────────────────────────
@@ -752,7 +752,7 @@ Done. Clinic is live.
 
 ```
 1. Admin receives email notification of new booking
-2. Admin goes to → riverside.pidge.io/admin/appointments
+2. Admin goes to → riverside.pikatym.io/admin/appointments
 3. Sees appointments list — filtered to "Today" by default
 4. New booking shows with status badge: [ PENDING ]
 
@@ -782,7 +782,7 @@ Done. Clinic is live.
 ```
 1. Patient opens their confirmation or reminder email
 2. Patient clicks "Cancel appointment" link
-   Link format: pidge.io/cancel?token=<cancelToken>
+   Link format: pikatym.io/cancel?token=<cancelToken>
 
 3. Patient lands on cancel page
    Shows: appointment details (doctor, date, time, booking ref)
@@ -837,7 +837,7 @@ Done. Clinic is live.
 2. Clicks "Add Branch"
 3. Fills in:
    - Branch name     (e.g. "North")
-   - Slug            (e.g. "north" → riverside.pidge.io/north)
+   - Slug            (e.g. "north" → riverside.pikatym.io/north)
    - Address
    - Phone
    - Timezone        (if different from main branch)
@@ -853,14 +853,14 @@ Done. Clinic is live.
 
 ── Branch Admin logs in ──────────────────────────────────────────
 
-7. Branch Admin goes to → riverside.pidge.io/admin
+7. Branch Admin goes to → riverside.pikatym.io/admin
 8. Logs in — sees ONLY their branch's data
    (doctors, slots, appointments scoped to branchId)
 9. Cannot see other branches — enforced by getScopeFromSession()
 
 ── Patient books at a specific branch ────────────────────────────
 
-10. Patient visits → riverside.pidge.io/north
+10. Patient visits → riverside.pikatym.io/north
     (middleware resolves tenantId + branchId from URL)
 11. Sees only doctors and slots for the North branch
 12. Books normally — appointment.branchId = north branch ID
@@ -887,7 +887,7 @@ Done. Clinic is live.
 ```
 1. Patient opens their confirmation email
 2. Clicks "Reschedule" link
-   Link format: pidge.io/reschedule?token=<rescheduleToken>
+   Link format: pikatym.io/reschedule?token=<rescheduleToken>
 
 3. Lands on reschedule page
    Shows: current booking details
@@ -1325,7 +1325,7 @@ export default function BookingLayout({ children }) {
         </header>
         <main>{children}</main>
         <footer>
-          <small>Powered by Pidge</small>
+          <small>Powered by Pikatym</small>
         </footer>
       </body>
     </html>
@@ -1467,7 +1467,7 @@ Flow:
 2. Stripe checkout (if paid plan selected)
 3. On payment success: Tenant + AdminUser created automatically
 4. Welcome email with login link sent
-5. Booking page live immediately at `slug.pidge.io`
+5. Booking page live immediately at `slug.pikatym.io`
 
 ---
 
@@ -1506,7 +1506,7 @@ designed to be rendered inside an iframe.
 
 Client adds to their website:
 ```html
-<iframe src="https://pidge.io/widget/riverside" width="400" height="600"></iframe>
+<iframe src="https://pikatym.io/widget/riverside" width="400" height="600"></iframe>
 ```
 
 ---
@@ -1682,7 +1682,7 @@ Follow these rules throughout the entire codebase.
 ```bash
 # 1. Clone and install
 git clone <repo>
-cd pidge
+cd pikatym
 npm install
 
 # 2. Set up environment
@@ -1702,5 +1702,5 @@ npm run dev
 
 ---
 
-*Pidge — by OutRift Technologies*
+*Pikatym — by OutRift Technologies*
 *Build Phase 1 first. Ship it. Then listen to your clients.*

@@ -6,7 +6,7 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
 export const metadata: Metadata = {
-  title:       "Pidge — Clinic Booking",
+  title:       "Pikatym — Clinic Booking",
   description: "White-label appointment booking for clinics",
 }
 

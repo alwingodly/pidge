@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -14,12 +14,9 @@ const NAV = [
 
 export default function SuperAdminSidebar() {
   const pathname    = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem("superadmin-sidebar-collapsed")
-    if (stored === "true") setCollapsed(true)
-  }, [])
+  const [collapsed, setCollapsed] = useState(() => (
+    typeof window !== "undefined" && localStorage.getItem("superadmin-sidebar-collapsed") === "true"
+  ))
 
   function toggle() {
     setCollapsed((p) => {
@@ -40,7 +37,7 @@ export default function SuperAdminSidebar() {
             <div className="w-7 h-7 rounded-md flex items-center justify-center font-black text-white text-xs shrink-0"
               style={{ background: "rgba(255,255,255,0.2)" }}>P</div>
             <div className="ml-2 overflow-hidden">
-              <p className="font-bold text-sm leading-none text-white whitespace-nowrap">Pidge</p>
+              <p className="font-bold text-sm leading-none text-white whitespace-nowrap">Pikatym</p>
               <p className="text-xs mt-0.5 whitespace-nowrap" style={{ color: "rgba(255,255,255,0.55)", fontSize: 10 }}>
                 Super Admin
               </p>

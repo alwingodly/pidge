@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -28,14 +28,11 @@ const TEXT_DEFAULT = "rgba(255,255,255,0.55)"
 
 export default function Sidebar({ role }: { role: string }) {
   const pathname   = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => (
+    typeof window !== "undefined" && localStorage.getItem("sidebar-collapsed") === "true"
+  ))
 
   const nav = ALL_NAV.filter((item) => item.roles.includes(role))
-
-  useEffect(() => {
-    const stored = localStorage.getItem("sidebar-collapsed")
-    if (stored === "true") setCollapsed(true)
-  }, [])
 
   function toggle() {
     setCollapsed((p) => {
@@ -69,7 +66,7 @@ export default function Sidebar({ role }: { role: string }) {
               P
             </div>
             <div className="ml-2.5 min-w-0 overflow-hidden">
-              <p className="truncate text-sm font-bold leading-tight text-white">Pidge</p>
+              <p className="truncate text-sm font-bold leading-tight text-white">Pikatym</p>
               <p className="truncate text-[11px]" style={{ color: TEXT_DEFAULT }}>
                 {role === "BRANCH_ADMIN" ? "Branch Admin" : "Clinic Admin"}
               </p>

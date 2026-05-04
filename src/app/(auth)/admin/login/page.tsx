@@ -45,7 +45,7 @@ export default function LoginPage() {
             Manage your clinic, doctors, and appointments from one place.
           </p>
         </div>
-        <p className="text-white/40 text-xs">Pidge · OutRift Technologies</p>
+        <p className="text-white/40 text-xs">Pikatym · OutRift Technologies</p>
       </div>
 
       {/* Right form panel */}
@@ -56,7 +56,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
               style={{ background: "#BF4646" }}>P</div>
-            <span className="font-bold text-foreground">Pidge Admin</span>
+            <span className="font-bold text-foreground">Pikatym Admin</span>
           </div>
 
           <h2 className="text-foreground text-2xl font-bold mb-1">Sign in</h2>

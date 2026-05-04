@@ -5,15 +5,14 @@ import { NextRequest, NextResponse } from "next/server"
 // Actual DB lookup happens in server components via getTenantFromHeaders().
 export async function proxy(req: NextRequest) {
   const hostname  = req.headers.get("host") || ""
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "pidge.io"
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || process.env.VERCEL_URL || "pikatym.io"
   const pathname  = req.nextUrl.pathname
-  const isDev     = process.env.NODE_ENV === "development"
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/static")) {
     return NextResponse.next()
   }
 
-  // "riverside.pidge.io" → "riverside"
+  // "riverside.pikatym.io" → "riverside"
   let slug = hostname.replace(`.${appDomain}`, "").replace(appDomain, "")
 
   // Local dev (Chrome/Firefox): "riverside.localhost:3000" → "riverside"
@@ -22,16 +21,15 @@ export async function proxy(req: NextRequest) {
     if (localMatch) slug = localMatch[1]
   }
 
-  // Local dev (Safari / any browser): localhost:3000?__tenant=riverside
-  // Safari may not resolve wildcard *.localhost, so remember the tenant on plain localhost.
-  let rememberDevTenant = false
-  if ((!slug || slug === hostname) && isDev) {
+  // Fallback for plain domains: localhost:3000?__tenant=riverside or app.vercel.app?__tenant=riverside
+  let rememberTenant = false
+  if (!slug || slug === hostname) {
     const tenantParam = req.nextUrl.searchParams.get("__tenant")
     const tenantCookie = req.cookies.get("__tenant")?.value
     const fallbackSlug = tenantParam ?? tenantCookie
     if (fallbackSlug && /^[a-z0-9-]+$/i.test(fallbackSlug)) {
       slug = fallbackSlug
-      rememberDevTenant = Boolean(tenantParam)
+      rememberTenant = Boolean(tenantParam)
     }
   }
 
@@ -49,7 +47,7 @@ export async function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next({ request: { headers: requestHeaders } })
-  if (rememberDevTenant) {
+  if (rememberTenant) {
     res.cookies.set("__tenant", slug, {
       path: "/",
       sameSite: "lax",

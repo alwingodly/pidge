@@ -19,14 +19,15 @@ async function send(to: string, subject: string, html: string) {
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://pidge.io"
+const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://pikatym.io")
 
 function cancelLink(token: string) {
   return `${appUrl}/cancel?token=${token}`
 }
 
 function bookingUrl(slug: string) {
-  return `https://${slug}.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"}`
+  return `${appUrl}?__tenant=${encodeURIComponent(slug)}`
 }
 
 function row(label: string, value: string) {
@@ -218,15 +219,15 @@ export async function sendReminderEmail(appt: FullAppointment) {
 export async function sendWelcomeEmail(name: string, email: string, password: string, loginUrl: string, clinicName: string) {
   return send(
     email,
-    `Welcome to Pidge — your clinic is live`,
+    `Welcome to Pikatym — your clinic is live`,
     `<p style="font-family:sans-serif;color:#1C1007">Hi ${name},</p>
-     <p style="font-family:sans-serif;color:#1C1007">Your clinic <strong>${clinicName}</strong> is now live on Pidge.</p>
+     <p style="font-family:sans-serif;color:#1C1007">Your clinic <strong>${clinicName}</strong> is now live on Pikatym.</p>
      ${table(
        row("Login URL", `<a href="${loginUrl}" style="color:#BF4646">${loginUrl}</a>`),
        row("Email", email),
        row("Temp password", password),
      )}
      <p style="font-family:sans-serif;color:#9A7A5A;font-size:13px">Please change your password after logging in.</p>
-     <p style="font-family:sans-serif;color:#1C1007">— OutRift Technologies / Pidge</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— OutRift Technologies / Pikatym</p>`
   )
 }

@@ -6,11 +6,14 @@ import Sidebar from "@/components/admin/Sidebar"
 
 const ALLOWED_ROLES = ["TENANT_ADMIN", "BRANCH_ADMIN", "SUPER_ADMIN"]
 
-function bookingUrl(slug: string) {
-  const isDev = process.env.NODE_ENV === "development"
-  if (isDev) return `http://localhost:3000?__tenant=${encodeURIComponent(slug)}`
-  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"
-  return `https://${slug}.${domain}`
+function appBaseUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://pikatym.io"
+}
+
+function tenantUrl(slug: string) {
+  return `${appBaseUrl()}?__tenant=${encodeURIComponent(slug)}`
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -19,10 +22,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session || !ALLOWED_ROLES.includes(session.user.role)) redirect("/admin/login")
   if (session.user.role === "SUPER_ADMIN") redirect("/superadmin/tenants")
 
-  const previewUrl = bookingUrl(session.user.tenantSlug)
-  const subdomain  = process.env.NODE_ENV === "development"
-    ? `localhost:3000?__tenant=${session.user.tenantSlug}`
-    : `${session.user.tenantSlug}.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"}`
+  const previewUrl = tenantUrl(session.user.tenantSlug)
+  const previewLabel = previewUrl.replace(/^https?:\/\//, "")
 
   return (
     <div className="flex min-h-screen" style={{ background: "#F5F2EE" }}>
@@ -48,7 +49,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             className="flex items-center gap-1.5 rounded-lg border border-[#E8D8C5] bg-secondary/50 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
           >
             <ExternalLink className="size-3" />
-            {subdomain}
+            {previewLabel}
           </Link>
         </header>
 
