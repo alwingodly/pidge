@@ -28,7 +28,7 @@ type Props = {
   tenantId:        string
   defaultBranchId: string | null
   isBranchAdmin:   boolean
-  onSaved?:        () => void
+  onSaved?:        (doctorId: string) => void
   className?:      string
 }
 
@@ -85,7 +85,7 @@ export default function DoctorForm({ doctor, branches, services, defaultBranchId
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? "Something went wrong."); setLoading(false); return }
     if (onSaved) {
-      onSaved()
+      onSaved(data.id ?? data.doctor?.id ?? "")
       router.refresh()
       return
     }

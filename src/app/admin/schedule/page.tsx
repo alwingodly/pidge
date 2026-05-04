@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
-import WorkingHoursManager from "@/components/admin/WorkingHoursManager"
 import DayScheduleView from "@/components/admin/DayScheduleView"
 
 export default async function SchedulePage() {
@@ -91,17 +90,6 @@ export default async function SchedulePage() {
         isTenantAdmin={isTenantAdmin}
       />
 
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-base font-bold text-foreground">Working hours</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Set each doctor&apos;s weekly recurring schedule.
-          </p>
-        </div>
-        <WorkingHoursManager
-          doctors={doctors.map((d) => ({ id: d.id, name: d.name, speciality: d.speciality }))}
-        />
-      </div>
     </div>
   )
 }

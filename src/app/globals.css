@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* ── Brand Palette ────────────────────────────────────────────────────────── */
 /* #BF4646 primary · #EDDCC6 beige · #FFF4EA cream · #7EACB5 teal           */
@@ -40,6 +41,8 @@
   --color-foreground:           var(--foreground);
   --color-card:                 var(--card);
   --color-card-foreground:      var(--card-foreground);
+  --color-popover:              var(--popover);
+  --color-popover-foreground:   var(--popover-foreground);
   --color-primary:              var(--primary);
   --color-primary-foreground:   var(--primary-foreground);
   --color-secondary:            var(--secondary);

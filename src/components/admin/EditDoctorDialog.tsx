@@ -77,7 +77,7 @@ export default function EditDoctorDialog({
             tenantId={tenantId}
             defaultBranchId={defaultBranchId}
             isBranchAdmin={isBranchAdmin}
-            onSaved={() => setOpen(false)}
+            onSaved={() => { setOpen(false) }}
             className="border-0 p-0 shadow-none"
           />
         </div>

@@ -4,6 +4,7 @@ import { getScopeFromSession } from "@/lib/tenant"
 import Image from "next/image"
 import AddDoctorDialog from "@/components/admin/AddDoctorDialog"
 import EditDoctorDialog from "@/components/admin/EditDoctorDialog"
+import DoctorScheduleSheet from "@/components/admin/DoctorScheduleSheet"
 import { CalendarDays, Stethoscope, UserRound } from "lucide-react"
 
 function getInitials(name: string) {
@@ -118,6 +119,11 @@ export default async function DoctorsPage() {
                     <CalendarDays className="size-3" />
                     {doctor._count.appointments} appt{doctor._count.appointments !== 1 ? "s" : ""}
                   </span>
+                  <DoctorScheduleSheet
+                    doctorId={doctor.id}
+                    doctorName={doctor.name}
+                    speciality={doctor.speciality}
+                  />
                   <EditDoctorDialog
                     doctor={doctor}
                     branches={branches}
