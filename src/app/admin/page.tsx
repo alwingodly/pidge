@@ -16,10 +16,6 @@ import {
 import {
   BookingTrendChart,
   StatusDonut,
-  TopDoctorsBarChart,
-  TopServicesBarChart,
-  type DoctorBar,
-  type ServiceBar,
   type StatusSlice,
   type TrendPoint,
 } from "@/components/admin/AdminCharts"
@@ -136,13 +132,21 @@ export default async function AdminDashboardPage() {
     { name: "No Show", value: noShowTotal, color: "#8B735E" },
   ].filter((slice) => slice.value > 0)
 
-  const doctorChartData: DoctorBar[] = doctors
+  const topDoctors = doctors
     .filter((doctor) => doctor._count.appointments > 0)
-    .map((doctor) => ({ name: doctor.name.split(" ").slice(-1)[0], count: doctor._count.appointments }))
+    .map((doctor) => ({
+      id: doctor.id,
+      name: doctor.name,
+      count: doctor._count.appointments,
+    }))
 
-  const serviceChartData: ServiceBar[] = services
+  const topServices = services
     .filter((service) => service._count.appointments > 0)
-    .map((service) => ({ name: service.name, count: service._count.appointments }))
+    .map((service) => ({
+      id: service.id,
+      name: service.name,
+      count: service._count.appointments,
+    }))
 
   const dateLabel = now.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -270,18 +274,18 @@ export default async function AdminDashboardPage() {
         </Panel>
 
         <Panel title="Top doctors" icon={<Stethoscope className="size-4 text-muted-foreground" />}>
-          <div className="px-2 py-4">
-            {doctorChartData.length === 0
+          <div>
+            {topDoctors.length === 0
               ? <EmptyState text="No doctor data yet." />
-              : <TopDoctorsBarChart data={doctorChartData} />}
+              : <TopRankedList data={topDoctors} tone="primary" countLabel="appointments" />}
           </div>
         </Panel>
 
         <Panel title="Top services" icon={<Briefcase className="size-4 text-muted-foreground" />}>
-          <div className="px-2 py-4">
-            {serviceChartData.length === 0
+          <div>
+            {topServices.length === 0
               ? <EmptyState text="No service data yet." />
-              : <TopServicesBarChart data={serviceChartData} />}
+              : <TopRankedList data={topServices} tone="accent" countLabel="bookings" />}
           </div>
         </Panel>
       </section>
@@ -391,6 +395,51 @@ function MiniStat({ label, value }: { label: string; value: string | number }) {
     <div>
       <p className="text-base font-bold text-foreground">{value}</p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function TopRankedList({
+  data,
+  tone,
+  countLabel,
+}: {
+  data: { id: string; name: string; count: number }[]
+  tone: "primary" | "accent"
+  countLabel: string
+}) {
+  const max = Math.max(...data.map((item) => item.count), 1)
+  const barClass = tone === "primary" ? "bg-primary/70" : "bg-accent/80"
+
+  return (
+    <div className="divide-y divide-[#F3EAE0]">
+      {data.map((item, index) => (
+        <div
+          key={item.id}
+          className="px-4 py-2.5"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="w-5 shrink-0 text-center text-[11px] font-bold text-muted-foreground">
+              {index + 1}
+            </span>
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground" title={item.name}>
+              {item.name}
+            </p>
+            <span
+              className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-foreground"
+              title={`${item.count} ${countLabel}`}
+            >
+              {item.count}
+            </span>
+          </div>
+          <div className="ml-7 mt-1.5 h-1 overflow-hidden rounded-full bg-[#F3EAE0]">
+            <div
+              className={`h-full rounded-full ${barClass}`}
+              style={{ width: `${Math.max((item.count / max) * 100, 8)}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

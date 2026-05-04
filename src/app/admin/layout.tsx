@@ -8,7 +8,7 @@ const ALLOWED_ROLES = ["TENANT_ADMIN", "BRANCH_ADMIN", "SUPER_ADMIN"]
 
 function bookingUrl(slug: string) {
   const isDev = process.env.NODE_ENV === "development"
-  if (isDev) return `http://${slug}.localhost:3000`
+  if (isDev) return `http://localhost:3000?__tenant=${encodeURIComponent(slug)}`
   const domain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"
   return `https://${slug}.${domain}`
 }
@@ -20,7 +20,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (session.user.role === "SUPER_ADMIN") redirect("/superadmin/tenants")
 
   const previewUrl = bookingUrl(session.user.tenantSlug)
-  const subdomain  = `${session.user.tenantSlug}.${process.env.NODE_ENV === "development" ? "localhost:3000" : (process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io")}`
+  const subdomain  = process.env.NODE_ENV === "development"
+    ? `localhost:3000?__tenant=${session.user.tenantSlug}`
+    : `${session.user.tenantSlug}.${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pidge.io"}`
 
   return (
     <div className="flex min-h-screen" style={{ background: "#F5F2EE" }}>

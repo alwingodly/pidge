@@ -7,6 +7,7 @@ export async function proxy(req: NextRequest) {
   const hostname  = req.headers.get("host") || ""
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "pidge.io"
   const pathname  = req.nextUrl.pathname
+  const isDev     = process.env.NODE_ENV === "development"
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/static")) {
     return NextResponse.next()
@@ -21,10 +22,17 @@ export async function proxy(req: NextRequest) {
     if (localMatch) slug = localMatch[1]
   }
 
-  // Local dev (Safari / any browser): ?__tenant=riverside
-  if ((!slug || slug === hostname) && process.env.NODE_ENV === "development") {
+  // Local dev (Safari / any browser): localhost:3000?__tenant=riverside
+  // Safari may not resolve wildcard *.localhost, so remember the tenant on plain localhost.
+  let rememberDevTenant = false
+  if ((!slug || slug === hostname) && isDev) {
     const tenantParam = req.nextUrl.searchParams.get("__tenant")
-    if (tenantParam) slug = tenantParam
+    const tenantCookie = req.cookies.get("__tenant")?.value
+    const fallbackSlug = tenantParam ?? tenantCookie
+    if (fallbackSlug && /^[a-z0-9-]+$/i.test(fallbackSlug)) {
+      slug = fallbackSlug
+      rememberDevTenant = Boolean(tenantParam)
+    }
   }
 
   if (!slug || slug === hostname) {
@@ -40,7 +48,14 @@ export async function proxy(req: NextRequest) {
     requestHeaders.set("x-branch-slug-candidate", firstSegment)
   }
 
-  return NextResponse.next({ request: { headers: requestHeaders } })
+  const res = NextResponse.next({ request: { headers: requestHeaders } })
+  if (rememberDevTenant) {
+    res.cookies.set("__tenant", slug, {
+      path: "/",
+      sameSite: "lax",
+    })
+  }
+  return res
 }
 
 export const config = {
