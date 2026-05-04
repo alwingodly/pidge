@@ -10,9 +10,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
 import { formatDate } from "@/lib/utils"
-import Link from "next/link"
 import { CalendarDays, Stethoscope, UserRound } from "lucide-react"
 import AssignDialog from "./AssignDialog"
+import AppointmentDetailSheet from "./AppointmentDetailSheet"
 
 type Appointment = {
   id:             string
@@ -72,6 +72,7 @@ export default function AppointmentTable({ appointments, doctors, filters }: {
   const [cancelTarget, setCancelTarget] = useState<string | null>(null)
   const [assignTarget, setAssignTarget] = useState<Appointment | null>(null)
   const [loadingId,    setLoadingId]    = useState<string | null>(null)
+  const [detailId,     setDetailId]     = useState<string | null>(null)
 
   function updateFilter(key: keyof Filters, value: string) {
     const params = new URLSearchParams({ ...filters, [key]: value })
@@ -171,12 +172,12 @@ export default function AppointmentTable({ appointments, doctors, filters }: {
                   {/* Left — patient + meta */}
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-2">
-                      <Link
-                        href={`/admin/appointments/${appt.id}`}
-                        className="truncate text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                      <button
+                        onClick={() => setDetailId(appt.id)}
+                        className="truncate text-sm font-semibold text-foreground transition-colors hover:text-primary"
                       >
                         {fullName}
-                      </Link>
+                      </button>
                       <StatusBadge status={appt.status} />
                     </div>
 
@@ -266,6 +267,15 @@ export default function AppointmentTable({ appointments, doctors, filters }: {
           }}
         />
       )}
+
+      {/* Appointment detail sheet */}
+      <AppointmentDetailSheet
+        appointmentId={detailId}
+        onClose={() => setDetailId(null)}
+        onStatusChange={(id, status) =>
+          setRows(prev => prev.map(r => r.id === id ? { ...r, status } : r))
+        }
+      />
 
       {/* Cancel confirm dialog */}
       <Dialog open={!!cancelTarget} onOpenChange={() => setCancelTarget(null)}>
