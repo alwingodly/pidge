@@ -1,39 +1,99 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 /* ── Brand Palette ────────────────────────────────────────────────────────── */
-/* #BF4646 primary · #EDDCC6 beige · #FFF4EA cream · #7EACB5 teal           */
+/* #C5705D terracotta · #D0B8A8 warm-taupe · #DFD3C3 linen · #F8EDE3 cream  */
 
 :root {
   --background:          #ffffff;
-  --foreground:          #1C1007;
+  --foreground:          #5C2E22;
 
   --card:                #ffffff;
-  --card-foreground:     #1C1007;
+  --card-foreground:     #5C2E22;
   --popover:             #ffffff;
-  --popover-foreground:  #1C1007;
+  --popover-foreground:  #5C2E22;
 
-  --primary:             #BF4646;
+  --primary:             #C5705D;
   --primary-foreground:  #ffffff;
 
-  --secondary:           #FFF4EA;
-  --secondary-foreground:#1C1007;
+  --secondary:           #F8EDE3;
+  --secondary-foreground:#5C2E22;
 
-  --muted:               #FFF4EA;
-  --muted-foreground:    #9A7A5A;
+  --muted:               #F8EDE3;
+  --muted-foreground:    #9A7060;
 
-  --accent:              #7EACB5;
-  --accent-foreground:   #ffffff;
+  --accent:              #D0B8A8;
+  --accent-foreground:   #5C2E22;
 
-  --destructive:         #A03A3A;
+  --destructive:         #A85040;
   --destructive-foreground: #ffffff;
 
-  --border:              #EDDCC6;
-  --input:               #EDDCC6;
-  --ring:                #BF4646;
+  --border:              #DFD3C3;
+  --input:               #DFD3C3;
+  --ring:                #C5705D;
 
   --radius:              0.5rem;
-  --page-bg:             #FFF4EA;
+  --page-bg:             #F8EDE3;
+
+  /* Sidebar tokens */
+  --sidebar-bg:            #C5705D;
+  --sidebar-text:          rgba(255, 255, 255, 0.65);
+  --sidebar-text-active:   #ffffff;
+  --sidebar-active-bg:     rgba(248, 237, 227, 0.20);
+  --sidebar-hover-bg:      rgba(255, 255, 255, 0.10);
+  --sidebar-border:        rgba(255, 255, 255, 0.12);
+  --sidebar-section-label: rgba(255, 255, 255, 0.35);
+  --sidebar-toggle-bg:     #ffffff;
+  --sidebar-toggle-fg:     #C5705D;
+  --sidebar-toggle-border: #DFD3C3;
+
+  /* Card / panel tokens */
+  --card-divider:             #DFD3C3;
+
+  /* "Next up" feature card */
+  --nextup-bg:                #C5705D;
+  --nextup-fg:                #ffffff;
+  --nextup-label:             rgba(255, 255, 255, 0.45);
+  --nextup-muted:             rgba(255, 255, 255, 0.60);
+  --nextup-hover-fg:          #F8EDE3;
+
+  /* Attention indicator dot */
+  --attention-dot:            #D0B8A8;
+
+  /* Status pill tokens */
+  --status-pending-bg:        #FEF3C7;
+  --status-pending-fg:        #92400E;
+  --status-pending-ring:      #FDE68A;
+  --status-approved-bg:       #D1FAE5;
+  --status-approved-fg:       #065F46;
+  --status-approved-ring:     #A7F3D0;
+  --status-cancelled-bg:      #FEE2E2;
+  --status-cancelled-fg:      #DC2626;
+  --status-cancelled-ring:    #FECACA;
+  --status-completed-bg:      #F8EDE3;
+  --status-completed-fg:      #5C2E22;
+  --status-completed-ring:    #D0B8A8;
+  --status-noshow-bg:         #FFF7ED;
+  --status-noshow-fg:         #EA580C;
+  --status-noshow-ring:       #FED7AA;
+
+  /* Chart slice colors */
+  --chart-pending:            #D97706;
+  --chart-approved:           #059669;
+  --chart-completed:          #C5705D;
+  --chart-cancelled:          #5C2E22;
+  --chart-noshow:             #9A7060;
+
+  /* Login tokens */
+  --login-page-bg:         #F8EDE3;
+  --login-panel-bg:        #C5705D;
+  --login-panel-fg:        #ffffff;
+  --login-panel-muted:     rgba(255, 255, 255, 0.70);
+  --login-panel-faint:     rgba(255, 255, 255, 0.40);
+  --login-badge-bg:        rgba(255, 255, 255, 0.20);
+  --login-btn-bg:          #C5705D;
+  --login-btn-hover:       #A85040;
+  --login-btn-fg:          #ffffff;
+  --login-input-bg:        #ffffff;
 }
 
 @theme inline {
@@ -69,5 +129,5 @@ body {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #EDDCC6; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #BF4646; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }

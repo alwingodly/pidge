@@ -21,6 +21,7 @@ type Appointment = {
   patientSurname?: string | null
   status:         string
   serviceId:      string
+  branchId?:      string | null
   preferredDate?: Date | null
   assignedDate?:  Date | null
   assignedTime?:  string | null
@@ -254,6 +255,7 @@ export default function AppointmentTable({ appointments, doctors, filters }: {
           serviceName={assignTarget.service.name}
           serviceDurationMins={assignTarget.service.durationMins}
           preferredDate={assignTarget.preferredDate ?? null}
+          branchId={assignTarget.branchId ?? null}
           open={!!assignTarget}
           onClose={() => setAssignTarget(null)}
           onAssigned={(doctorName, _date, time) => {

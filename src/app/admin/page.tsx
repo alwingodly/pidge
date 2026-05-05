@@ -125,11 +125,11 @@ export default async function AdminDashboardPage() {
   }))
 
   const statusData: StatusSlice[] = [
-    { name: "Pending", value: pendingTotal, color: "#D97706" },
-    { name: "Approved", value: approvedTotal, color: "#059669" },
-    { name: "Completed", value: completedTotal, color: "#3A8A97" },
-    { name: "Cancelled", value: cancelledTotal, color: "#BF4646" },
-    { name: "No Show", value: noShowTotal, color: "#8B735E" },
+    { name: "Pending",   value: pendingTotal,   color: "var(--chart-pending)" },
+    { name: "Approved",  value: approvedTotal,  color: "var(--chart-approved)" },
+    { name: "Completed", value: completedTotal, color: "var(--chart-completed)" },
+    { name: "Cancelled", value: cancelledTotal, color: "var(--chart-cancelled)" },
+    { name: "No Show",   value: noShowTotal,    color: "var(--chart-noshow)" },
   ].filter((slice) => slice.value > 0)
 
   const topDoctors = doctors
@@ -163,15 +163,15 @@ export default async function AdminDashboardPage() {
         </div>
         <Link
           href="/admin/appointments"
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#E8D8C5] bg-white px-3 text-xs font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
         >
           Open appointments <ArrowRight className="size-3.5" />
         </Link>
       </header>
 
       <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
-        <div className="rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
-          <div className="grid divide-y divide-[#F3EAE0] sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+        <div className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="grid divide-y divide-(--card-divider) sm:grid-cols-4 sm:divide-x sm:divide-y-0">
             <DeskMetric label="Today" value={todayTotal} helper="appointments" icon={CalendarDays} />
             <DeskMetric label="Pending" value={pendingTotal} helper="needs review" icon={Clock} attention={pendingTotal > 0} />
             <DeskMetric label="Confirmed" value={approvedToday} helper="today" icon={CheckCircle2} />
@@ -184,22 +184,22 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#E8E3DC] bg-[#1C1007] p-4 text-white shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">Next up</p>
+        <div className="rounded-xl border border-border bg-(--nextup-bg) p-4 shadow-sm" style={{ color: "var(--nextup-fg)" }}>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--nextup-label)" }}>Next up</p>
           {nextAppointment ? (
             <Link href={`/admin/appointments/${nextAppointment.id}`} className="group mt-3 block">
               <p className="font-mono text-2xl font-bold">
                 {nextAppointment.assignedTime ?? (nextAppointment.slot ? formatTime(nextAppointment.slot.startTime) : "--:--")}
               </p>
-              <p className="mt-2 truncate text-sm font-semibold group-hover:text-[#F2C7C7]">{nextAppointment.patientName}</p>
-              <p className="mt-0.5 truncate text-xs text-white/55">
+              <p className="mt-2 truncate text-sm font-semibold group-hover:text-(--nextup-hover-fg)">{nextAppointment.patientName}</p>
+              <p className="mt-0.5 truncate text-xs" style={{ color: "var(--nextup-muted)" }}>
                 {nextAppointment.service.name}{nextAppointment.doctor ? ` · ${nextAppointment.doctor.name}` : ""}
               </p>
             </Link>
           ) : (
             <div className="mt-8">
               <p className="text-sm font-semibold">No appointments today</p>
-              <p className="mt-1 text-xs text-white/55">The schedule is clear.</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--nextup-muted)" }}>The schedule is clear.</p>
             </div>
           )}
         </div>
@@ -213,7 +213,7 @@ export default async function AdminDashboardPage() {
           {todaySchedule.length === 0 ? (
             <EmptyState text="No appointments scheduled for today." />
           ) : (
-            <div className="divide-y divide-[#F3EAE0]">
+            <div className="divide-y divide-(--card-divider)">
               {todaySchedule.map((appointment) => (
                 <AppointmentRow key={appointment.id} appointment={appointment} />
               ))}
@@ -228,7 +228,7 @@ export default async function AdminDashboardPage() {
           {pendingQueue.length === 0 ? (
             <EmptyState text="No pending requests right now." />
           ) : (
-            <div className="divide-y divide-[#F3EAE0]">
+            <div className="divide-y divide-(--card-divider)">
               {pendingQueue.map((appointment) => (
                 <AppointmentRow key={appointment.id} appointment={appointment} compact />
               ))}
@@ -249,7 +249,7 @@ export default async function AdminDashboardPage() {
         </Panel>
 
         <Panel title="Quality signal" subtitle="All appointments">
-          <div className="grid grid-cols-3 gap-2 border-b border-[#F3EAE0] px-4 py-3 text-center">
+          <div className="grid grid-cols-3 gap-2 border-b border-(--card-divider) px-4 py-3 text-center">
             <MiniStat label="Complete" value={`${completionRate}%`} />
             <MiniStat label="Cancelled" value={cancelledTotal} />
             <MiniStat label="No show" value={noShowTotal} />
@@ -265,7 +265,7 @@ export default async function AdminDashboardPage() {
           {recentBookings.length === 0 ? (
             <EmptyState text="No bookings yet." />
           ) : (
-            <div className="divide-y divide-[#F3EAE0]">
+            <div className="divide-y divide-(--card-divider)">
               {recentBookings.map((appointment) => (
                 <AppointmentRow key={appointment.id} appointment={appointment} compact />
               ))}
@@ -308,7 +308,7 @@ function DeskMetric({
 }) {
   return (
     <div className="relative p-4">
-      {attention && <span className="absolute right-3 top-3 size-2 rounded-full bg-amber-400" />}
+      {attention && <span className="absolute right-3 top-3 size-2 rounded-full bg-(--attention-dot)" />}
       <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
         <Icon className="size-3.5" />
         {label}
@@ -333,8 +333,8 @@ function Panel({
   children: React.ReactNode
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
-      <div className="flex min-h-12 items-center justify-between gap-3 border-b border-[#F3EAE0] px-4 py-3">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex min-h-12 items-center justify-between gap-3 border-b border-(--card-divider) px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           {icon}
           <div className="min-w-0">
@@ -412,7 +412,7 @@ function TopRankedList({
   const barClass = tone === "primary" ? "bg-primary/70" : "bg-accent/80"
 
   return (
-    <div className="divide-y divide-[#F3EAE0]">
+    <div className="divide-y divide-(--card-divider)">
       {data.map((item, index) => (
         <div
           key={item.id}
@@ -432,7 +432,7 @@ function TopRankedList({
               {item.count}
             </span>
           </div>
-          <div className="ml-7 mt-1.5 h-1 overflow-hidden rounded-full bg-[#F3EAE0]">
+          <div className="ml-7 mt-1.5 h-1 overflow-hidden rounded-full bg-(--card-divider)">
             <div
               className={`h-full rounded-full ${barClass}`}
               style={{ width: `${Math.max((item.count / max) * 100, 8)}%` }}
@@ -448,17 +448,18 @@ function EmptyState({ text }: { text: string }) {
   return <p className="px-4 py-6 text-center text-sm text-muted-foreground">{text}</p>
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDING: "bg-amber-50 text-amber-700 ring-amber-200",
-  APPROVED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  CANCELLED: "bg-red-50 text-red-600 ring-red-200",
-  COMPLETED: "bg-[#EAF3F5] text-[#3A8A97] ring-[#C5DFE4]",
-  NO_SHOW: "bg-orange-50 text-orange-600 ring-orange-200",
+const STATUS_STYLES: Record<string, React.CSSProperties> = {
+  PENDING:   { background: "var(--status-pending-bg)",   color: "var(--status-pending-fg)",   boxShadow: "0 0 0 1px var(--status-pending-ring)" },
+  APPROVED:  { background: "var(--status-approved-bg)",  color: "var(--status-approved-fg)",  boxShadow: "0 0 0 1px var(--status-approved-ring)" },
+  CANCELLED: { background: "var(--status-cancelled-bg)", color: "var(--status-cancelled-fg)", boxShadow: "0 0 0 1px var(--status-cancelled-ring)" },
+  COMPLETED: { background: "var(--status-completed-bg)", color: "var(--status-completed-fg)", boxShadow: "0 0 0 1px var(--status-completed-ring)" },
+  NO_SHOW:   { background: "var(--status-noshow-bg)",    color: "var(--status-noshow-fg)",    boxShadow: "0 0 0 1px var(--status-noshow-ring)" },
 }
 
 function StatusPill({ status }: { status: string }) {
+  const style = STATUS_STYLES[status] ?? { background: "var(--muted)", color: "var(--muted-foreground)", boxShadow: "0 0 0 1px var(--border)" }
   return (
-    <span className={`w-fit shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${STATUS_STYLES[status] ?? "bg-muted text-muted-foreground ring-border"}`}>
+    <span className="w-fit shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={style}>
       {status.replace("_", " ")}
     </span>
   )

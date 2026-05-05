@@ -18,6 +18,7 @@ type Props = {
   serviceName:         string
   serviceDurationMins: number
   preferredDate:       Date | null
+  branchId:            string | null
   open:                boolean
   onClose:             () => void
   onAssigned:          (doctorName: string, date: string, time: string) => void
@@ -58,7 +59,7 @@ function localDateStr(d: Date) {
 
 export default function AssignDialog({
   appointmentId, serviceId, serviceName, serviceDurationMins,
-  preferredDate, open, onClose, onAssigned,
+  preferredDate, branchId, open, onClose, onAssigned,
 }: Props) {
   const [doctors,        setDoctors]        = useState<Doctor[]>([])
   const [doctorId,       setDoctorId]       = useState("")
@@ -75,7 +76,9 @@ export default function AssignDialog({
   useEffect(() => {
     if (!open) return
     setLoadingDoctors(true)
-    fetch(`/api/doctors?serviceId=${serviceId}`)
+    const qs = new URLSearchParams({ serviceId })
+    if (branchId) qs.set("branchId", branchId)
+    fetch(`/api/doctors?${qs}`)
       .then((r) => r.json())
       .then((d) => setDoctors(d.data ?? []))
       .finally(() => setLoadingDoctors(false))

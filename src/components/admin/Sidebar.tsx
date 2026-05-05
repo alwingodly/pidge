@@ -20,12 +20,6 @@ const ALL_NAV = [
   { href: "/admin/settings",     label: "Settings",     icon: Settings,        roles: ["TENANT_ADMIN"] },
 ]
 
-const SIDEBAR_BG   = "#110808"
-const ACTIVE_BG    = "rgba(191,70,70,0.22)"
-const HOVER_BG     = "rgba(255,255,255,0.06)"
-const TEXT_ACTIVE  = "#ffffff"
-const TEXT_DEFAULT = "rgba(255,255,255,0.55)"
-
 export default function Sidebar({ role }: { role: string }) {
   const pathname   = usePathname()
   const [collapsed, setCollapsed] = useState(() => (
@@ -46,7 +40,7 @@ export default function Sidebar({ role }: { role: string }) {
       className="relative flex shrink-0 flex-col transition-all duration-300"
       style={{
         width:      collapsed ? 56 : 216,
-        background: SIDEBAR_BG,
+        background: "var(--sidebar-bg)",
         height:     "100vh",
         position:   "sticky",
         top:        0,
@@ -55,19 +49,19 @@ export default function Sidebar({ role }: { role: string }) {
       {/* Brand */}
       <div
         className="flex items-center border-b px-3"
-        style={{ minHeight: 56, borderColor: "rgba(255,255,255,0.07)" }}
+        style={{ minHeight: 56, borderColor: "var(--sidebar-border)" }}
       >
         {!collapsed && (
           <>
             <div
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg font-black text-sm text-white"
-              style={{ background: "#BF4646" }}
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg font-black text-sm"
+              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
             >
               P
             </div>
             <div className="ml-2.5 min-w-0 overflow-hidden">
-              <p className="truncate text-sm font-bold leading-tight text-white">Pikatym</p>
-              <p className="truncate text-[11px]" style={{ color: TEXT_DEFAULT }}>
+              <p className="truncate text-sm font-bold leading-tight" style={{ color: "var(--sidebar-text-active)" }}>Pikatym</p>
+              <p className="truncate text-[11px]" style={{ color: "var(--sidebar-text)" }}>
                 {role === "BRANCH_ADMIN" ? "Branch Admin" : "Clinic Admin"}
               </p>
             </div>
@@ -77,10 +71,10 @@ export default function Sidebar({ role }: { role: string }) {
           onClick={toggle}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={cn(
-            "flex size-6 items-center justify-center rounded-full border border-[#E8D8C5] bg-white shadow-md transition-colors hover:bg-secondary",
+            "flex size-6 items-center justify-center rounded-full border shadow-md transition-colors",
             collapsed ? "mx-auto" : "ml-auto",
           )}
-          style={{ color: "#BF4646" }}
+          style={{ borderColor: "var(--sidebar-toggle-border)", background: "var(--sidebar-toggle-bg)", color: "var(--sidebar-toggle-fg)" }}
         >
           {collapsed
             ? <ChevronRight className="size-3" />
@@ -93,7 +87,7 @@ export default function Sidebar({ role }: { role: string }) {
         {!collapsed && (
           <p
             className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest"
-            style={{ color: "rgba(255,255,255,0.3)" }}
+            style={{ color: "var(--sidebar-section-label)" }}
           >
             Menu
           </p>
@@ -112,19 +106,19 @@ export default function Sidebar({ role }: { role: string }) {
                   collapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2",
                 )}
                 style={{
-                  background: active ? ACTIVE_BG : "transparent",
-                  color:      active ? TEXT_ACTIVE : TEXT_DEFAULT,
+                  background: active ? "var(--sidebar-active-bg)" : "transparent",
+                  color:      active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
-                    e.currentTarget.style.background = HOVER_BG
-                    e.currentTarget.style.color = "rgba(255,255,255,0.85)"
+                    e.currentTarget.style.background = "var(--sidebar-hover-bg)"
+                    e.currentTarget.style.color = "var(--sidebar-text-active)"
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!active) {
                     e.currentTarget.style.background = "transparent"
-                    e.currentTarget.style.color = TEXT_DEFAULT
+                    e.currentTarget.style.color = "var(--sidebar-text)"
                   }
                 }}
               >
@@ -133,7 +127,7 @@ export default function Sidebar({ role }: { role: string }) {
                 {!collapsed && active && (
                   <div
                     className="ml-auto h-4 w-0.5 rounded-full"
-                    style={{ background: "#BF4646" }}
+                    style={{ background: "var(--accent)" }}
                   />
                 )}
               </Link>
@@ -145,7 +139,7 @@ export default function Sidebar({ role }: { role: string }) {
       {/* Sign out */}
       <div
         className="border-t px-2 py-3"
-        style={{ borderColor: "rgba(255,255,255,0.07)" }}
+        style={{ borderColor: "var(--sidebar-border)" }}
       >
         <button
           onClick={() => signOut({ callbackUrl: "/admin/login" })}
@@ -154,14 +148,14 @@ export default function Sidebar({ role }: { role: string }) {
             "flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150",
             collapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2",
           )}
-          style={{ color: TEXT_DEFAULT }}
+          style={{ color: "var(--sidebar-text)" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(191,70,70,0.15)"
-            e.currentTarget.style.color = "#ef9a9a"
+            e.currentTarget.style.background = "var(--sidebar-active-bg)"
+            e.currentTarget.style.color = "var(--sidebar-text-active)"
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent"
-            e.currentTarget.style.color = TEXT_DEFAULT
+            e.currentTarget.style.color = "var(--sidebar-text)"
           }}
         >
           <LogOut className="size-4 shrink-0" />

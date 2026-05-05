@@ -32,22 +32,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#FFF4EA" }}>
+    <div className="min-h-screen flex" style={{ background: "var(--login-page-bg)" }}>
       {/* Left brand panel */}
-      <div className="hidden lg:flex flex-col justify-between w-80 p-10"
-        style={{ background: "#BF4646" }}>
+      <div
+        className="hidden lg:flex flex-col justify-between w-80 p-10"
+        style={{ background: "var(--login-panel-bg)" }}
+      >
         <div>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black text-white text-lg">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg"
+            style={{ background: "var(--login-badge-bg)", color: "var(--login-panel-fg)" }}
+          >
             P
           </div>
-          <h1 className="text-white font-bold text-3xl mt-8 leading-tight">
+          <h1 className="font-bold text-3xl mt-8 leading-tight" style={{ color: "var(--login-panel-fg)" }}>
             Welcome<br />back.
           </h1>
-          <p className="text-white/70 text-sm mt-3">
+          <p className="text-sm mt-3" style={{ color: "var(--login-panel-muted)" }}>
             Manage your clinic, doctors, and appointments from one place.
           </p>
         </div>
-        <p className="text-white/40 text-xs">Pikatym · OutRift Technologies</p>
+        <p className="text-xs" style={{ color: "var(--login-panel-faint)" }}>Pikatym · OutRift Technologies</p>
       </div>
 
       {/* Right form panel */}
@@ -56,8 +61,12 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm"
-              style={{ background: "#BF4646" }}>P</div>
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
+              style={{ background: "var(--login-panel-bg)", color: "var(--login-btn-fg)" }}
+            >
+              P
+            </div>
             <span className="font-bold text-foreground">Pikatym Admin</span>
           </div>
 
@@ -77,7 +86,8 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 placeholder="you@clinic.com"
-                className="h-11 bg-white"
+                className="h-11"
+                style={{ background: "var(--login-input-bg)" }}
               />
             </div>
 
@@ -95,7 +105,8 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="h-11 bg-white"
+                className="h-11"
+                style={{ background: "var(--login-input-bg)" }}
               />
             </div>
 
@@ -108,10 +119,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-lg font-semibold text-sm text-white transition-all mt-2 disabled:opacity-60"
-              style={{ background: "#BF4646" }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.background = "#A03A3A")}
-              onMouseLeave={(e) => !loading && (e.currentTarget.style.background = "#BF4646")}
+              className="w-full h-11 rounded-lg font-semibold text-sm transition-all mt-2 disabled:opacity-60"
+              style={{ background: "var(--login-btn-bg)", color: "var(--login-btn-fg)" }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "var(--login-btn-hover)" }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "var(--login-btn-bg)" }}
             >
               {loading ? "Signing in…" : "Sign in →"}
             </button>

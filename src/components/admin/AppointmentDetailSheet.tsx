@@ -159,9 +159,18 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
   const fullName = appt
     ? [appt.patientName, appt.patientSurname].filter(Boolean).join(" ")
     : ""
+  const isAssigned = !!(appt?.doctor && appt?.assignedTime)
+
   const availableActions = appt
-    ? ACTIONS.filter(a => a.allowed.includes(appt.status))
+    ? ACTIONS.filter(a => {
+        if (!a.allowed.includes(appt.status)) return false
+        // Approve requires a doctor and time to already be assigned
+        if (a.status === "APPROVED" && !isAssigned) return false
+        return true
+      })
     : []
+
+  const needsAssignment = appt?.status === "PENDING" && !isAssigned
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -271,23 +280,32 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
         </div>
 
         {/* ── Footer actions ───────────────────────────────────────────────── */}
-        {!loading && appt && availableActions.length > 0 && (
-          <div className="shrink-0 border-t border-[#E8E3DC] bg-[#FDFBF8] px-6 py-4">
-            <div className="flex flex-wrap gap-2">
-              {availableActions.map(({ status, label, icon: Icon, style }) => (
-                <button
-                  key={status}
-                  onClick={() => doAction(status)}
-                  disabled={!!acting}
-                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${style}`}
-                >
-                  {acting === status
-                    ? <Loader2 className="size-3.5 animate-spin" />
-                    : <Icon className="size-3.5" />}
-                  {acting === status ? "Saving…" : label}
-                </button>
-              ))}
-            </div>
+        {!loading && appt && (
+          <div className="shrink-0 border-t border-[#E8E3DC] bg-[#FDFBF8] px-6 py-4 space-y-3">
+            {/* Nudge when pending but not yet assigned */}
+            {needsAssignment && (
+              <p className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                <Stethoscope className="size-3.5 shrink-0" />
+                Use the <strong>Assign</strong> button in the appointments list to assign a clinician and time before approving.
+              </p>
+            )}
+            {availableActions.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {availableActions.map(({ status, label, icon: Icon, style }) => (
+                  <button
+                    key={status}
+                    onClick={() => doAction(status)}
+                    disabled={!!acting}
+                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${style}`}
+                  >
+                    {acting === status
+                      ? <Loader2 className="size-3.5 animate-spin" />
+                      : <Icon className="size-3.5" />}
+                    {acting === status ? "Saving…" : label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </SheetContent>

@@ -10,12 +10,14 @@ export async function GET(req: NextRequest) {
 
   const { tenantId, branchId } = getScopeFromSession(session)
   const { searchParams } = new URL(req.url)
-  const serviceId = searchParams.get("serviceId")
+  const serviceId      = searchParams.get("serviceId")
+  const filterBranchId = searchParams.get("branchId") // explicit branch filter (e.g. from assign dialog)
 
   const doctors = await prisma.doctor.findMany({
     where: {
       tenantId,
-      branchId: branchId ?? undefined,
+      // explicit query param wins → then session scope → then no filter (tenant admin)
+      branchId: filterBranchId ?? branchId ?? undefined,
       isActive: true,
       ...(serviceId ? { doctorServices: { some: { serviceId } } } : {}),
     },

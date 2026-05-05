@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import AddServiceDialog from "@/components/admin/AddServiceDialog"
 import EditServiceDialog from "@/components/admin/EditServiceDialog"
-import { Briefcase, Clock, IndianRupee } from "lucide-react"
+import { Briefcase, Clock } from "lucide-react"
 
 function fmtPrice(price: number, symbol: string) {
   if (price <= 0) return "Free"
@@ -76,8 +76,18 @@ export default async function ServicesPage() {
         ) : (
           <div className="divide-y divide-[#F3EAE0]">
             {services.map(service => {
-              const unavailableCount = service.branchConfigs.filter(c => c.isOffered && !c.isAvailable).length
-              const notOfferedCount  = service.branchConfigs.filter(c => !c.isOffered).length
+              // Branch admins only see the status of their own branch
+              const myConfig = branchId
+                ? service.branchConfigs.find(c => c.branchId === branchId)
+                : null
+
+              const unavailableCount = branchId
+                ? (myConfig?.isOffered && !myConfig?.isAvailable ? 1 : 0)
+                : service.branchConfigs.filter(c => c.isOffered && !c.isAvailable).length
+
+              const notOfferedCount = branchId
+                ? (!myConfig?.isOffered ? 1 : 0)
+                : service.branchConfigs.filter(c => !c.isOffered).length
 
               return (
                 <div key={service.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
