@@ -4,14 +4,17 @@ import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import { z } from "zod"
 
+const PRACTITIONER_TYPES = ["VAIDYA", "THERAPIST", "CONSULTANT", "OTHER"] as const
+
 const updateSchema = z.object({
-  name:       z.string().min(1).optional(),
-  speciality: z.string().min(1).optional(),
-  bio:        z.string().optional(),
-  photoUrl:   z.string().optional(),
-  branchId:   z.string().nullable().optional(),
-  isActive:   z.boolean().optional(),
-  serviceIds: z.array(z.string()).optional(), // full replacement of services
+  name:             z.string().min(1).optional(),
+  practitionerType: z.enum(PRACTITIONER_TYPES).optional(),
+  speciality:       z.string().min(1).optional(),
+  bio:              z.string().optional(),
+  photoUrl:         z.string().optional(),
+  branchId:         z.string().nullable().optional(),
+  isActive:         z.boolean().optional(),
+  serviceIds:       z.array(z.string()).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body   = await req.json()
   const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+  if (!parsed.success) return Response.json({ error: parsed.error.issues }, { status: 400 })
 
   const { serviceIds, ...doctorData } = parsed.data
 

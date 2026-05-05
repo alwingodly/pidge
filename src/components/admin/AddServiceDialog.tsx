@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import ServiceForm from "@/components/admin/ServiceForm"
 
-export default function AddServiceDialog({ tenantId }: { tenantId: string }) {
+export default function AddServiceDialog({ tenantId, currencySymbol }: { tenantId: string; currencySymbol: string }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -41,6 +41,7 @@ export default function AddServiceDialog({ tenantId }: { tenantId: string }) {
         <div className="p-5">
           <ServiceForm
             tenantId={tenantId}
+            currencySymbol={currencySymbol}
             onSaved={() => setOpen(false)}
           />
         </div>

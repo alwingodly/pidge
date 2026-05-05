@@ -1,4 +1,3 @@
-// app/api/doctors/route.ts
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
@@ -10,7 +9,6 @@ export async function GET(req: NextRequest) {
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const { tenantId, branchId } = getScopeFromSession(session)
-
   const { searchParams } = new URL(req.url)
   const serviceId = searchParams.get("serviceId")
 
@@ -28,13 +26,16 @@ export async function GET(req: NextRequest) {
   return Response.json({ data: doctors })
 }
 
+const PRACTITIONER_TYPES = ["VAIDYA", "THERAPIST", "CONSULTANT", "OTHER"] as const
+
 const createSchema = z.object({
-  name:       z.string().min(1),
-  speciality: z.string().min(1),
-  bio:        z.string().optional(),
-  photoUrl:   z.string().url().optional(),
-  branchId:   z.string().uuid().optional(),
-  serviceIds: z.array(z.string().uuid()).default([]),
+  name:             z.string().min(1),
+  practitionerType: z.enum(PRACTITIONER_TYPES).default("VAIDYA"),
+  speciality:       z.string().min(1),
+  bio:              z.string().optional(),
+  photoUrl:         z.url().optional(),
+  branchId:         z.uuid().optional(),
+  serviceIds:       z.array(z.uuid()).default([]),
 })
 
 export async function POST(req: NextRequest) {
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const body   = await req.json()
   const parsed = createSchema.safeParse(body)
-  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+  if (!parsed.success) return Response.json({ error: parsed.error.issues }, { status: 400 })
 
   const { serviceIds, ...doctorData } = parsed.data
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
       })
     }
     return tx.doctor.findUnique({
-      where: { id: doc.id },
+      where:   { id: doc.id },
       include: { doctorServices: { include: { service: true } } },
     })
   })

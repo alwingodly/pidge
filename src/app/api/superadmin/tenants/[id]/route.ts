@@ -5,17 +5,19 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 
 const updateSchema = z.object({
-  name:         z.string().min(1).optional(),
-  businessType: z.string().optional(),
-  country:      z.string().optional(),
-  timezone:     z.string().optional(),
-  plan:         z.enum(["FREE","BASIC","PRO"]).optional(),
-  primaryColor: z.string().optional(),
-  logoUrl:      z.string().url().optional(),
-  isActive:     z.boolean().optional(),
-  adminName:    z.string().optional(),
-  adminEmail:   z.string().email().optional(),
-  adminPass:    z.string().min(8).optional(),
+  name:           z.string().min(1).optional(),
+  businessType:   z.string().optional(),
+  country:        z.string().optional(),
+  timezone:       z.string().optional(),
+  currency:       z.string().optional(),
+  currencySymbol: z.string().optional(),
+  plan:           z.enum(["FREE","BASIC","PRO"]).optional(),
+  primaryColor:   z.string().optional(),
+  logoUrl:        z.url().optional(),
+  isActive:       z.boolean().optional(),
+  adminName:      z.string().optional(),
+  adminEmail:     z.email().optional(),
+  adminPass:      z.string().min(8).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const body   = await req.json()
   const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+  if (!parsed.success) return Response.json({ error: parsed.error.issues }, { status: 400 })
 
   const { adminName, adminEmail, adminPass, ...tenantData } = parsed.data
 

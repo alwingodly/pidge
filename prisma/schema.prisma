@@ -76,15 +76,16 @@ model AdminUser {
 
 // ── Doctor ────────────────────────────────────────────────────────────────────
 model Doctor {
-  id         String   @id @default(uuid())
-  tenantId   String
-  branchId   String?
-  name       String
-  speciality String
-  bio        String?
-  photoUrl   String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
+  id               String   @id @default(uuid())
+  tenantId         String
+  branchId         String?
+  name             String
+  practitionerType String   @default("VAIDYA")
+  speciality       String
+  bio              String?
+  photoUrl         String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
   branch         Branch?         @relation(fields: [branchId], references: [id])
@@ -101,6 +102,7 @@ model Service {
   name         String
   description  String?
   durationMins Int      @default(30)
+  price        Float    @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -195,6 +197,15 @@ model Appointment {
   slot    Slot?    @relation(fields: [slotId],    references: [id])
   service Service  @relation(fields: [serviceId], references: [id])
   doctor  Doctor?  @relation(fields: [doctorId],  references: [id])
+}
+
+// ── PasswordResetToken ────────────────────────────────────────────────────────
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // ── WorkingHours — per-doctor recurring weekly schedule ───────────────────────

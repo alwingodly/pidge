@@ -23,7 +23,9 @@ export default async function TenantsPage() {
             <div>
               <p className="font-medium text-foreground">{tenant.name}</p>
               <p className="text-sm text-muted-foreground">
-                {tenant.slug}.pikatym.io · {tenant.plan} · {tenant._count.doctors} doctors · {tenant._count.appointments} bookings
+                {tenant.slug} · {tenant.plan} ·{" "}
+                <span className="font-mono">{tenant.currencySymbol} {tenant.currency}</span>
+                {" "}· {tenant._count.doctors} practitioners · {tenant._count.appointments} bookings
               </p>
             </div>
             <div className="flex items-center gap-3">

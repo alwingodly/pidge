@@ -5,10 +5,11 @@ import Image from "next/image"
 import AddDoctorDialog from "@/components/admin/AddDoctorDialog"
 import EditDoctorDialog from "@/components/admin/EditDoctorDialog"
 import DoctorScheduleSheet from "@/components/admin/DoctorScheduleSheet"
+import { PractitionerBadge } from "@/components/admin/DoctorForm"
 import { CalendarDays, Stethoscope, UserRound } from "lucide-react"
 
 function getInitials(name: string) {
-  return name.split(" ").filter(Boolean).slice(0, 2).map((word) => word[0].toUpperCase()).join("")
+  return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("")
 }
 
 export default async function DoctorsPage() {
@@ -18,8 +19,8 @@ export default async function DoctorsPage() {
 
   const [doctors, branches, services] = await Promise.all([
     prisma.doctor.findMany({
-      where: { tenantId, branchId: branchId ?? undefined },
-      orderBy: { name: "asc" },
+      where:   { tenantId, branchId: branchId ?? undefined },
+      orderBy: [{ practitionerType: "asc" }, { name: "asc" }],
       include: {
         doctorServices: true,
         _count: { select: { appointments: true } },
@@ -29,13 +30,13 @@ export default async function DoctorsPage() {
     prisma.service.findMany({ where: { tenantId, isActive: true }, orderBy: { name: "asc" } }),
   ])
 
-  const activeCount = doctors.filter((doctor) => doctor.isActive).length
+  const activeCount = doctors.filter(d => d.isActive).length
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Doctors</h1>
+          <h1 className="text-xl font-bold text-foreground">Practitioners</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {doctors.length} total · {activeCount} active
           </p>
@@ -55,7 +56,7 @@ export default async function DoctorsPage() {
             <div className="flex size-7 items-center justify-center rounded-lg bg-secondary text-primary">
               <Stethoscope className="size-3.5" />
             </div>
-            <p className="text-sm font-bold text-foreground">Clinicians</p>
+            <p className="text-sm font-bold text-foreground">Practitioners</p>
           </div>
           <span className="text-xs text-muted-foreground">{doctors.length} rows</span>
         </div>
@@ -65,8 +66,8 @@ export default async function DoctorsPage() {
             <div className="flex size-12 items-center justify-center rounded-xl bg-secondary text-primary">
               <UserRound className="size-5" />
             </div>
-            <p className="mt-3 text-sm font-semibold text-foreground">No doctors yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Use Add Doctor to create the first profile.</p>
+            <p className="mt-3 text-sm font-semibold text-foreground">No practitioners yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Add your first Vaidya, therapist, or consultant.</p>
             <div className="mt-4">
               <AddDoctorDialog
                 branches={branches}
@@ -84,6 +85,7 @@ export default async function DoctorsPage() {
                 key={doctor.id}
                 className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
               >
+                {/* Left — avatar + info */}
                 <div className="flex min-w-0 items-center gap-3">
                   {doctor.photoUrl ? (
                     <Image
@@ -100,8 +102,9 @@ export default async function DoctorsPage() {
                   )}
 
                   <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                       <p className="truncate text-sm font-semibold text-foreground">{doctor.name}</p>
+                      <PractitionerBadge type={doctor.practitionerType} />
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                         doctor.isActive
                           ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
@@ -114,6 +117,7 @@ export default async function DoctorsPage() {
                   </div>
                 </div>
 
+                {/* Right — actions */}
                 <div className="flex items-center justify-between gap-3 pl-13 sm:justify-end sm:pl-0">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <CalendarDays className="size-3" />

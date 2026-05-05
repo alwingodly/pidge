@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, UserRound, Clock, Check, Loader2 } from "lucide-react"
+import { Plus, UserRound, Clock, Check, Loader2, Stethoscope } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -66,7 +66,7 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
       <DialogTrigger asChild>
         <Button className="rounded-xl shadow-sm" size="sm">
           <Plus className="size-4" />
-          Add Doctor
+          Add Practitioner
         </Button>
       </DialogTrigger>
 
@@ -80,9 +80,9 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
                   <UserRound className="size-5" />
                 </div>
                 <div>
-                  <DialogTitle className="text-lg font-bold text-foreground">Add doctor</DialogTitle>
+                  <DialogTitle className="text-lg font-bold text-foreground">Add practitioner</DialogTitle>
                   <DialogDescription className="mt-1">
-                    Step 1 of 2 — Create a clinician profile and assign their services.
+                    Step 1 of 2 — Create a practitioner profile and assign their services.
                   </DialogDescription>
                 </div>
               </div>

@@ -19,6 +19,7 @@ const createSchema = z.object({
   name:         z.string().min(1),
   description:  z.string().optional(),
   durationMins: z.number().int().positive().default(30),
+  price:        z.number().min(0).default(0),
 })
 
 export async function POST(req: NextRequest) {

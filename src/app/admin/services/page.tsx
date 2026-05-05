@@ -3,7 +3,13 @@ import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import AddServiceDialog from "@/components/admin/AddServiceDialog"
 import EditServiceDialog from "@/components/admin/EditServiceDialog"
-import { Briefcase, Clock } from "lucide-react"
+import { Briefcase, Clock, IndianRupee } from "lucide-react"
+
+function fmtPrice(price: number, symbol: string) {
+  if (price <= 0) return "Free"
+  const fmt = price % 1 === 0 ? String(price) : price.toFixed(2)
+  return `${symbol}${fmt}`
+}
 
 export default async function ServicesPage() {
   const session = await auth()
@@ -11,12 +17,12 @@ export default async function ServicesPage() {
   const { tenantId, branchId } = getScopeFromSession(session)
   const isTenantAdmin = session.user.role === "TENANT_ADMIN"
 
-  const [services, branches] = await Promise.all([
+  const [services, branches, tenant] = await Promise.all([
     prisma.service.findMany({
       where:   { tenantId },
       orderBy: { name: "asc" },
       include: {
-        _count:       { select: { appointments: true } },
+        _count:        { select: { appointments: true } },
         branchConfigs: { select: { branchId: true, isOffered: true, isAvailable: true } },
       },
     }),
@@ -25,9 +31,14 @@ export default async function ServicesPage() {
       orderBy: { name: "asc" },
       select:  { id: true, name: true },
     }),
+    prisma.tenant.findUnique({
+      where:  { id: tenantId },
+      select: { currencySymbol: true },
+    }),
   ])
 
-  const activeCount = services.filter((s) => s.isActive).length
+  const symbol     = tenant?.currencySymbol ?? "£"
+  const activeCount = services.filter(s => s.isActive).length
 
   return (
     <div className="space-y-4">
@@ -38,7 +49,9 @@ export default async function ServicesPage() {
             {services.length} total · {activeCount} active
           </p>
         </div>
-        {isTenantAdmin && <AddServiceDialog tenantId={tenantId} />}
+        {isTenantAdmin && (
+          <AddServiceDialog tenantId={tenantId} currencySymbol={symbol} />
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
@@ -58,19 +71,19 @@ export default async function ServicesPage() {
               <Briefcase className="size-5" />
             </div>
             <p className="mt-3 text-sm font-semibold text-foreground">No services yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Use Add Service to create the first one.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Add your first bookable service.</p>
           </div>
         ) : (
           <div className="divide-y divide-[#F3EAE0]">
-            {services.map((service) => {
-              // Summarise branch availability for display
-              const unavailableCount = service.branchConfigs.filter((c) => c.isOffered && !c.isAvailable).length
-              const notOfferedCount  = service.branchConfigs.filter((c) => !c.isOffered).length
+            {services.map(service => {
+              const unavailableCount = service.branchConfigs.filter(c => c.isOffered && !c.isAvailable).length
+              const notOfferedCount  = service.branchConfigs.filter(c => !c.isOffered).length
 
               return (
                 <div key={service.id} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2">
+                    {/* Name row */}
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                       <p className="truncate text-sm font-semibold text-foreground">{service.name}</p>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                         service.isActive
@@ -90,26 +103,30 @@ export default async function ServicesPage() {
                         </span>
                       )}
                     </div>
-                    {service.description && (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{service.description}</p>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {/* Meta row */}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Clock className="size-3" />
                         {service.durationMins} min
                       </span>
-                      <span>{service._count.appointments} bookings</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                        {fmtPrice(service.price, symbol)}
+                      </span>
+                      <span>{service._count.appointments} booking{service._count.appointments !== 1 ? "s" : ""}</span>
+                      {service.description && (
+                        <span className="truncate text-muted-foreground/70">{service.description}</span>
+                      )}
                     </div>
-                    <EditServiceDialog
-                      service={service}
-                      branches={branches}
-                      isTenantAdmin={isTenantAdmin}
-                      myBranchId={branchId}
-                    />
                   </div>
+
+                  <EditServiceDialog
+                    service={service}
+                    branches={branches}
+                    isTenantAdmin={isTenantAdmin}
+                    myBranchId={branchId}
+                    currencySymbol={symbol}
+                  />
                 </div>
               )
             })}

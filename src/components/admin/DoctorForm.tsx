@@ -7,11 +7,62 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// ── Practitioner type config ───────────────────────────────────────────────────
+export const PRACTITIONER_TYPES = [
+  {
+    value:       "VAIDYA",
+    label:       "Vaidya",
+    desc:        "Ayurvedic physician",
+    placeholder: "e.g. Panchakarma, Nadi Pariksha",
+  },
+  {
+    value:       "THERAPIST",
+    label:       "Therapist",
+    desc:        "Treatment & body therapies",
+    placeholder: "e.g. Abhyanga, Shirodhara",
+  },
+  {
+    value:       "CONSULTANT",
+    label:       "Consultant",
+    desc:        "Nutrition, yoga & lifestyle",
+    placeholder: "e.g. Diet & Nutrition, Yoga",
+  },
+  {
+    value:       "OTHER",
+    label:       "Other",
+    desc:        "Other practitioner role",
+    placeholder: "e.g. Herbalist, Marma therapist",
+  },
+] as const
+
+export type PractitionerType = (typeof PRACTITIONER_TYPES)[number]["value"]
+
+// ── Badge helper (reused in the list page) ────────────────────────────────────
+const TYPE_BADGE: Record<PractitionerType, { bg: string; text: string; ring: string }> = {
+  VAIDYA:     { bg: "bg-blue-50",    text: "text-blue-700",    ring: "ring-blue-200"   },
+  THERAPIST:  { bg: "bg-emerald-50", text: "text-emerald-700", ring: "ring-emerald-200"},
+  CONSULTANT: { bg: "bg-purple-50",  text: "text-purple-700",  ring: "ring-purple-200" },
+  OTHER:      { bg: "bg-gray-50",    text: "text-gray-600",    ring: "ring-gray-200"   },
+}
+
+export function PractitionerBadge({ type }: { type: string }) {
+  const meta = TYPE_BADGE[type as PractitionerType] ?? TYPE_BADGE.OTHER
+  const label = PRACTITIONER_TYPES.find(t => t.value === type)?.label ?? type
+  return (
+    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${meta.bg} ${meta.text} ${meta.ring}`}>
+      {label}
+    </span>
+  )
+}
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 type Doctor = {
   id: string
   name: string
+  practitionerType?: string | null
   speciality: string
   bio?: string | null
   photoUrl?: string | null
@@ -19,7 +70,7 @@ type Doctor = {
   doctorServices?: { serviceId: string }[]
 }
 type Branch  = { id: string; name: string }
-type Service = { id: string; name: string; durationMins: number }
+type Service = { id: string; name: string; durationMins: number; price?: number }
 
 type Props = {
   doctor:          Doctor | null
@@ -32,32 +83,35 @@ type Props = {
   className?:      string
 }
 
-export default function DoctorForm({ doctor, branches, services, defaultBranchId, isBranchAdmin, onSaved, className }: Props) {
+// ── Component ──────────────────────────────────────────────────────────────────
+export default function DoctorForm({
+  doctor, branches, services, defaultBranchId, isBranchAdmin, onSaved, className,
+}: Props) {
   const router = useRouter()
 
+  const [practitionerType, setPractitionerType] = useState<PractitionerType>(
+    (doctor?.practitionerType as PractitionerType) ?? "VAIDYA"
+  )
   const [name,       setName]       = useState(doctor?.name ?? "")
   const [speciality, setSpeciality] = useState(doctor?.speciality ?? "")
   const [bio,        setBio]        = useState(doctor?.bio ?? "")
   const [photoUrl,   setPhotoUrl]   = useState(doctor?.photoUrl ?? "")
-  // If there's exactly one branch, auto-assign it so the admin doesn't have to pick.
   const autoSingleBranch = branches.length === 1 ? branches[0].id : null
-  const [branchId, setBranchId] = useState(
+  const [branchId,   setBranchId]   = useState(
     doctor?.branchId ?? defaultBranchId ?? autoSingleBranch ?? ""
   )
   const [serviceIds, setServiceIds] = useState<Set<string>>(
-    new Set(doctor?.doctorServices?.map((ds) => ds.serviceId) ?? [])
+    new Set(doctor?.doctorServices?.map(ds => ds.serviceId) ?? [])
   )
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
 
+  const selectedType = PRACTITIONER_TYPES.find(t => t.value === practitionerType)!
+
   function toggleService(id: string) {
-    setServiceIds((prev) => {
+    setServiceIds(prev => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }
@@ -65,7 +119,7 @@ export default function DoctorForm({ doctor, branches, services, defaultBranchId
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (serviceIds.size === 0) { setError("Select at least one service."); return }
-    if (!isBranchAdmin && branches.length > 1 && !branchId) { setError("Select a branch for this doctor."); return }
+    if (!isBranchAdmin && branches.length > 1 && !branchId) { setError("Select a branch."); return }
     setLoading(true); setError(null)
 
     const method = doctor ? "PATCH" : "POST"
@@ -75,7 +129,8 @@ export default function DoctorForm({ doctor, branches, services, defaultBranchId
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name, speciality,
+        name, practitionerType,
+        speciality,
         bio:        bio      || undefined,
         photoUrl:   photoUrl || undefined,
         branchId:   branchId || undefined,
@@ -84,86 +139,117 @@ export default function DoctorForm({ doctor, branches, services, defaultBranchId
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error ?? "Something went wrong."); setLoading(false); return }
-    if (onSaved) {
-      onSaved(data.id ?? data.doctor?.id ?? "")
-      router.refresh()
-      return
-    }
+
+    if (onSaved) { onSaved(data.data?.id ?? data.id ?? ""); router.refresh(); return }
     router.push("/admin/doctors")
     router.refresh()
   }
 
-  const hasBranches = branches.length > 0
-
   return (
-    <form onSubmit={handleSubmit} className={cn("bg-white rounded-lg border border-border p-5 space-y-4", className)}>
+    <form onSubmit={handleSubmit} className={cn("space-y-5", className)}>
 
-      {/* Basic info */}
-      <div className="grid sm:grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label>Name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Dr. Sarah Khan" />
-        </div>
-        <div className="space-y-1">
-          <Label>Speciality</Label>
-          <Input value={speciality} onChange={(e) => setSpeciality(e.target.value)} required placeholder="General Practitioner" />
+      {/* ── Practitioner type ──────────────────────────────────────────────── */}
+      <div className="space-y-2">
+        <Label>Practitioner type <span className="text-primary">*</span></Label>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {PRACTITIONER_TYPES.map(t => {
+            const active = practitionerType === t.value
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => { setPractitionerType(t.value); setSpeciality("") }}
+                className="flex flex-col items-start gap-0.5 rounded-xl border p-3 text-left transition-all"
+                style={{
+                  borderColor: active ? "var(--color-primary)" : "#E8D8C5",
+                  background:  active ? "rgba(var(--color-primary-rgb, 191,70,70),0.05)" : "#fff",
+                }}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">{t.label}</span>
+                  {active && <Check className="size-3.5 text-primary" />}
+                </div>
+                <span className="text-[10px] leading-tight text-muted-foreground">{t.desc}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Branch assignment — required for tenant admin when 2+ branches exist */}
-      {hasBranches && !isBranchAdmin && branches.length > 1 && (
-        <div className="space-y-1.5 p-3 rounded-lg bg-secondary border border-border">
+      {/* ── Name & speciality ─────────────────────────────────────────────── */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label>Full name <span className="text-primary">*</span></Label>
+          <Input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+            placeholder={practitionerType === "VAIDYA" ? "Dr. Arjun Sharma" : "Full name"}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label>Speciality <span className="text-primary">*</span></Label>
+          <Input
+            value={speciality}
+            onChange={e => setSpeciality(e.target.value)}
+            required
+            placeholder={selectedType.placeholder}
+          />
+        </div>
+      </div>
+
+      {/* ── Branch ────────────────────────────────────────────────────────── */}
+      {!isBranchAdmin && branches.length > 1 && (
+        <div className="space-y-1.5 rounded-lg border border-border bg-secondary p-3">
           <div>
             <Label className="text-sm font-semibold">
               Branch <span className="text-primary">*</span>
             </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">Which branch does this doctor work at?</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Which branch does this practitioner work at?</p>
           </div>
           <Select value={branchId} onValueChange={setBranchId} required>
             <SelectTrigger className="bg-white">
               <SelectValue placeholder="Select a branch…" />
             </SelectTrigger>
             <SelectContent>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-              ))}
+              {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       )}
 
-      {/* Services */}
+      {/* ── Services ──────────────────────────────────────────────────────── */}
       <div className="space-y-2">
         <Label>Services offered <span className="text-primary">*</span></Label>
         {services.length === 0 ? (
-          <p className="text-sm text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-            Add services first before adding a doctor.{" "}
-            <a href="/admin/services" className="underline font-medium">Go to Services →</a>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-600">
+            Add services first.{" "}
+            <a href="/admin/services" className="font-medium underline">Go to Services →</a>
           </p>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-1.5">
-            {services.map((svc) => {
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {services.map(svc => {
               const checked = serviceIds.has(svc.id)
               return (
                 <button
-                  key={svc.id} type="button" onClick={() => toggleService(svc.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md border text-left text-sm transition-colors ${
+                  key={svc.id}
+                  type="button"
+                  onClick={() => toggleService(svc.id)}
+                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                     checked
-                      ? "bg-secondary border-primary text-primary"
-                      : "bg-white border-border text-foreground hover:border-border/60"
+                      ? "border-primary bg-secondary text-primary"
+                      : "border-border bg-white text-foreground hover:border-border/60"
                   }`}
                 >
-                  <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                    checked ? "bg-primary border-primary" : "border-border"
+                  <div className={`flex size-3.5 shrink-0 items-center justify-center rounded border ${
+                    checked ? "border-primary bg-primary" : "border-border"
                   }`}>
-                    {checked && (
-                      <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
+                    {checked && <Check className="size-2.5 text-white" strokeWidth={3} />}
                   </div>
                   <span className="font-medium">{svc.name}</span>
-                  <span className="ml-auto text-xs opacity-50">{svc.durationMins}m</span>
+                  <span className="ml-auto shrink-0 text-xs opacity-50">
+                    {svc.durationMins}m{svc.price ? ` · ${svc.price}` : ""}
+                  </span>
                 </button>
               )
             })}
@@ -171,23 +257,35 @@ export default function DoctorForm({ doctor, branches, services, defaultBranchId
         )}
       </div>
 
-      {/* Optional fields */}
-      <div className="grid sm:grid-cols-2 gap-3">
+      {/* ── Optional fields ───────────────────────────────────────────────── */}
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label>Bio <span className="text-muted-foreground text-xs">(optional)</span></Label>
-          <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2}
-            placeholder="Short description shown to patients" className="resize-none" />
+          <Label>Bio <span className="text-xs text-muted-foreground">(optional)</span></Label>
+          <Textarea
+            value={bio}
+            onChange={e => setBio(e.target.value)}
+            rows={2}
+            placeholder="Short description shown to patients"
+            className="resize-none"
+          />
         </div>
         <div className="space-y-1">
-          <Label>Photo URL <span className="text-muted-foreground text-xs">(optional)</span></Label>
-          <Input value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} type="url" placeholder="https://..." />
+          <Label>Photo URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
+          <Input
+            value={photoUrl}
+            onChange={e => setPhotoUrl(e.target.value)}
+            type="url"
+            placeholder="https://…"
+          />
         </div>
       </div>
 
-      {error && <p className="text-sm text-primary bg-secondary rounded px-3 py-2">{error}</p>}
+      {error && (
+        <p className="rounded-lg bg-secondary px-3 py-2 text-sm text-primary">{error}</p>
+      )}
 
       <Button type="submit" disabled={loading || services.length === 0} size="sm">
-        {loading ? "Saving…" : doctor ? "Save Changes" : "Add Doctor"}
+        {loading ? "Saving…" : doctor ? "Save changes" : `Add ${selectedType.label}`}
       </Button>
     </form>
   )

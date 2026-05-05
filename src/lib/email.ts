@@ -216,6 +216,54 @@ export async function sendReminderEmail(appt: FullAppointment) {
   )
 }
 
+export async function sendBookingOTPEmail(email: string, otp: string, patientName: string) {
+  return send(
+    email,
+    `Your verification code — ${otp}`,
+    `<div style="font-family:sans-serif;max-width:420px;margin:0 auto">
+      <div style="background:#BF4646;border-radius:12px 12px 0 0;padding:24px 28px">
+        <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">P</div>
+        <h1 style="color:#fff;font-size:18px;font-weight:700;margin:12px 0 0">Email verification</h1>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px">
+        <p style="color:#1C1007;font-size:14px;margin:0 0 16px">Hi ${patientName}, please use the code below to verify your email and complete your booking.</p>
+        <div style="background:#FFF4EA;border:1px solid #EDDCC6;border-radius:10px;padding:20px;text-align:center;margin:0 0 20px">
+          <p style="color:#9A7A5A;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Verification code</p>
+          <p style="color:#BF4646;font-size:36px;font-weight:900;letter-spacing:10px;margin:0;font-family:monospace">${otp}</p>
+        </div>
+        <p style="color:#9A7A5A;font-size:12px;margin:0">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
+      </div>
+    </div>`
+  )
+}
+
+export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  return send(
+    email,
+    "Reset your password — Pikatym",
+    `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+      <div style="background:#BF4646;border-radius:12px 12px 0 0;padding:28px 32px">
+        <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:18px">P</div>
+        <h1 style="color:#fff;font-size:22px;font-weight:700;margin:16px 0 4px">Reset your password</h1>
+        <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:0">Pikatym Admin</p>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:28px 32px">
+        <p style="color:#1C1007;font-size:14px;margin:0 0 16px">We received a request to reset the password for your Pikatym account.</p>
+        <p style="color:#1C1007;font-size:14px;margin:0 0 24px">Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.</p>
+        <a href="${resetUrl}"
+           style="display:inline-block;background:#BF4646;color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px">
+          Reset password →
+        </a>
+        <p style="color:#9A7A5A;font-size:12px;margin:24px 0 0">If you didn't request a password reset, you can safely ignore this email. Your password won't change.</p>
+        <p style="color:#9A7A5A;font-size:12px;margin:8px 0 0">Or copy this link into your browser:<br/>
+          <a href="${resetUrl}" style="color:#BF4646;word-break:break-all">${resetUrl}</a>
+        </p>
+      </div>
+      <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">Pikatym · OutRift Technologies</p>
+    </div>`
+  )
+}
+
 export async function sendWelcomeEmail(name: string, email: string, password: string, loginUrl: string, clinicName: string) {
   return send(
     email,

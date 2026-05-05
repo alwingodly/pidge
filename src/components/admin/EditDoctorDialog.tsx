@@ -61,7 +61,7 @@ export default function EditDoctorDialog({
               <UserRound className="size-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-foreground">Edit doctor</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-foreground">Edit practitioner</DialogTitle>
               <DialogDescription className="mt-1">
                 Update {doctor.name}&apos;s profile, branch, and service assignments.
               </DialogDescription>

@@ -21,22 +21,24 @@ type BranchConfig = {
 type Branch = { id: string; name: string }
 
 type Service = {
-  id:           string
-  name:         string
-  description:  string | null
-  durationMins: number
-  isActive:     boolean
+  id:            string
+  name:          string
+  description:   string | null
+  durationMins:  number
+  price:         number
+  isActive:      boolean
   branchConfigs: BranchConfig[]
 }
 
 type Props = {
-  service:       Service
-  branches:      Branch[]
-  isTenantAdmin: boolean
-  myBranchId:    string | null  // null = tenant admin (sees all)
+  service:        Service
+  branches:       Branch[]
+  isTenantAdmin:  boolean
+  myBranchId:     string | null
+  currencySymbol: string
 }
 
-export default function EditServiceDialog({ service, branches, isTenantAdmin, myBranchId }: Props) {
+export default function EditServiceDialog({ service, branches, isTenantAdmin, myBranchId, currencySymbol }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
@@ -44,6 +46,7 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
   const [name,         setName]         = useState(service.name)
   const [description,  setDescription]  = useState(service.description ?? "")
   const [durationMins, setDurationMins] = useState(String(service.durationMins))
+  const [price,        setPrice]        = useState(String(service.price ?? 0))
   const [isActive,     setIsActive]     = useState(service.isActive)
   const [saving,       setSaving]       = useState(false)
   const [savedInfo,    setSavedInfo]    = useState(false)
@@ -65,7 +68,7 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
     const res = await fetch(`/api/services/${service.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ name, description: description || undefined, durationMins: parseInt(durationMins), isActive }),
+      body:    JSON.stringify({ name, description: description || undefined, durationMins: parseInt(durationMins), price: parseFloat(price) || 0, isActive }),
     })
     const data = await res.json()
     setSaving(false)
@@ -130,10 +133,24 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
                 <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="resize-none rounded-xl" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Duration (min)</Label>
                   <Input type="number" min="5" step="5" value={durationMins} onChange={(e) => setDurationMins(e.target.value)} className="rounded-xl" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Price</Label>
+                  <div className="flex h-10 overflow-hidden rounded-xl border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                    <span className="flex items-center border-r border-input bg-secondary px-2.5 text-xs font-semibold text-muted-foreground">
+                      {currencySymbol}
+                    </span>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={price}
+                      onChange={e => setPrice(e.target.value)}
+                      className="flex-1 bg-background px-2.5 text-sm text-foreground outline-none"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Status</Label>

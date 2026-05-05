@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,10 @@ import {
   Check,
   ChevronRight,
   Clock,
+  Loader2,
+  Mail,
   MapPin,
+  ShieldCheck,
   Stethoscope,
 } from "lucide-react"
 
@@ -59,14 +62,15 @@ export default function BookingSteps({
   const hasLocationStep = branches.length > 1
 
   const STEPS = hasLocationStep
-    ? ["Location", "Service", "Date", "Details"]
-    : ["Service", "Date", "Details"]
+    ? ["Location", "Service", "Date", "Details", "Verify"]
+    : ["Service", "Date", "Details", "Verify"]
 
   // Step numbers depend on whether the location step is present.
   const locationStep = hasLocationStep ? 1 : 0
   const serviceStep  = hasLocationStep ? 2 : 1
   const dateStep     = hasLocationStep ? 3 : 2
   const detailsStep  = hasLocationStep ? 4 : 3
+  const otpStep      = hasLocationStep ? 5 : 4
 
   const [state, setState] = useState<State>({
     step:            1,
@@ -84,8 +88,12 @@ export default function BookingSteps({
     patientGender:   "",
     notes:           "",
   })
-  const [submitting, setSubmitting] = useState(false)
-  const [error,      setError]      = useState<string | null>(null)
+  const [submitting,  setSubmitting]  = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
+  const [otpDigits,   setOtpDigits]   = useState(["", "", "", ""])
+  const [otpSending,  setOtpSending]  = useState(false)
+  const [otpVerifying,setOtpVerifying]= useState(false)
+  const [otpError,    setOtpError]    = useState<string | null>(null)
 
   function set<K extends keyof State>(key: K, value: State[K]) {
     setState((p) => ({ ...p, [key]: value }))
@@ -95,9 +103,9 @@ export default function BookingSteps({
   function serviceStatus(svc: Service): "available" | "unavailable" | "hidden" {
     if (!state.branchId) return "available"
     const cfg = svc.branchConfigs.find((c) => c.branchId === state.branchId)
-    if (!cfg) return "available"                         // no config = default offered
-    if (!cfg.isOffered) return "hidden"                  // permanently not offered
-    if (!cfg.isAvailable) return "unavailable"           // temporarily unavailable
+    if (!cfg) return "available"
+    if (!cfg.isOffered) return "hidden"
+    if (!cfg.isAvailable) return "unavailable"
     return "available"
   }
 
@@ -105,10 +113,44 @@ export default function BookingSteps({
   const selectedService = services.find((s) => s.id === state.serviceId)
   const selectedBranch  = branches.find((b) => b.id === state.branchId)
 
-  async function handleConfirm() {
-    setSubmitting(true)
-    setError(null)
+  // Step 1: send OTP then advance to verify step
+  async function handleSendOTP() {
+    setOtpSending(true)
+    setOtpError(null)
     try {
+      const res = await fetch("/api/booking-otp", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: state.patientEmail, patientName: state.patientName }),
+      })
+      if (!res.ok) { setError("Failed to send verification code. Please try again."); return }
+      setOtpDigits(["", "", "", ""])
+      set("step", otpStep)
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  // Step 2: verify OTP then create booking
+  async function handleVerifyAndBook() {
+    const otp = otpDigits.join("")
+    if (otp.length < 4) { setOtpError("Please enter the 4-digit code."); return }
+
+    setOtpVerifying(true)
+    setOtpError(null)
+    try {
+      const verifyRes = await fetch("/api/booking-otp", {
+        method:  "PUT",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ otp }),
+      })
+      if (!verifyRes.ok) {
+        const d = await verifyRes.json().catch(() => null)
+        setOtpError(d?.error ?? "Incorrect code. Please try again.")
+        return
+      }
+
+      setSubmitting(true)
       const res = await fetch("/api/appointments", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,14 +170,11 @@ export default function BookingSteps({
           notes:           state.notes           || undefined,
         }),
       })
-
       const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        setError(data?.error ?? "Something went wrong. Please try again.")
-        return
-      }
+      if (!res.ok) { setOtpError(data?.error ?? "Something went wrong."); return }
       router.push(`/confirmation/${data.bookingRef}`)
     } finally {
+      setOtpVerifying(false)
       setSubmitting(false)
     }
   }
@@ -318,6 +357,7 @@ export default function BookingSteps({
           )}
 
           {/* Step: Patient details */}
+          {/* Step: Patient details */}
           {state.step === detailsStep && (
             <div className="space-y-4">
               <StepHeading
@@ -339,13 +379,64 @@ export default function BookingSteps({
                   notes:           state.notes,
                 }}
                 onChange={(field, value) => set(field as keyof State, value)}
-                onSubmit={handleConfirm}
-                loading={submitting}
+                onSubmit={handleSendOTP}
+                loading={otpSending}
                 error={error}
               />
               <Button variant="outline" size="sm" className="rounded-xl bg-white" onClick={() => set("step", dateStep)}>
                 <ArrowLeft className="size-4" /> Back
               </Button>
+            </div>
+          )}
+
+          {/* Step: Email OTP verification */}
+          {state.step === otpStep && (
+            <div className="space-y-6">
+              <StepHeading
+                icon={<ShieldCheck className="size-4.5" />}
+                title="Verify your email"
+                description={`We sent a 4-digit code to ${state.patientEmail}. Enter it below to confirm your booking.`}
+              />
+
+              <OTPInput
+                value={otpDigits}
+                onChange={setOtpDigits}
+              />
+
+              {otpError && (
+                <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-center text-sm text-destructive">
+                  {otpError}
+                </p>
+              )}
+
+              <Button
+                className="h-12 w-full rounded-xl font-semibold"
+                onClick={handleVerifyAndBook}
+                disabled={otpVerifying || submitting || otpDigits.join("").length < 4}
+              >
+                {(otpVerifying || submitting)
+                  ? <><Loader2 className="size-4 animate-spin" /> Verifying…</>
+                  : "Confirm booking →"}
+              </Button>
+
+              <div className="flex items-center justify-between text-sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl bg-white"
+                  onClick={() => { set("step", detailsStep); setOtpDigits(["","","",""]); setOtpError(null) }}
+                >
+                  <ArrowLeft className="size-4" /> Back
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={otpSending}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline disabled:opacity-50"
+                >
+                  {otpSending ? "Sending…" : "Resend code"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -434,6 +525,50 @@ function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-xl border border-[#E8D8C5] bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
       {text}
+    </div>
+  )
+}
+
+function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const refs = useRef<(HTMLInputElement | null)[]>([])
+
+  function handleChange(i: number, raw: string) {
+    if (!/^\d*$/.test(raw)) return
+    const next = [...value]
+    next[i] = raw.slice(-1)
+    onChange(next)
+    if (raw && i < 3) refs.current[i + 1]?.focus()
+  }
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !value[i] && i > 0) refs.current[i - 1]?.focus()
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault()
+    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4)
+    const next   = digits.split("").concat(["", "", "", ""]).slice(0, 4)
+    onChange(next)
+    refs.current[Math.min(digits.length, 3)]?.focus()
+  }
+
+  return (
+    <div className="flex justify-center gap-3">
+      {value.map((digit, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={digit}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          autoComplete="one-time-code"
+          className="size-14 rounded-xl border-2 border-[#E8D8C5] bg-white text-center text-2xl font-bold text-foreground outline-none transition-colors focus:border-primary"
+        />
+      ))}
     </div>
   )
 }

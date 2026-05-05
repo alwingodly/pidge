@@ -8,30 +8,46 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 
+// ── Currency catalogue ─────────────────────────────────────────────────────────
+const CURRENCIES = [
+  { code: "GBP", symbol: "£",   label: "British Pound"     },
+  { code: "INR", symbol: "₹",   label: "Indian Rupee"      },
+  { code: "EUR", symbol: "€",   label: "Euro"              },
+  { code: "USD", symbol: "$",   label: "US Dollar"         },
+  { code: "AED", symbol: "د.إ", label: "UAE Dirham"        },
+  { code: "SGD", symbol: "S$",  label: "Singapore Dollar"  },
+  { code: "CAD", symbol: "CA$", label: "Canadian Dollar"   },
+  { code: "AUD", symbol: "A$",  label: "Australian Dollar" },
+]
+
 type Tenant = {
-  id:          string
-  name:        string
-  slug:        string
-  businessType: string
-  country:     string
-  timezone:    string
-  plan:        string
-  primaryColor: string
-  logoUrl?:    string | null
-  adminUsers?: { name: string; email: string }[]
+  id:             string
+  name:           string
+  slug:           string
+  businessType:   string
+  country:        string
+  timezone:       string
+  currency:       string
+  currencySymbol: string
+  plan:           string
+  primaryColor:   string
+  logoUrl?:       string | null
+  adminUsers?:    { name: string; email: string }[]
 }
 
 export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
-  const router    = useRouter()
-  const isNew     = !tenant
-  const [name,         setName]         = useState(tenant?.name ?? "")
-  const [slug,         setSlug]         = useState(tenant?.slug ?? "")
+  const router = useRouter()
+  const isNew  = !tenant
+
+  const [name,         setName]         = useState(tenant?.name         ?? "")
+  const [slug,         setSlug]         = useState(tenant?.slug         ?? "")
   const [businessType, setBusinessType] = useState(tenant?.businessType ?? "CLINIC")
-  const [country,      setCountry]      = useState(tenant?.country ?? "GB")
-  const [timezone,     setTimezone]     = useState(tenant?.timezone ?? "Europe/London")
-  const [plan,         setPlan]         = useState(tenant?.plan ?? "FREE")
+  const [country,      setCountry]      = useState(tenant?.country      ?? "GB")
+  const [timezone,     setTimezone]     = useState(tenant?.timezone     ?? "Europe/London")
+  const [currency,     setCurrency]     = useState(tenant?.currency     ?? "GBP")
+  const [plan,         setPlan]         = useState(tenant?.plan         ?? "FREE")
   const [primaryColor, setPrimaryColor] = useState(tenant?.primaryColor ?? "#2563EB")
-  const [logoUrl,      setLogoUrl]      = useState(tenant?.logoUrl ?? "")
+  const [logoUrl,      setLogoUrl]      = useState(tenant?.logoUrl      ?? "")
 
   const [adminName,  setAdminName]  = useState(tenant?.adminUsers?.[0]?.name  ?? "")
   const [adminEmail, setAdminEmail] = useState(tenant?.adminUsers?.[0]?.email ?? "")
@@ -39,6 +55,14 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
 
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
+
+  // Derive symbol from selected currency code
+  const selectedCurrency = CURRENCIES.find(c => c.code === currency) ?? CURRENCIES[0]
+
+  function handleCurrencyChange(code: string) {
+    const found = CURRENCIES.find(c => c.code === code)
+    if (found) setCurrency(found.code)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,8 +76,11 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
       method,
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({
-        name, slug, businessType, country, timezone, plan, primaryColor,
-        logoUrl: logoUrl || undefined,
+        name, slug, businessType, country, timezone,
+        currency:       selectedCurrency.code,
+        currencySymbol: selectedCurrency.symbol,
+        plan, primaryColor,
+        logoUrl:    logoUrl    || undefined,
         adminName:  adminName  || undefined,
         adminEmail: adminEmail || undefined,
         adminPass:  adminPass  || undefined,
@@ -66,20 +93,33 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-border p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-xl border border-border bg-white p-6">
+
+      {/* ── Clinic details ─────────────────────────────────────────────────── */}
       <div className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Clinic details</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1"><Label>Clinic name</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
-          <div className="space-y-1"><Label>Slug</Label><Input value={slug} onChange={(e) => setSlug(e.target.value)} required placeholder="e.g. riverside" /></div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Clinic details</h2>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Clinic name</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} required placeholder="Green Valley Ayurveda" />
+          </div>
+          <div className="space-y-1">
+            <Label>Slug</Label>
+            <Input value={slug} onChange={e => setSlug(e.target.value)} required placeholder="green-valley" />
+            <p className="text-[11px] text-muted-foreground">Lowercase letters, numbers and dashes only.</p>
+          </div>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
             <Label>Business type</Label>
             <Select value={businessType} onValueChange={setBusinessType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["CLINIC","AYURVEDA","DENTAL","PHYSIO"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {["CLINIC","AYURVEDA","DENTAL","PHYSIO"].map(t => (
+                  <SelectItem key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -88,37 +128,121 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
             <Select value={plan} onValueChange={setPlan}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["FREE","BASIC","PRO"].map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                {["FREE","BASIC","PRO"].map(p => (
+                  <SelectItem key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1"><Label>Country</Label><Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="GB" /></div>
-          <div className="space-y-1"><Label>Timezone</Label><Input value={timezone} onChange={(e) => setTimezone(e.target.value)} placeholder="Europe/London" /></div>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1"><Label>Primary colour</Label><Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} type="color" className="h-10 px-2" /></div>
-          <div className="space-y-1"><Label>Logo URL <span className="text-muted-foreground">(optional)</span></Label><Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} type="url" /></div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Country code</Label>
+            <Input value={country} onChange={e => setCountry(e.target.value)} placeholder="GB" />
+          </div>
+          <div className="space-y-1">
+            <Label>Timezone</Label>
+            <Input value={timezone} onChange={e => setTimezone(e.target.value)} placeholder="Europe/London" />
+          </div>
         </div>
       </div>
 
       <Separator />
 
+      {/* ── Currency ───────────────────────────────────────────────────────── */}
       <div className="space-y-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Admin credentials</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1"><Label>Admin name</Label><Input value={adminName} onChange={(e) => setAdminName(e.target.value)} /></div>
-          <div className="space-y-1"><Label>Admin email</Label><Input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} type="email" /></div>
-        </div>
-        <div className="space-y-1">
-          <Label>Temporary password {!isNew && <span className="text-muted-foreground">(leave blank to keep existing)</span>}</Label>
-          <Input value={adminPass} onChange={(e) => setAdminPass(e.target.value)} type="password" />
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Currency</h2>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Currency</Label>
+            <Select value={currency} onValueChange={handleCurrencyChange}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map(c => (
+                  <SelectItem key={c.code} value={c.code}>
+                    <span className="font-mono mr-2 text-muted-foreground">{c.symbol}</span>
+                    {c.label} ({c.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Preview — read-only */}
+          <div className="space-y-1">
+            <Label>Preview</Label>
+            <div className="flex h-10 items-center gap-3 rounded-md border border-input bg-secondary/40 px-3">
+              <span className="font-mono text-lg font-bold text-primary">{selectedCurrency.symbol}</span>
+              <div className="text-sm">
+                <span className="font-semibold text-foreground">{selectedCurrency.code}</span>
+                <span className="ml-1.5 text-muted-foreground">· {selectedCurrency.label}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      <Button type="submit" disabled={loading}>{loading ? "Saving…" : isNew ? "Create Tenant" : "Update Tenant"}</Button>
+      <Separator />
+
+      {/* ── Branding ───────────────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Branding</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Primary colour</Label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={primaryColor}
+                onChange={e => setPrimaryColor(e.target.value)}
+                className="h-10 w-14 cursor-pointer rounded-md border border-input bg-white p-1"
+              />
+              <Input
+                value={primaryColor}
+                onChange={e => setPrimaryColor(e.target.value)}
+                placeholder="#2563EB"
+                className="font-mono text-sm"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Logo URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
+            <Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} type="url" placeholder="https://…" />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* ── Admin credentials ──────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Admin credentials</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Admin name</Label>
+            <Input value={adminName} onChange={e => setAdminName(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Admin email</Label>
+            <Input value={adminEmail} onChange={e => setAdminEmail(e.target.value)} type="email" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label>
+            Temporary password{" "}
+            {!isNew && <span className="text-xs text-muted-foreground">(leave blank to keep existing)</span>}
+          </Label>
+          <Input value={adminPass} onChange={e => setAdminPass(e.target.value)} type="password" />
+        </div>
+      </div>
+
+      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+
+      <Button type="submit" disabled={loading}>
+        {loading ? "Saving…" : isNew ? "Create tenant" : "Save changes"}
+      </Button>
     </form>
   )
 }
