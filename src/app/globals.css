@@ -1,101 +1,101 @@
 @import "tailwindcss";
 
 /* ── Brand Palette ────────────────────────────────────────────────────────── */
-/* #BF4646 deep-red · #EDDCC6 warm-beige · #FFF4EA soft-cream · #7EACB5 teal */
+/* #F2F2F2 light-gray · #EAE4D5 soft-beige · #B6B09F muted-taupe · #000000 black */
 
 :root {
   --background:          #ffffff;
-  --foreground:          #5A2E2E;
+  --foreground:          #000000;
 
   --card:                #ffffff;
-  --card-foreground:     #5A2E2E;
+  --card-foreground:     #000000;
   --popover:             #ffffff;
-  --popover-foreground:  #5A2E2E;
+  --popover-foreground:  #000000;
 
-  --primary:             #BF4646;
+  --primary:             #000000;
   --primary-foreground:  #ffffff;
 
-  --secondary:           #EDDCC6;
-  --secondary-foreground:#5A2E2E;
+  --secondary:           #EAE4D5;
+  --secondary-foreground:#000000;
 
-  --muted:               #FFF4EA;
-  --muted-foreground:    #7EACB5;
+  --muted:               #F2F2F2;
+  --muted-foreground:    #B6B09F;
 
-  --accent:              #7EACB5;
-  --accent-foreground:   #ffffff;
+  --accent:              #B6B09F;
+  --accent-foreground:   #000000;
 
-  --destructive:         #BF4646;
+  --destructive:         #000000;
   --destructive-foreground: #ffffff;
 
-  --border:              #EDDCC6;
-  --input:               #EDDCC6;
-  --ring:                #BF4646;
+  --border:              #EAE4D5;
+  --input:               #EAE4D5;
+  --ring:                #000000;
 
   --radius:              0.5rem;
-  --page-bg:             #FFF4EA;
+  --page-bg:             #F2F2F2;
 
   /* Sidebar tokens */
-  --sidebar-bg:            #5A2E2E;
-  --sidebar-text:          rgba(255, 244, 234, 0.65);
-  --sidebar-text-active:   #FFF4EA;
-  --sidebar-active-bg:     rgba(191, 70, 70, 0.25);
-  --sidebar-hover-bg:      rgba(255, 255, 255, 0.10);
-  --sidebar-border:        rgba(255, 244, 234, 0.10);
-  --sidebar-section-label: rgba(255, 244, 234, 0.40);
-  --sidebar-toggle-bg:     #FFF4EA;
-  --sidebar-toggle-fg:     #5A2E2E;
-  --sidebar-toggle-border: #EDDCC6;
+  --sidebar-bg:            #000000;
+  --sidebar-text:          rgba(242, 242, 242, 0.65);
+  --sidebar-text-active:   #F2F2F2;
+  --sidebar-active-bg:     rgba(255, 255, 255, 0.15);
+  --sidebar-hover-bg:      rgba(255, 255, 255, 0.08);
+  --sidebar-border:        rgba(242, 242, 242, 0.10);
+  --sidebar-section-label: rgba(242, 242, 242, 0.40);
+  --sidebar-toggle-bg:     #F2F2F2;
+  --sidebar-toggle-fg:     #000000;
+  --sidebar-toggle-border: #EAE4D5;
 
   /* Card / panel tokens */
-  --card-divider:             #EDDCC6;
+  --card-divider:             #EAE4D5;
 
   /* "Next up" feature card */
-  --nextup-bg:                #5A2E2E;
-  --nextup-fg:                #FFF4EA;
-  --nextup-label:             rgba(255, 244, 234, 0.55);
-  --nextup-muted:             rgba(255, 244, 234, 0.65);
+  --nextup-bg:                #000000;
+  --nextup-fg:                #F2F2F2;
+  --nextup-label:             rgba(242, 242, 242, 0.55);
+  --nextup-muted:             rgba(242, 242, 242, 0.65);
   --nextup-hover-fg:          #ffffff;
 
   /* Attention indicator dot */
-  --attention-dot:            #BF4646;
+  --attention-dot:            #000000;
 
   /* Status pill tokens */
-  --status-pending-bg:        #F6E3D3;
-  --status-pending-fg:        #8A5A2B;
-  --status-pending-ring:      #EDD0B5;
+  --status-pending-bg:        #F5F1EA;
+  --status-pending-fg:        #6B5E4F;
+  --status-pending-ring:      #E8E0D3;
 
-  --status-approved-bg:       #D6E8EB;
-  --status-approved-fg:       #2F6F7C;
-  --status-approved-ring:     #BFDCE0;
+  --status-approved-bg:       #EAEAEA;
+  --status-approved-fg:       #333333;
+  --status-approved-ring:     #DADADA;
 
-  --status-cancelled-bg:      #F2CFCF;
-  --status-cancelled-fg:      #7A1F1F;
-  --status-cancelled-ring:    #E8B4B4;
+  --status-cancelled-bg:      #E0E0E0;
+  --status-cancelled-fg:      #222222;
+  --status-cancelled-ring:    #CFCFCF;
 
-  --status-completed-bg:      #EDDCC6;
-  --status-completed-fg:      #5A2E2E;
-  --status-completed-ring:    #BF4646;
+  --status-completed-bg:      #EAE4D5;
+  --status-completed-fg:      #000000;
+  --status-completed-ring:    #B6B09F;
 
-  --status-noshow-bg:         #FCE9DF;
-  --status-noshow-fg:         #A14B2A;
-  --status-noshow-ring:       #F5D2C3;
+  --status-noshow-bg:         #F7F7F7;
+  --status-noshow-fg:         #555555;
+  --status-noshow-ring:       #E5E5E5;
 
   /* Chart slice colors */
-  --chart-pending:            #BF4646;
-  --chart-approved:           #7EACB5;
-  --chart-completed:          #5A2E2E;
-  --chart-cancelled:          #D27C7C;
-  --chart-noshow:             #A89A8A;
+  --chart-pending:            #B6B09F;
+  --chart-approved:           #000000;
+  --chart-completed:          #6B6B6B;
+  --chart-cancelled:          #9A9A9A;
+  --chart-noshow:             #C5C5C5;
 
   /* Login tokens */
-  --login-page-bg:         #FFF4EA;
-  --login-panel-bg:        #5A2E2E;
-  --login-panel-fg:        #FFF4EA;
-  --login-panel-muted:     rgba(255, 244, 234, 0.65);
-  --login-panel-faint:     rgba(255, 244, 234, 0.35);
-  --login-badge-bg:        rgba(191, 70, 70, 0.25);
-  --login-btn-bg:          #BF4646;
-  --login-btn-hover:       #7EACB5;
+  --login-page-bg:         #F2F2F2;
+  --login-panel-bg:        #000000;
+  --login-panel-fg:        #F2F2F2;
+  --login-panel-muted:     rgba(242, 242, 242, 0.65);
+  --login-panel-faint:     rgba(242, 242, 242, 0.35);
+  --login-badge-bg:        rgba(255, 255, 255, 0.15);
+  --login-btn-bg:          #000000;
+  --login-btn-hover:       #B6B09F;
   --login-btn-fg:          #ffffff;
   --login-input-bg:        #ffffff;
 }

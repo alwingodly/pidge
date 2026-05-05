@@ -7,7 +7,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   if (!session || session.user.role !== "SUPER_ADMIN") redirect("/admin/login")
 
   return (
-    <div className="flex min-h-screen" style={{ background: "#FFF4EA" }}>
+    <div className="flex min-h-screen" style={{ background: "var(--page-bg)" }}>
       <SuperAdminSidebar />
       <main className="flex-1 overflow-auto">
         <div className="max-w-5xl mx-auto px-6 py-6">{children}</div>

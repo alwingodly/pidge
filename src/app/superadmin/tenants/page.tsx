@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 
 export default async function TenantsPage() {
   const tenants = await prisma.tenant.findMany({
@@ -10,32 +9,48 @@ export default async function TenantsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Tenants</h1>
-        <Link href="/superadmin/tenants/new"><Button>Add Tenant</Button></Link>
-      </div>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Tenants</h1>
+          <p className="text-xs text-muted-foreground">{tenants.length} total</p>
+        </div>
+        <Link
+          href="/superadmin/tenants/new"
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-80 transition-opacity"
+        >
+          + Add
+        </Link>
+      </header>
 
-      <div className="bg-white rounded-xl border border-border divide-y divide-border">
+      <div className="border border-border rounded-lg bg-card overflow-hidden">
         {tenants.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">No tenants yet.</p>
-        ) : tenants.map((tenant) => (
-          <div key={tenant.id} className="flex items-center justify-between p-4">
-            <div>
-              <p className="font-medium text-foreground">{tenant.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {tenant.slug} · {tenant.plan} ·{" "}
-                <span className="font-mono">{tenant.currencySymbol} {tenant.currency}</span>
-                {" "}· {tenant._count.doctors} practitioners · {tenant._count.appointments} bookings
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-xs px-2 py-1 rounded-full ${tenant.isActive ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
-                {tenant.isActive ? "Active" : "Inactive"}
-              </span>
-              <Link href={`/superadmin/tenants/${tenant.id}`} className="text-sm text-primary hover:underline">Manage</Link>
-            </div>
+          <p className="px-4 py-10 text-sm text-center text-muted-foreground">No tenants yet.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {tenants.map((t) => (
+              <div key={t.id} className="flex items-center gap-4 px-4 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {t.slug} · {t._count.doctors} dr · {t._count.appointments} bk · {t.currencySymbol} {t.currency}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">{t.plan}</span>
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: t.isActive ? "var(--primary)" : "var(--muted-foreground)", opacity: t.isActive ? 1 : 0.4 }}
+                  title={t.isActive ? "Active" : "Inactive"}
+                />
+                <Link
+                  href={`/superadmin/tenants/${t.id}`}
+                  className="text-xs text-primary hover:underline shrink-0"
+                >
+                  Edit
+                </Link>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
