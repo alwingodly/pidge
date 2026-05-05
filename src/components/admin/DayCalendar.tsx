@@ -414,16 +414,14 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                         const end  = addMins(appt.time, appt.duration)
                         const wide = appt.duration >= 50
                         const med  = appt.duration >= 20
-                        const status = statusMeta(appt.status)
-                        const StatusIcon = status?.icon
 
                         return (
                           <button
                             type="button"
                             key={appt.id}
                             onClick={(event) => openAppointment(appt, doc, c, end, event)}
-                            title={`${appt.patientName}\n${appt.time}–${end} · ${appt.service}\n${appt.status.replace("_", " ")} · ${appt.bookingRef}`}
-                            className={`absolute z-[2] block cursor-pointer overflow-hidden rounded-none border border-black/10 text-left transition-[filter] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 ${status?.blockClass ?? ""}`}
+                            title={`${appt.patientName}\n${appt.time}–${end} · ${appt.service}\n${appt.bookingRef}`}
+                            className="absolute z-[2] block cursor-pointer overflow-hidden rounded-none border border-black/10 text-left transition-[filter] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                             style={{
                               left:      xPct(s),
                               width:     wPct(appt.duration),
@@ -434,21 +432,6 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                               boxShadow: "0 1px 2px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.16)",
                             }}
                           >
-                            {status && (
-                              <span
-                                className="absolute inset-y-0 left-0 w-1"
-                                style={{ background: status.accent }}
-                              />
-                            )}
-                            {status && StatusIcon && (
-                              <span
-                                className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-[2px] bg-white/90 shadow-sm"
-                                style={{ color: status.accent }}
-                                title={status.label}
-                              >
-                                <StatusIcon className="size-3" strokeWidth={2.5} />
-                              </span>
-                            )}
                             <span className="flex h-full min-w-0 flex-col justify-center px-2">
                               {med && (
                                 <span className="truncate text-[10px] font-bold leading-tight text-white">
@@ -498,7 +481,6 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
       <AppointmentDetailSheet
         appointmentId={detailId}
         onClose={() => setDetailId(null)}
-        onStatusChange={updateAppointmentStatus}
       />
     </div>
   )

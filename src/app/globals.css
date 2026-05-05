@@ -1,97 +1,101 @@
 @import "tailwindcss";
 
 /* ── Brand Palette ────────────────────────────────────────────────────────── */
-/* #C5705D terracotta · #D0B8A8 warm-taupe · #DFD3C3 linen · #F8EDE3 cream  */
+/* #BF4646 deep-red · #EDDCC6 warm-beige · #FFF4EA soft-cream · #7EACB5 teal */
 
 :root {
   --background:          #ffffff;
-  --foreground:          #5C2E22;
+  --foreground:          #5A2E2E;
 
   --card:                #ffffff;
-  --card-foreground:     #5C2E22;
+  --card-foreground:     #5A2E2E;
   --popover:             #ffffff;
-  --popover-foreground:  #5C2E22;
+  --popover-foreground:  #5A2E2E;
 
-  --primary:             #C5705D;
+  --primary:             #BF4646;
   --primary-foreground:  #ffffff;
 
-  --secondary:           #F8EDE3;
-  --secondary-foreground:#5C2E22;
+  --secondary:           #EDDCC6;
+  --secondary-foreground:#5A2E2E;
 
-  --muted:               #F8EDE3;
-  --muted-foreground:    #9A7060;
+  --muted:               #FFF4EA;
+  --muted-foreground:    #7EACB5;
 
-  --accent:              #D0B8A8;
-  --accent-foreground:   #5C2E22;
+  --accent:              #7EACB5;
+  --accent-foreground:   #ffffff;
 
-  --destructive:         #A85040;
+  --destructive:         #BF4646;
   --destructive-foreground: #ffffff;
 
-  --border:              #DFD3C3;
-  --input:               #DFD3C3;
-  --ring:                #C5705D;
+  --border:              #EDDCC6;
+  --input:               #EDDCC6;
+  --ring:                #BF4646;
 
   --radius:              0.5rem;
-  --page-bg:             #F8EDE3;
+  --page-bg:             #FFF4EA;
 
   /* Sidebar tokens */
-  --sidebar-bg:            #C5705D;
-  --sidebar-text:          rgba(255, 255, 255, 0.65);
-  --sidebar-text-active:   #ffffff;
-  --sidebar-active-bg:     rgba(248, 237, 227, 0.20);
+  --sidebar-bg:            #5A2E2E;
+  --sidebar-text:          rgba(255, 244, 234, 0.65);
+  --sidebar-text-active:   #FFF4EA;
+  --sidebar-active-bg:     rgba(191, 70, 70, 0.25);
   --sidebar-hover-bg:      rgba(255, 255, 255, 0.10);
-  --sidebar-border:        rgba(255, 255, 255, 0.12);
-  --sidebar-section-label: rgba(255, 255, 255, 0.35);
-  --sidebar-toggle-bg:     #ffffff;
-  --sidebar-toggle-fg:     #C5705D;
-  --sidebar-toggle-border: #DFD3C3;
+  --sidebar-border:        rgba(255, 244, 234, 0.10);
+  --sidebar-section-label: rgba(255, 244, 234, 0.40);
+  --sidebar-toggle-bg:     #FFF4EA;
+  --sidebar-toggle-fg:     #5A2E2E;
+  --sidebar-toggle-border: #EDDCC6;
 
   /* Card / panel tokens */
-  --card-divider:             #DFD3C3;
+  --card-divider:             #EDDCC6;
 
   /* "Next up" feature card */
-  --nextup-bg:                #C5705D;
-  --nextup-fg:                #ffffff;
-  --nextup-label:             rgba(255, 255, 255, 0.45);
-  --nextup-muted:             rgba(255, 255, 255, 0.60);
-  --nextup-hover-fg:          #F8EDE3;
+  --nextup-bg:                #5A2E2E;
+  --nextup-fg:                #FFF4EA;
+  --nextup-label:             rgba(255, 244, 234, 0.55);
+  --nextup-muted:             rgba(255, 244, 234, 0.65);
+  --nextup-hover-fg:          #ffffff;
 
   /* Attention indicator dot */
-  --attention-dot:            #D0B8A8;
+  --attention-dot:            #BF4646;
 
   /* Status pill tokens */
-  --status-pending-bg:        #FEF3C7;
-  --status-pending-fg:        #92400E;
-  --status-pending-ring:      #FDE68A;
-  --status-approved-bg:       #D1FAE5;
-  --status-approved-fg:       #065F46;
-  --status-approved-ring:     #A7F3D0;
-  --status-cancelled-bg:      #FEE2E2;
-  --status-cancelled-fg:      #DC2626;
-  --status-cancelled-ring:    #FECACA;
-  --status-completed-bg:      #F8EDE3;
-  --status-completed-fg:      #5C2E22;
-  --status-completed-ring:    #D0B8A8;
-  --status-noshow-bg:         #FFF7ED;
-  --status-noshow-fg:         #EA580C;
-  --status-noshow-ring:       #FED7AA;
+  --status-pending-bg:        #F6E3D3;
+  --status-pending-fg:        #8A5A2B;
+  --status-pending-ring:      #EDD0B5;
+
+  --status-approved-bg:       #D6E8EB;
+  --status-approved-fg:       #2F6F7C;
+  --status-approved-ring:     #BFDCE0;
+
+  --status-cancelled-bg:      #F2CFCF;
+  --status-cancelled-fg:      #7A1F1F;
+  --status-cancelled-ring:    #E8B4B4;
+
+  --status-completed-bg:      #EDDCC6;
+  --status-completed-fg:      #5A2E2E;
+  --status-completed-ring:    #BF4646;
+
+  --status-noshow-bg:         #FCE9DF;
+  --status-noshow-fg:         #A14B2A;
+  --status-noshow-ring:       #F5D2C3;
 
   /* Chart slice colors */
-  --chart-pending:            #D97706;
-  --chart-approved:           #059669;
-  --chart-completed:          #C5705D;
-  --chart-cancelled:          #5C2E22;
-  --chart-noshow:             #9A7060;
+  --chart-pending:            #BF4646;
+  --chart-approved:           #7EACB5;
+  --chart-completed:          #5A2E2E;
+  --chart-cancelled:          #D27C7C;
+  --chart-noshow:             #A89A8A;
 
   /* Login tokens */
-  --login-page-bg:         #F8EDE3;
-  --login-panel-bg:        #C5705D;
-  --login-panel-fg:        #ffffff;
-  --login-panel-muted:     rgba(255, 255, 255, 0.70);
-  --login-panel-faint:     rgba(255, 255, 255, 0.40);
-  --login-badge-bg:        rgba(255, 255, 255, 0.20);
-  --login-btn-bg:          #C5705D;
-  --login-btn-hover:       #A85040;
+  --login-page-bg:         #FFF4EA;
+  --login-panel-bg:        #5A2E2E;
+  --login-panel-fg:        #FFF4EA;
+  --login-panel-muted:     rgba(255, 244, 234, 0.65);
+  --login-panel-faint:     rgba(255, 244, 234, 0.35);
+  --login-badge-bg:        rgba(191, 70, 70, 0.25);
+  --login-btn-bg:          #BF4646;
+  --login-btn-hover:       #7EACB5;
   --login-btn-fg:          #ffffff;
   --login-input-bg:        #ffffff;
 }
