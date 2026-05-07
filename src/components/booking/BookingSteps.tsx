@@ -27,6 +27,9 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null
 
+const OTP_LENGTH = 6
+const emptyOtpDigits = () => Array.from({ length: OTP_LENGTH }, () => "")
+
 type Branch       = { id: string; name: string; address: string | null }
 type BranchConfig = { branchId: string; isOffered: boolean; isAvailable: boolean }
 type Service      = {
@@ -88,7 +91,7 @@ export default function BookingSteps({
 
   const [submitting,   setSubmitting]   = useState(false)
   const [error,        setError]        = useState<string | null>(null)
-  const [otpDigits,    setOtpDigits]    = useState(["", "", "", "", "", ""])
+  const [otpDigits,    setOtpDigits]    = useState(emptyOtpDigits)
   const [otpSending,   setOtpSending]   = useState(false)
   const [otpVerifying, setOtpVerifying] = useState(false)
   const [otpError,     setOtpError]     = useState<string | null>(null)
@@ -190,7 +193,7 @@ export default function BookingSteps({
         body:    JSON.stringify({ email: state.patientEmail, patientName: state.patientName }),
       })
       if (!res.ok) { setError("Failed to send verification code. Please try again."); return }
-      setOtpDigits(["", "", "", ""])
+      setOtpDigits(emptyOtpDigits())
       set("step", otpStep)
     } finally {
       setOtpSending(false)
@@ -199,7 +202,7 @@ export default function BookingSteps({
 
   async function handleVerifyAndBook() {
     const otp = otpDigits.join("")
-    if (otp.length < 6) { setOtpError("Please enter the 6-digit code."); return }
+    if (otp.length < OTP_LENGTH) { setOtpError("Please enter the 6-digit code."); return }
 
     setOtpVerifying(true)
     setOtpError(null)
@@ -518,7 +521,7 @@ export default function BookingSteps({
               <Button
                 className="h-12 w-full rounded-xl font-semibold"
                 onClick={handleVerifyAndBook}
-                disabled={otpVerifying || submitting || otpDigits.join("").length < 6}
+                disabled={otpVerifying || submitting || otpDigits.join("").length < OTP_LENGTH}
               >
                 {(otpVerifying || submitting)
                   ? <><Loader2 className="size-4 animate-spin" /> Verifying…</>
@@ -528,7 +531,7 @@ export default function BookingSteps({
               <div className="flex items-center justify-between text-sm">
                 <Button
                   variant="outline" size="sm" className="rounded-xl bg-white"
-                  onClick={() => { set("step", detailsStep); setOtpDigits(["","","",""]); setOtpError(null) }}
+                  onClick={() => { set("step", detailsStep); setOtpDigits(emptyOtpDigits()); setOtpError(null) }}
                 >
                   <ArrowLeft className="size-4" /> Back
                 </Button>
@@ -750,7 +753,7 @@ function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]
     const next = [...value]
     next[i] = raw.slice(-1)
     onChange(next)
-    if (raw && i < 5) refs.current[i + 1]?.focus()
+    if (raw && i < OTP_LENGTH - 1) refs.current[i + 1]?.focus()
   }
 
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
@@ -759,10 +762,10 @@ function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]
 
   function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
     e.preventDefault()
-    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
-    const next   = digits.split("").concat(["", "", "", "", "", ""]).slice(0, 6)
+    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH)
+    const next   = digits.split("").concat(emptyOtpDigits()).slice(0, OTP_LENGTH)
     onChange(next)
-    refs.current[Math.min(digits.length, 5)]?.focus()
+    refs.current[Math.min(digits.length, OTP_LENGTH - 1)]?.focus()
   }
 
   return (
