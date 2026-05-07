@@ -89,6 +89,15 @@ export default function AppointmentTable({ appointments, doctors, filters, total
 
   useEffect(() => { setRows(appointments) }, [appointments])
 
+  // Silently re-fetch table data when admin returns to the tab
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") router.refresh()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [router])
+
   const currentPage = Math.max(1, parseInt(filters.page, 10) || 1)
   const totalPages  = Math.max(1, Math.ceil(total / pageSize))
 
