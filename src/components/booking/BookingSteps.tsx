@@ -24,7 +24,13 @@ import {
 } from "lucide-react"
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, {
+      developerTools: {
+        assistant: {
+          enabled: false,
+        },
+      },
+    })
   : null
 
 const OTP_LENGTH = 6
