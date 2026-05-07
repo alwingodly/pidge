@@ -12,8 +12,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // "riverside.pikatym.io" → "riverside"
+  // "riverside.pikatym.com" → "riverside"
   let slug = hostname.replace(`.${appDomain}`, "").replace(appDomain, "")
+
+  // Reserved subdomains — not tenants
+  if (["www", "app", "api", "admin"].includes(slug)) slug = ""
 
   // Local dev (Chrome/Firefox): "riverside.localhost:3000" → "riverside"
   if (!slug || slug === hostname) {

@@ -9,7 +9,7 @@ const ALLOWED_ROLES = ["TENANT_ADMIN", "BRANCH_ADMIN", "SUPER_ADMIN"]
 function appBaseUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://pikatym.io"
+  return process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://pikatym.com"
 }
 
 function tenantUrl(slug: string) {
