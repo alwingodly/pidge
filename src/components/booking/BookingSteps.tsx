@@ -88,7 +88,7 @@ export default function BookingSteps({
 
   const [submitting,   setSubmitting]   = useState(false)
   const [error,        setError]        = useState<string | null>(null)
-  const [otpDigits,    setOtpDigits]    = useState(["", "", "", ""])
+  const [otpDigits,    setOtpDigits]    = useState(["", "", "", "", "", ""])
   const [otpSending,   setOtpSending]   = useState(false)
   const [otpVerifying, setOtpVerifying] = useState(false)
   const [otpError,     setOtpError]     = useState<string | null>(null)
@@ -199,7 +199,7 @@ export default function BookingSteps({
 
   async function handleVerifyAndBook() {
     const otp = otpDigits.join("")
-    if (otp.length < 4) { setOtpError("Please enter the 4-digit code."); return }
+    if (otp.length < 6) { setOtpError("Please enter the 6-digit code."); return }
 
     setOtpVerifying(true)
     setOtpError(null)
@@ -504,7 +504,7 @@ export default function BookingSteps({
               <StepHeading
                 icon={<ShieldCheck className="size-4.5" />}
                 title="Verify your email"
-                description={`We sent a 4-digit code to ${state.patientEmail}. Enter it below to confirm your booking.`}
+                description={`We sent a 6-digit code to ${state.patientEmail}. Enter it below to confirm your booking.`}
               />
 
               <OTPInput value={otpDigits} onChange={setOtpDigits} />
@@ -518,7 +518,7 @@ export default function BookingSteps({
               <Button
                 className="h-12 w-full rounded-xl font-semibold"
                 onClick={handleVerifyAndBook}
-                disabled={otpVerifying || submitting || otpDigits.join("").length < 4}
+                disabled={otpVerifying || submitting || otpDigits.join("").length < 6}
               >
                 {(otpVerifying || submitting)
                   ? <><Loader2 className="size-4 animate-spin" /> Verifying…</>
@@ -750,7 +750,7 @@ function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]
     const next = [...value]
     next[i] = raw.slice(-1)
     onChange(next)
-    if (raw && i < 3) refs.current[i + 1]?.focus()
+    if (raw && i < 5) refs.current[i + 1]?.focus()
   }
 
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
@@ -759,10 +759,10 @@ function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]
 
   function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
     e.preventDefault()
-    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4)
-    const next   = digits.split("").concat(["", "", "", ""]).slice(0, 4)
+    const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+    const next   = digits.split("").concat(["", "", "", "", "", ""]).slice(0, 6)
     onChange(next)
-    refs.current[Math.min(digits.length, 3)]?.focus()
+    refs.current[Math.min(digits.length, 5)]?.focus()
   }
 
   return (
@@ -779,7 +779,7 @@ function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]
           onKeyDown={e => handleKeyDown(i, e)}
           onPaste={handlePaste}
           autoComplete="one-time-code"
-          className="size-14 rounded-xl border-2 border-[#E8D8C5] bg-white text-center text-2xl font-bold text-foreground outline-none transition-colors focus:border-primary"
+          className="size-11 rounded-xl border-2 border-[#E8D8C5] bg-white text-center text-xl font-bold text-foreground outline-none transition-colors focus:border-primary"
         />
       ))}
     </div>
