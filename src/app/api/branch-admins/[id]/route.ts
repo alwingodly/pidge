@@ -40,7 +40,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const admin = await prisma.adminUser.findUnique({ where: { id, tenantId, role: "BRANCH_ADMIN" } })
   if (!admin) return Response.json({ error: "Admin not found" }, { status: 404 })
 
-  await prisma.adminUser.update({ where: { id }, data: { isActive: false } })
+  await prisma.adminUser.delete({ where: { id } })
 
   return Response.json({ success: true })
 }

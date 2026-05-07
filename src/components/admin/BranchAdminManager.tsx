@@ -6,7 +6,15 @@ import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { UserPlus, Trash2, UserCheck, KeyRound, Check, Loader2 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { UserPlus, Trash2, UserCheck, KeyRound, Check, Loader2, UserMinus } from "lucide-react"
 
 type BranchAdmin = { id: string; name: string; email: string; isActive: boolean }
 type Props       = { branchId: string; branchName: string; initialAdmins: BranchAdmin[] }
@@ -22,6 +30,7 @@ export default function BranchAdminManager({ branchId, branchName, initialAdmins
   const [newPw,        setNewPw]        = useState("")
   const [loading,      setLoading]      = useState(false)
   const [removing,     setRemoving]     = useState<string | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<BranchAdmin | null>(null)
   const [pwSaving,     setPwSaving]     = useState(false)
   const [pwSaved,      setPwSaved]      = useState<string | null>(null)
   const [error,        setError]        = useState<string | null>(null)
@@ -45,7 +54,11 @@ export default function BranchAdminManager({ branchId, branchName, initialAdmins
   async function handleRemove(id: string) {
     setRemoving(id)
     const res = await fetch(`/api/branch-admins/${id}`, { method: "DELETE" })
-    if (res.ok) { setAdmins(prev => prev.filter(a => a.id !== id)); router.refresh() }
+    if (res.ok) {
+      setAdmins(prev => prev.filter(a => a.id !== id))
+      setRemoveTarget(null)
+      router.refresh()
+    }
     setRemoving(null)
   }
 
@@ -101,7 +114,7 @@ export default function BranchAdminManager({ branchId, branchName, initialAdmins
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleRemove(admin.id)}
+                    onClick={() => setRemoveTarget(admin)}
                     disabled={removing === admin.id}
                     className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-primary disabled:opacity-50"
                     title="Remove admin"
@@ -181,6 +194,44 @@ export default function BranchAdminManager({ branchId, branchName, initialAdmins
           </div>
         </form>
       )}
+
+      <Dialog open={!!removeTarget} onOpenChange={(open) => { if (!open && !removing) setRemoveTarget(null) }}>
+        <DialogContent className="max-w-70 gap-0 overflow-hidden rounded-2xl p-0 shadow-2xl">
+          <DialogTitle className="sr-only">Remove branch admin</DialogTitle>
+          <DialogDescription className="sr-only">
+            Confirm removing {removeTarget?.name} from {branchName}.
+          </DialogDescription>
+
+          {/* Icon + text */}
+          <div className="flex flex-col items-center gap-1.5 px-6 pb-4 pt-6 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-red-50">
+              <UserMinus className="size-6 text-destructive" />
+            </div>
+            <p className="mt-3 text-base font-semibold text-foreground">Remove admin?</p>
+            <p className="text-sm text-muted-foreground">
+              {removeTarget?.name} will lose access to {branchName}.
+            </p>
+          </div>
+
+          {/* iOS-style stacked buttons */}
+          <div className="border-t border-border">
+            <button
+              onClick={() => removeTarget && handleRemove(removeTarget.id)}
+              disabled={!!removing}
+              className="flex w-full items-center justify-center border-b border-border py-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-muted disabled:opacity-50"
+            >
+              {removing ? <><Loader2 className="size-4 animate-spin mr-2" /> Removing…</> : "Remove"}
+            </button>
+            <button
+              onClick={() => setRemoveTarget(null)}
+              disabled={!!removing}
+              className="flex w-full items-center justify-center py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              Cancel
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
