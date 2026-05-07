@@ -18,7 +18,10 @@ type Props = {
   serviceName:         string
   serviceDurationMins: number
   preferredDate:       Date | null
+  initialDoctorId?:    string | null  // pre-select when patient already chose a doctor
   branchId:            string | null
+  clinicStartTime?:    string | null  // e.g. "09:00" — constrains available slots
+  clinicEndTime?:      string | null  // e.g. "17:00"
   open:                boolean
   onClose:             () => void
   onAssigned:          (doctorName: string, date: string, time: string) => void
@@ -59,10 +62,11 @@ function localDateStr(d: Date) {
 
 export default function AssignDialog({
   appointmentId, serviceId, serviceName, serviceDurationMins,
-  preferredDate, branchId, open, onClose, onAssigned,
+  preferredDate, initialDoctorId, branchId, clinicStartTime, clinicEndTime,
+  open, onClose, onAssigned,
 }: Props) {
   const [doctors,        setDoctors]        = useState<Doctor[]>([])
-  const [doctorId,       setDoctorId]       = useState("")
+  const [doctorId,       setDoctorId]       = useState(initialDoctorId ?? "")
   const [date,           setDate]           = useState<Date | undefined>(preferredDate ?? undefined)
   const [time,           setTime]           = useState("")
   const [workingHours,   setWorkingHours]   = useState<WorkingH[]>([])
@@ -71,6 +75,15 @@ export default function AssignDialog({
   const [loadingBooked,  setLoadingBooked]  = useState(false)
   const [submitting,     setSubmitting]     = useState(false)
   const [error,          setError]          = useState<string | null>(null)
+
+  // Reset selections whenever the dialog opens so stale state never leaks
+  useEffect(() => {
+    if (!open) return
+    setDoctorId(initialDoctorId ?? "")
+    setDate(preferredDate ?? undefined)
+    setTime("")
+    setError(null)
+  }, [open, initialDoctorId, preferredDate])
 
   // Load doctors who offer this service
   useEffect(() => {
@@ -114,13 +127,26 @@ export default function AssignDialog({
       .finally(() => setLoadingBooked(false))
   }, [doctorId, date, appointmentId])
 
-  // Suggested slots from working hours, cleared if doctor changes
+  // Suggested slots from working hours, constrained by clinic hours.
+  // If no doctor working hours for the day, fall back to clinic hours.
   const suggestedTimes: string[] = (() => {
     if (!date || !doctorId) return []
     const dow = date.getDay()
     const wh  = workingHours.find((w) => w.dayOfWeek === dow && w.isActive)
-    if (!wh) return []
-    return generateTimes(wh.startTime, wh.endTime, serviceDurationMins)
+
+    // Effective window: doctor hours (or clinic fallback), clamped to clinic hours
+    const rawStart = wh?.startTime ?? clinicStartTime ?? null
+    const rawEnd   = wh?.endTime   ?? clinicEndTime   ?? null
+    if (!rawStart || !rawEnd) return []
+
+    const effectiveStart = clinicStartTime && toMins(clinicStartTime) > toMins(rawStart)
+      ? clinicStartTime
+      : rawStart
+    const effectiveEnd = clinicEndTime && toMins(clinicEndTime) < toMins(rawEnd)
+      ? clinicEndTime
+      : rawEnd
+
+    return generateTimes(effectiveStart, effectiveEnd, serviceDurationMins)
   })()
 
   const takenCount = suggestedTimes.filter((t) => overlaps(t, serviceDurationMins, bookedSlots)).length
@@ -159,6 +185,11 @@ export default function AssignDialog({
             Service: <span className="font-semibold text-foreground">{serviceName}</span>
             <span className="ml-2 text-xs">· {serviceDurationMins} min</span>
           </p>
+          {initialDoctorId && (
+            <p className="mt-1 text-xs text-amber-600">
+              Patient selected a preferred clinician — pre-filled below. You can change it if needed.
+            </p>
+          )}
         </DialogHeader>
 
         <div className="space-y-5 py-2">
@@ -207,6 +238,7 @@ export default function AssignDialog({
               value={date}
               onChange={(d) => { setDate(d); setTime("") }}
               placeholder="Pick a date"
+              disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
             />
           </div>
 

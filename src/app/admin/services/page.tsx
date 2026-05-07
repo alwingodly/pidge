@@ -81,12 +81,20 @@ export default async function ServicesPage() {
                 ? service.branchConfigs.find(c => c.branchId === branchId)
                 : null
 
-              const unavailableCount = branchId
-                ? (myConfig?.isOffered && !myConfig?.isAvailable ? 1 : 0)
-                : service.branchConfigs.filter(c => c.isOffered && !c.isAvailable).length
+              // Branch admin: show only this branch's status with branch-neutral wording.
+              // Tenant admin: show cross-branch counts.
+              const branchUnavailable = branchId
+                ? (myConfig?.isOffered === true && myConfig?.isAvailable === false)
+                : false
+              const branchNotOffered = branchId
+                ? (myConfig?.isOffered === false)
+                : false
 
+              const unavailableCount = branchId
+                ? 0
+                : service.branchConfigs.filter(c => c.isOffered && !c.isAvailable).length
               const notOfferedCount = branchId
-                ? (!myConfig?.isOffered ? 1 : 0)
+                ? 0
                 : service.branchConfigs.filter(c => !c.isOffered).length
 
               return (
@@ -102,6 +110,18 @@ export default async function ServicesPage() {
                       }`}>
                         {service.isActive ? "Active" : "Inactive"}
                       </span>
+                      {/* Branch admin — scoped to their branch only */}
+                      {branchUnavailable && (
+                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                          Unavailable here
+                        </span>
+                      )}
+                      {branchNotOffered && (
+                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-border">
+                          Not offered here
+                        </span>
+                      )}
+                      {/* Tenant admin — cross-branch counts */}
                       {unavailableCount > 0 && (
                         <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
                           Unavailable at {unavailableCount} branch{unavailableCount !== 1 ? "es" : ""}

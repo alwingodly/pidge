@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import { notFound } from "next/navigation"
 import { formatDate, formatTime } from "@/lib/utils"
+import { decryptField } from "@/lib/encryption"
 import AppointmentBadge from "@/components/admin/AppointmentBadge"
 import AppointmentActions from "@/components/admin/AppointmentActions"
 import Link from "next/link"
 
-function age(dob: Date) {
+function age(dob: Date): number {
   const today = new Date()
   let a = today.getFullYear() - dob.getFullYear()
   const m = today.getMonth() - dob.getMonth()
@@ -28,6 +29,13 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
 
   if (!appointment) notFound()
 
+  // Decrypt protected fields before rendering
+  const patientPhone  = decryptField(appointment.patientPhone) ?? ""
+  const patientGender = decryptField(appointment.patientGender)
+  const notes         = decryptField(appointment.notes)
+  const dobStr        = decryptField(appointment.patientDOB)
+  const patientDOB    = dobStr ? new Date(dobStr) : null
+
   const fullName = [appointment.patientName, appointment.patientSurname].filter(Boolean).join(" ")
 
   const dateStr = appointment.assignedDate
@@ -38,9 +46,6 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
 
   const timeStr = appointment.assignedTime
     ?? (appointment.slot ? formatTime(appointment.slot.startTime) : null)
-
-  const address = [appointment.patientAddress, appointment.patientCity, appointment.patientPostcode]
-    .filter(Boolean).join(", ")
 
   return (
     <div className="max-w-lg space-y-5">
@@ -69,23 +74,22 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
       <Card title="Patient">
         <Row label="Full name"  value={fullName} />
         <Row label="Email"      value={appointment.patientEmail} />
-        <Row label="Phone"      value={appointment.patientPhone} />
-        {appointment.patientDOB && (
+        <Row label="Phone"      value={patientPhone} />
+        {patientDOB && (
           <Row
             label="Date of birth"
-            value={`${formatDate(appointment.patientDOB)} (${age(appointment.patientDOB)} yrs)`}
+            value={`${formatDate(patientDOB)} (${age(patientDOB)} yrs)`}
           />
         )}
-        {appointment.patientGender && (
-          <Row label="Gender identity" value={appointment.patientGender.replace(/-/g, " ")} />
+        {patientGender && (
+          <Row label="Gender identity" value={patientGender.replace(/-/g, " ")} />
         )}
-        {address && <Row label="Address" value={address} />}
       </Card>
 
       {/* Notes */}
-      {(appointment.notes || appointment.attachmentName) && (
+      {(notes || appointment.attachmentName) && (
         <Card title="Notes & Attachments">
-          {appointment.notes && <Row label="Reason for visit" value={appointment.notes} multiline />}
+          {notes && <Row label="Reason for visit" value={notes} multiline />}
           {appointment.attachmentName && (
             <Row label="Attachment" value={appointment.attachmentName} />
           )}

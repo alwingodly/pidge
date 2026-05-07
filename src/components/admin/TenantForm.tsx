@@ -21,18 +21,19 @@ const CURRENCIES = [
 ]
 
 type Tenant = {
-  id:             string
-  name:           string
-  slug:           string
-  businessType:   string
-  country:        string
-  timezone:       string
-  currency:       string
-  currencySymbol: string
-  plan:           string
-  primaryColor:   string
-  logoUrl?:       string | null
-  adminUsers?:    { name: string; email: string }[]
+  id:                  string
+  name:                string
+  slug:                string
+  businessType:        string
+  country:             string
+  timezone:            string
+  currency:            string
+  currencySymbol:      string
+  plan:                string
+  primaryColor:        string
+  logoUrl?:            string | null
+  showDoctorSelection: boolean
+  adminUsers?:         { name: string; email: string }[]
 }
 
 export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
@@ -46,12 +47,14 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
   const [timezone,     setTimezone]     = useState(tenant?.timezone     ?? "Europe/London")
   const [currency,     setCurrency]     = useState(tenant?.currency     ?? "GBP")
   const [plan,         setPlan]         = useState(tenant?.plan         ?? "FREE")
-  const [primaryColor, setPrimaryColor] = useState(tenant?.primaryColor ?? "#2563EB")
+  const [primaryColor, setPrimaryColor] = useState(tenant?.primaryColor ?? "#436850")
   const [logoUrl,      setLogoUrl]      = useState(tenant?.logoUrl      ?? "")
 
   const [adminName,  setAdminName]  = useState(tenant?.adminUsers?.[0]?.name  ?? "")
   const [adminEmail, setAdminEmail] = useState(tenant?.adminUsers?.[0]?.email ?? "")
   const [adminPass,  setAdminPass]  = useState("")
+
+  const [showDoctorSelection, setShowDoctorSelection] = useState(tenant?.showDoctorSelection ?? false)
 
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -77,9 +80,10 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({
         name, slug, businessType, country, timezone,
-        currency:       selectedCurrency.code,
-        currencySymbol: selectedCurrency.symbol,
+        currency:            selectedCurrency.code,
+        currencySymbol:      selectedCurrency.symbol,
         plan, primaryColor,
+        showDoctorSelection,
         logoUrl:    logoUrl    || undefined,
         adminName:  adminName  || undefined,
         adminEmail: adminEmail || undefined,
@@ -202,7 +206,7 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
               <Input
                 value={primaryColor}
                 onChange={e => setPrimaryColor(e.target.value)}
-                placeholder="#2563EB"
+                placeholder="#436850"
                 className="font-mono text-sm"
               />
             </div>
@@ -212,6 +216,36 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
             <Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} type="url" placeholder="https://…" />
           </div>
         </div>
+      </div>
+
+      <Separator />
+
+      {/* ── Booking features ───────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Booking features</h2>
+
+        <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-border p-4 transition-colors hover:bg-secondary/30">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">Doctor selection in booking flow</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              When enabled, patients must choose a preferred clinician during booking.
+              When disabled, the clinic assigns a clinician after the request is received.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showDoctorSelection}
+            onClick={() => setShowDoctorSelection(v => !v)}
+            className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              showDoctorSelection ? "bg-primary" : "bg-muted-foreground/30"
+            }`}
+          >
+            <span className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${
+              showDoctorSelection ? "translate-x-5" : "translate-x-0"
+            }`} />
+          </button>
+        </label>
       </div>
 
       <Separator />

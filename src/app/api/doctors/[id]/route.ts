@@ -20,14 +20,33 @@ const updateSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  const { tenantId } = getScopeFromSession(session)
+  const { tenantId, branchId } = getScopeFromSession(session)
   const { id } = await params
 
   const body   = await req.json()
   const parsed = updateSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.issues }, { status: 400 })
 
-  const { serviceIds, ...doctorData } = parsed.data
+  const { serviceIds, branchId: bodyBranchId, ...rest } = parsed.data
+
+  // Branch admins can only keep or set their own branch
+  let resolvedBranchId: string | null | undefined = bodyBranchId
+  if (branchId && bodyBranchId !== undefined) {
+    // Branch admin: only allowed to set their own branchId or keep it (null not allowed)
+    if (bodyBranchId !== branchId) return Response.json({ error: "Invalid branch." }, { status: 400 })
+  } else if (!branchId && bodyBranchId) {
+    // Tenant admin: validate submitted branchId belongs to tenant
+    const branch = await prisma.branch.findUnique({ where: { id: bodyBranchId, tenantId }, select: { id: true } })
+    if (!branch) return Response.json({ error: "Invalid branch." }, { status: 400 })
+  }
+
+  // Validate serviceIds belong to this tenant
+  if (serviceIds && serviceIds.length > 0) {
+    const count = await prisma.service.count({ where: { id: { in: serviceIds }, tenantId } })
+    if (count !== serviceIds.length) return Response.json({ error: "Invalid service selection." }, { status: 400 })
+  }
+
+  const doctorData = bodyBranchId !== undefined ? { ...rest, branchId: resolvedBranchId } : rest
 
   const doctor = await prisma.$transaction(async (tx) => {
     await tx.doctor.update({ where: { id, tenantId }, data: doctorData })

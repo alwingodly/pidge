@@ -7,8 +7,13 @@ import { z } from "zod"
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
 
 const patchSchema = z.object({
-  clinicStartTime: z.string().regex(timeRegex, "Must be HH:MM").optional(),
-  clinicEndTime:   z.string().regex(timeRegex, "Must be HH:MM").optional(),
+  clinicStartTime:     z.string().regex(timeRegex, "Must be HH:MM").optional(),
+  clinicEndTime:       z.string().regex(timeRegex, "Must be HH:MM").optional(),
+  reviewLink:          z.string().url("Must be a valid URL").or(z.literal("")).optional(),
+  reminderEnabled:      z.boolean().optional(),
+  reminderHoursBefore:  z.number().int().min(1).max(168).optional(),
+  bookingAlertsEnabled: z.boolean().optional(),
+  notificationEmail:    z.string().email("Must be a valid email").or(z.literal("")).optional(),
 })
 
 export async function GET() {
@@ -42,10 +47,23 @@ export async function PATCH(req: NextRequest) {
     return Response.json({ error: "Opening time must be before closing time" }, { status: 400 })
   }
 
+  const { reviewLink, notificationEmail, ...rest } = parsed.data
   const tenant = await prisma.tenant.update({
     where:  { id: tenantId },
-    data:   parsed.data,
-    select: { clinicStartTime: true, clinicEndTime: true },
+    data:   {
+      ...rest,
+      ...(reviewLink        !== undefined ? { reviewLink:        reviewLink        || null } : {}),
+      ...(notificationEmail !== undefined ? { notificationEmail: notificationEmail || null } : {}),
+    },
+    select: {
+      clinicStartTime:      true,
+      clinicEndTime:        true,
+      reviewLink:           true,
+      reminderEnabled:      true,
+      reminderHoursBefore:  true,
+      bookingAlertsEnabled: true,
+      notificationEmail:    true,
+    },
   })
   return Response.json({ data: tenant })
 }

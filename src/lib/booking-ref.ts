@@ -1,9 +1,9 @@
+import crypto from "crypto"
 import { v4 as uuidv4 } from "uuid"
 
-export async function generateBookingRef(tx: { appointment: { count: () => Promise<number> } }): Promise<string> {
-  const year  = new Date().getFullYear()
-  const count = await tx.appointment.count()
-  const seq   = String(count + 1).padStart(4, "0")
+export function generateBookingRef(): string {
+  const year = new Date().getFullYear()
+  const seq  = crypto.randomBytes(3).toString("hex").toUpperCase()
   return `PIG-${year}-${seq}`
 }
 

@@ -5,12 +5,30 @@ import { auth } from "@/lib/auth"
 import { getTenantFromHeaders, getScopeFromSession } from "@/lib/tenant"
 import { generateBookingRef, generateCancelToken } from "@/lib/booking-ref"
 import { sendBookingAcknowledgement, sendAdminNewRequest } from "@/lib/email"
+import { encryptField, decryptField } from "@/lib/encryption"
 import { z } from "zod"
 
-export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  const { tenantId, branchId } = getScopeFromSession(session)
+// Fields that are stored encrypted: patientPhone, patientDOB, patientGender, notes, attachmentData
+function decryptAppointment<T extends {
+  patientPhone: string
+  patientDOB:   string | null
+  patientGender: string | null
+  notes:         string | null
+  attachmentData: string | null
+}>(a: T): T {
+  return {
+    ...a,
+    patientPhone:   decryptField(a.patientPhone)!,
+    patientDOB:     decryptField(a.patientDOB),
+    patientGender:  decryptField(a.patientGender),
+    notes:          decryptField(a.notes),
+    attachmentData: decryptField(a.attachmentData),
+  }
+}
+
+export const GET = auth(async (req) => {
+  if (!req.auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  const { tenantId, branchId } = getScopeFromSession(req.auth)
   const { searchParams } = new URL(req.url)
 
   const status   = searchParams.get("status")
@@ -33,27 +51,40 @@ export async function GET(req: NextRequest) {
     include: { slot: true, service: true, doctor: true },
     orderBy: { createdAt: "desc" },
   })
-  return Response.json({ data: appointments })
-}
+
+  return Response.json({ data: appointments.map(decryptAppointment) })
+})
 
 // ── Patient creates a booking request ─────────────────────────────────────────
 const createSchema = z.object({
   branchId:        z.string().uuid().optional(),
   serviceId:       z.string().uuid(),
+  doctorId:        z.string().uuid().optional(), // set when tenant has showDoctorSelection enabled
   preferredDate:   z.string().min(1),
-  patientName:     z.string().min(1),
-  patientSurname:  z.string().optional(),
+  patientName:     z.string().min(1).max(100),
+  patientSurname:  z.string().max(100).optional(),
   patientEmail:    z.string().email(),
-  patientPhone:    z.string().min(1),
-  patientAddress:  z.string().optional(),
-  patientPostcode: z.string().optional(),
-  patientCity:     z.string().optional(),
+  patientPhone:    z.string().min(1).max(30),
   patientDOB:      z.string().optional(),
-  patientGender:   z.string().optional(),
+  patientGender:   z.string().max(50).optional(),
   notes:           z.string().max(500).optional(),
   attachmentData:  z.string().max(7_500_000).optional(),
   attachmentName:  z.string().max(255).optional(),
 })
+
+// Allowed MIME types for patient attachments (validated via base64 magic bytes)
+const ALLOWED_MIME_PREFIXES = [
+  "data:image/jpeg;base64,",
+  "data:image/png;base64,",
+  "data:image/gif;base64,",
+  "data:image/webp;base64,",
+  "data:application/pdf;base64,",
+]
+
+function validateAttachment(data?: string): boolean {
+  if (!data) return true
+  return ALLOWED_MIME_PREFIXES.some(prefix => data.startsWith(prefix))
+}
 
 export async function POST(req: NextRequest) {
   const { tenantId, branchId } = await getTenantFromHeaders()
@@ -65,14 +96,19 @@ export async function POST(req: NextRequest) {
 
   const {
     branchId: bodyBranchId,
-    serviceId, preferredDate,
+    serviceId, doctorId, preferredDate,
     patientName, patientSurname, patientEmail, patientPhone,
-    patientAddress, patientPostcode, patientCity, patientDOB, patientGender,
+    patientDOB, patientGender,
     notes, attachmentData, attachmentName,
   } = parsed.data
 
-  // Body branchId takes priority (patient chose a branch in the form).
-  // Validate it belongs to this tenant so it can't be spoofed.
+  if (!validateAttachment(attachmentData)) {
+    return Response.json(
+      { error: "Attachment must be a JPEG, PNG, GIF, WebP image or PDF." },
+      { status: 400 },
+    )
+  }
+
   let resolvedBranchId = branchId ?? null
   if (bodyBranchId) {
     const branch = await prisma.branch.findUnique({
@@ -83,53 +119,87 @@ export async function POST(req: NextRequest) {
     resolvedBranchId = branch.id
   }
 
-  const bookingRef  = await generateBookingRef(prisma as never)
+  // Validate preferredDate is a real date
+  const prefDate = new Date(preferredDate)
+  if (isNaN(prefDate.getTime()))
+    return Response.json({ error: "Invalid preferred date." }, { status: 400 })
+
+  // Validate patientDOB if provided
+  let dobIso: string | null = null
+  if (patientDOB) {
+    const dob = new Date(patientDOB)
+    if (isNaN(dob.getTime()))
+      return Response.json({ error: "Invalid date of birth." }, { status: 400 })
+    dobIso = dob.toISOString()
+  }
+
+  // If patient selected a doctor, verify they belong to this tenant and branch
+  if (doctorId) {
+    const doctorExists = await prisma.doctor.findUnique({
+      where: { id: doctorId, tenantId, ...(resolvedBranchId ? { branchId: resolvedBranchId } : {}) },
+      select: { id: true },
+    })
+    if (!doctorExists) return Response.json({ error: "Invalid clinician selected." }, { status: 400 })
+  }
+
+  const bookingRef  = generateBookingRef()
   const cancelToken = generateCancelToken()
 
-  // Explicitly type as UncheckedCreateInput so Prisma accepts scalar IDs
-  // without demanding relation objects for every association.
+  // Encrypt sensitive fields before persisting to the database (UK GDPR / Data Protection Act 2018)
   const appointmentData: Prisma.AppointmentUncheckedCreateInput = {
     tenantId,
     serviceId,
     branchId:        resolvedBranchId,
     slotId:          null,
-    doctorId:        null,
-    preferredDate:   new Date(preferredDate),
+    doctorId:        doctorId ?? null,
+    preferredDate:   prefDate,
     patientName,
     patientSurname:  patientSurname  ?? null,
     patientEmail,
-    patientPhone,
-    patientAddress:  patientAddress  ?? null,
-    patientPostcode: patientPostcode ?? null,
-    patientCity:     patientCity     ?? null,
-    patientDOB:      patientDOB      ? new Date(patientDOB) : null,
-    patientGender:   patientGender   ?? null,
-    notes:           notes           ?? null,
-    attachmentData:  attachmentData  ?? null,
+    patientPhone:    encryptField(patientPhone)!,
+    patientDOB:      dobIso ? encryptField(dobIso) : null,
+    patientGender:   encryptField(patientGender),
+    notes:           encryptField(notes),
+    attachmentData:  encryptField(attachmentData),
     attachmentName:  attachmentName  ?? null,
     bookingRef,
     cancelToken,
     status: "PENDING",
   }
 
-  const [appointment, tenant, service, branch] = await Promise.all([
+  const [appointment, tenantRow, service, branch, tenantAdmin] = await Promise.all([
     prisma.appointment.create({ data: appointmentData }),
     prisma.tenant.findUniqueOrThrow({
       where:  { id: tenantId },
-      select: { name: true, slug: true },
+      select: { name: true, slug: true, notificationEmail: true, bookingAlertsEnabled: true },
     }),
-    prisma.service.findUniqueOrThrow({
-      where: { id: serviceId },
-    }),
+    prisma.service.findUniqueOrThrow({ where: { id: serviceId, tenantId } }),
     branchId
       ? prisma.branch.findUnique({ where: { id: branchId } })
       : Promise.resolve(null),
+    // Resolve the tenant admin email as the default alert recipient
+    prisma.adminUser.findFirst({
+      where:  { tenantId, role: "TENANT_ADMIN" },
+      select: { email: true },
+    }),
   ])
 
-  const appt = { ...appointment, tenant, service, branch, slot: null, doctor: null }
+  const tenant = { ...tenantRow, adminEmail: tenantAdmin?.email ?? null }
+
+  // Build plaintext copy for emails — never pass encrypted values to email functions
+  const apptForEmail = {
+    ...appointment,
+    patientPhone,
+    patientDOB:     patientDOB ? new Date(patientDOB) : null,
+    patientGender:  patientGender ?? null,
+    notes:          notes          ?? null,
+    attachmentData: attachmentData ?? null,
+    tenant, service, branch, slot: null, doctor: null,
+  }
+
   await Promise.all([
-    sendBookingAcknowledgement(appt),
-    sendAdminNewRequest(appt),
+    sendBookingAcknowledgement(apptForEmail),
+    ...(tenant.bookingAlertsEnabled ? [sendAdminNewRequest(apptForEmail)] : []),
   ])
 
   return Response.json({ bookingRef: appointment.bookingRef }, { status: 201 })

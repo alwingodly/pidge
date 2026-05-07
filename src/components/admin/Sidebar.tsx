@@ -1,30 +1,41 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import {
   CalendarDays, Stethoscope, Briefcase, GitBranch,
-  LogOut, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Settings,
+  LogOut, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Settings, Users,
 } from "lucide-react"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 const ALL_NAV = [
-  { href: "/admin",              label: "Dashboard",    icon: LayoutDashboard, roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/appointments", label: "Appointments", icon: CalendarDays,    roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/doctors",      label: "Doctors",      icon: Stethoscope,     roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/services",     label: "Services",     icon: Briefcase,       roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/schedule",     label: "Schedule",     icon: Clock,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/branches",     label: "Branches",     icon: GitBranch,       roles: ["TENANT_ADMIN"] },
-  { href: "/admin/settings",     label: "Settings",     icon: Settings,        roles: ["TENANT_ADMIN"] },
+  { href: "/admin",              label: "Dashboard",      icon: LayoutDashboard, roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
+  { href: "/admin/appointments", label: "Appointments",   icon: CalendarDays,    roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
+  { href: "/admin/queue",        label: "Walk-in Queue",  icon: Users,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
+  { href: "/admin/doctors",      label: "Doctors",        icon: Stethoscope,     roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
+  { href: "/admin/services",     label: "Services",       icon: Briefcase,       roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
+  { href: "/admin/schedule",     label: "Schedule",       icon: Clock,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
+  { href: "/admin/branches",     label: "Branches",       icon: GitBranch,       roles: ["TENANT_ADMIN"] },
+  { href: "/admin/settings",     label: "Settings",       icon: Settings,        roles: ["TENANT_ADMIN"] },
 ]
 
 export default function Sidebar({ role }: { role: string }) {
   const pathname   = usePathname()
-  const [collapsed, setCollapsed] = useState(() => (
-    typeof window !== "undefined" && localStorage.getItem("sidebar-collapsed") === "true"
-  ))
+  const [collapsed,       setCollapsed]       = useState(false)
+  const [confirmSignOut,  setConfirmSignOut]  = useState(false)
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setCollapsed(localStorage.getItem("sidebar-collapsed") === "true")
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [])
 
   const nav = ALL_NAV.filter((item) => item.roles.includes(role))
 
@@ -36,6 +47,7 @@ export default function Sidebar({ role }: { role: string }) {
   }
 
   return (
+    <>
     <aside
       className="relative flex shrink-0 flex-col transition-all duration-300"
       style={{
@@ -142,7 +154,7 @@ export default function Sidebar({ role }: { role: string }) {
         style={{ borderColor: "var(--sidebar-border)" }}
       >
         <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => setConfirmSignOut(true)}
           title={collapsed ? "Sign out" : undefined}
           className={cn(
             "flex w-full items-center rounded-lg text-sm font-medium transition-all duration-150",
@@ -164,5 +176,39 @@ export default function Sidebar({ role }: { role: string }) {
       </div>
 
     </aside>
+
+    <Dialog open={confirmSignOut} onOpenChange={setConfirmSignOut}>
+      <DialogContent className="max-w-70 gap-0 overflow-hidden rounded-2xl p-0 shadow-2xl">
+        {/* Icon + text */}
+        <div className="flex flex-col items-center gap-1.5 px-6 pb-4 pt-6 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <LogOut className="size-6 text-foreground" />
+          </div>
+          <DialogTitle className="mt-3 text-base font-semibold text-foreground">
+            Sign out?
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            You'll be returned to the login page.
+          </p>
+        </div>
+
+        {/* iOS-style stacked buttons */}
+        <div className="border-t border-border">
+          <button
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            className="flex w-full items-center justify-center border-b border-border py-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-muted"
+          >
+            Sign out
+          </button>
+          <button
+            onClick={() => setConfirmSignOut(false)}
+            className="flex w-full items-center justify-center py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Cancel
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

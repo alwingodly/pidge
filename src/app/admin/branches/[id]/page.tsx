@@ -1,3 +1,4 @@
+import QRCode from "qrcode"
 import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
@@ -5,6 +6,7 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { MapPin, Phone, Clock, Users } from "lucide-react"
 import BranchAdminManager from "@/components/admin/BranchAdminManager"
+import CheckinQRCard from "@/components/admin/CheckinQRCard"
 
 export default async function BranchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -15,7 +17,7 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
 
   const { tenantId } = getScopeFromSession(session)
 
-  const [branch, admins] = await Promise.all([
+  const [branch, admins, tenant] = await Promise.all([
     prisma.branch.findUnique({
       where: { id, tenantId },
       include: { _count: { select: { doctors: true, appointments: true } } },
@@ -25,9 +27,21 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
       select: { id: true, name: true, email: true, isActive: true },
       orderBy: { name: "asc" },
     }),
+    prisma.tenant.findUnique({
+      where:  { id: tenantId },
+      select: { slug: true },
+    }),
   ])
 
   if (!branch) notFound()
+
+  const appDomain  = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pikatym.io"
+  const checkinUrl = `https://${tenant!.slug}.${appDomain}/checkin?branch=${branch.slug}`
+  const qrDataUrl  = await QRCode.toDataURL(checkinUrl, {
+    width:  220,
+    margin: 2,
+    color:  { dark: "#1C1007", light: "#FFFFFF" },
+  })
 
   return (
     <div className="max-w-2xl space-y-4">
@@ -82,6 +96,17 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Walk-in QR code */}
+      <div className="bg-white rounded-lg border border-border p-5 space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Walk-in QR Code</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Print and display at reception. Patients scan to check in for walk-in appointments.
+          </p>
+        </div>
+        <CheckinQRCard url={checkinUrl} qrDataUrl={qrDataUrl} branchName={branch.name} />
       </div>
 
       {/* Branch admins */}

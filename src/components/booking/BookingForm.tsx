@@ -7,9 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
   CalendarDays,
-  Home,
   Mail,
-  MapPin,
   Phone,
   UserRound,
 } from "lucide-react"
@@ -19,9 +17,6 @@ export type BookingData = {
   patientSurname:  string
   patientEmail:    string
   patientPhone:    string
-  patientAddress:  string
-  patientPostcode: string
-  patientCity:     string
   patientDOB:      string
   patientGender:   string
   notes:           string
@@ -134,41 +129,6 @@ export default function BookingForm({ data, onChange, onSubmit, loading, error }
             className="rounded-xl"
           />
         </Field>
-      </FormSection>
-
-      {/* ── Address ───────────────────────────────────────────────── */}
-      <FormSection label="Address">
-        <Field label="Street address" htmlFor="address" icon={<Home className="size-4" />}>
-          <Input
-            id="address"
-            value={data.patientAddress}
-            onChange={(e) => onChange("patientAddress", e.target.value)}
-            placeholder="12 Baker Street"
-            className="rounded-xl"
-          />
-        </Field>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="City" htmlFor="city" icon={<MapPin className="size-4" />}>
-            <Input
-              id="city"
-              value={data.patientCity}
-              onChange={(e) => onChange("patientCity", e.target.value)}
-              placeholder="London"
-              className="rounded-xl"
-            />
-          </Field>
-
-          <Field label="Postcode" htmlFor="postcode" icon={<MapPin className="size-4" />}>
-            <Input
-              id="postcode"
-              value={data.patientPostcode}
-              onChange={(e) => onChange("patientPostcode", e.target.value)}
-              placeholder="SW1A 1AA"
-              className="rounded-xl uppercase"
-            />
-          </Field>
-        </div>
       </FormSection>
 
       {/* ── Notes ────────────────────────────────────────────────── */}

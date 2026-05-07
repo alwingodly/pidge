@@ -1,16 +1,14 @@
-import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import { z } from "zod"
 
 // GET /api/working-hours?doctorId=x  →  returns all days for that doctor
-export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  const { tenantId } = getScopeFromSession(session)
+export const GET = auth(async (req) => {
+  if (!req.auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const doctorId = new URL(req.url).searchParams.get("doctorId")
+  const { tenantId } = getScopeFromSession(req.auth)
+  const doctorId     = new URL(req.url).searchParams.get("doctorId")
   if (!doctorId) return Response.json({ error: "doctorId required" }, { status: 400 })
 
   const hours = await prisma.workingHours.findMany({
@@ -18,7 +16,7 @@ export async function GET(req: NextRequest) {
     orderBy: { dayOfWeek: "asc" },
   })
   return Response.json({ data: hours })
-}
+})
 
 const upsertSchema = z.object({
   doctorId: z.string().uuid(),
@@ -31,16 +29,23 @@ const upsertSchema = z.object({
 })
 
 // POST /api/working-hours  →  upsert full weekly schedule for a doctor
-export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  const { tenantId, branchId } = getScopeFromSession(session)
+export const POST = auth(async (req) => {
+  if (!req.auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
+
+  const { tenantId, branchId } = getScopeFromSession(req.auth)
 
   const body   = await req.json()
   const parsed = upsertSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
 
   const { doctorId, schedule } = parsed.data
+
+  // Verify doctor belongs to this tenant (and branch for branch admins)
+  const doctor = await prisma.doctor.findUnique({
+    where: { id: doctorId, tenantId, ...(branchId ? { branchId } : {}) },
+    select: { id: true },
+  })
+  if (!doctor) return Response.json({ error: "Invalid clinician." }, { status: 400 })
 
   const rows = await prisma.$transaction(
     schedule.map(({ dayOfWeek, startTime, endTime, isActive }) =>
@@ -53,4 +58,4 @@ export async function POST(req: NextRequest) {
   )
 
   return Response.json({ data: rows })
-}
+})

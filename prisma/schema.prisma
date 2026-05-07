@@ -18,11 +18,19 @@ model Tenant {
   currency       String   @default("GBP")
   currencySymbol String   @default("£")
   logoUrl        String?
-  primaryColor   String   @default("#2563EB")
+  primaryColor   String   @default("#436850")
   plan             String   @default("FREE")
+  stripeAccountId  String?  // Stripe Connect acct_xxx — set after clinic connects their account
+  stripeOnboarded  Boolean  @default(false) // true once clinic completes Stripe onboarding
   clinicStartTime  String?  // "09:00" — opening time shown on booking page
   clinicEndTime    String?  // "17:00" — closing time
-  isActive         Boolean  @default(true)
+  reviewLink           String?  // e.g. Google Maps review URL — sent to patients after COMPLETED
+  reminderEnabled      Boolean  @default(true)   // send appointment reminders to patients
+  reminderHoursBefore  Int      @default(24)      // how many hours before to send the reminder
+  bookingAlertsEnabled Boolean  @default(true)  // send admin email when a new booking arrives
+  notificationEmail    String?  // override recipient for booking alerts; defaults to tenant admin email
+  isActive            Boolean  @default(true)
+  showDoctorSelection Boolean  @default(false) // super-admin feature flag
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -175,10 +183,7 @@ model Appointment {
   patientSurname   String?
   patientEmail     String
   patientPhone     String
-  patientAddress   String?
-  patientPostcode  String?
-  patientCity      String?
-  patientDOB       DateTime?
+  patientDOB       String?                 // stored as encrypted ISO date string
   patientGender    String?
   notes            String?
   attachmentData   String?
@@ -186,17 +191,31 @@ model Appointment {
   preferredDate  DateTime?               // patient's requested date
   assignedDate   DateTime?               // admin-confirmed date
   assignedTime   String?                 // admin-confirmed time "10:30"
-  status         String    @default("PENDING")
-  cancelToken    String    @unique
-  reminderSent   Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  status          String    @default("PENDING")
+  appointmentType String    @default("ONLINE")    // "ONLINE" | "WALK_IN"
+  checkedInAt     DateTime?                       // wall-clock arrival time for walk-ins
+  cancelToken     String    @unique
+  reminderSent    Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   tenant  Tenant   @relation(fields: [tenantId], references: [id])
   branch  Branch?  @relation(fields: [branchId], references: [id])
   slot    Slot?    @relation(fields: [slotId],    references: [id])
   service Service  @relation(fields: [serviceId], references: [id])
   doctor  Doctor?  @relation(fields: [doctorId],  references: [id])
+}
+
+// ── BookingOTP — short-lived email verification codes for patient booking ─────
+model BookingOTP {
+  id        String   @id @default(uuid())
+  email     String
+  otpHash   String   // HMAC-SHA256 of the OTP — never store raw OTP
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
 
 // ── PasswordResetToken ────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import QRCode from "qrcode"
 import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
@@ -12,19 +13,37 @@ export default async function BranchesPage() {
 
   const isTenantAdmin = session.user.role === "TENANT_ADMIN"
 
-  const branches = await prisma.branch.findMany({
-    where: { tenantId },
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { doctors: true, appointments: true } },
-      adminUsers: {
-        where: { role: "BRANCH_ADMIN", isActive: true },
-        select: { id: true, name: true, email: true, isActive: true },
+  const [branches, tenant] = await Promise.all([
+    prisma.branch.findMany({
+      where: { tenantId },
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { doctors: true, appointments: true } },
+        adminUsers: {
+          where: { role: "BRANCH_ADMIN", isActive: true },
+          select: { id: true, name: true, email: true, isActive: true },
+        },
       },
-    },
-  })
+    }),
+    prisma.tenant.findUnique({
+      where:  { id: tenantId },
+      select: { slug: true },
+    }),
+  ])
 
-  const activeCount = branches.filter((b) => b.isActive).length
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pikatym.io"
+
+  const branchesWithQR = await Promise.all(
+    branches.map(async (b) => {
+      const checkinUrl = `https://${tenant!.slug}.${appDomain}/checkin?branch=${b.slug}`
+      const qrDataUrl  = await QRCode.toDataURL(checkinUrl, {
+        width: 200, margin: 2, color: { dark: "#1C1007", light: "#FFFFFF" },
+      })
+      return { ...b, checkinUrl, qrDataUrl }
+    })
+  )
+
+  const activeCount = branchesWithQR.filter((b) => b.isActive).length
 
   return (
     <div className="space-y-4">
@@ -32,7 +51,7 @@ export default async function BranchesPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground">Branches</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {branches.length} total · {activeCount} active
+            {branchesWithQR.length} total · {activeCount} active
           </p>
         </div>
         {isTenantAdmin && <AddBranchDialog tenantId={tenantId} />}
@@ -46,10 +65,10 @@ export default async function BranchesPage() {
             </div>
             <p className="text-sm font-bold text-foreground">Locations</p>
           </div>
-          <span className="text-xs text-muted-foreground">{branches.length} rows</span>
+          <span className="text-xs text-muted-foreground">{branchesWithQR.length} rows</span>
         </div>
 
-        {branches.length === 0 ? (
+        {branchesWithQR.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="flex size-12 items-center justify-center rounded-xl bg-secondary text-primary">
               <GitBranch className="size-5" />
@@ -64,7 +83,7 @@ export default async function BranchesPage() {
           </div>
         ) : (
           <div className="divide-y divide-[#F3EAE0]">
-            {branches.map((branch) => (
+            {branchesWithQR.map((branch) => (
               <div
                 key={branch.id}
                 className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
@@ -96,7 +115,13 @@ export default async function BranchesPage() {
                       {branch.adminUsers.length} admin{branch.adminUsers.length !== 1 ? "s" : ""}
                     </span>
                   </div>
-                  {isTenantAdmin && <ManageBranchDialog branch={branch} />}
+                  {isTenantAdmin && (
+                    <ManageBranchDialog
+                      branch={branch}
+                      checkinUrl={branch.checkinUrl}
+                      qrDataUrl={branch.qrDataUrl}
+                    />
+                  )}
                 </div>
               </div>
             ))}

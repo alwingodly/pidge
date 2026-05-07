@@ -1,101 +1,106 @@
 @import "tailwindcss";
 
 /* ── Brand Palette ────────────────────────────────────────────────────────── */
-/* #F2F2F2 light-gray · #EAE4D5 soft-beige · #B6B09F muted-taupe · #000000 black */
+/* #F1EFE9 soft leaf · #ADBC9F sage · #436850 herb · #12372A deep forest */
 
 :root {
+  --brand-soft:          #F1EFE9;
+  --brand-sage:          #ADBC9F;
+  --brand-herb:          #436850;
+  --brand-forest:        #12372A;
+
   --background:          #ffffff;
-  --foreground:          #000000;
+  --foreground:          var(--brand-forest);
 
   --card:                #ffffff;
-  --card-foreground:     #000000;
+  --card-foreground:     var(--brand-forest);
   --popover:             #ffffff;
-  --popover-foreground:  #000000;
+  --popover-foreground:  var(--brand-forest);
 
-  --primary:             #000000;
+  --primary:             var(--brand-herb);
   --primary-foreground:  #ffffff;
 
-  --secondary:           #EAE4D5;
-  --secondary-foreground:#000000;
+  --secondary:           var(--brand-soft);
+  --secondary-foreground:var(--brand-forest);
 
-  --muted:               #F2F2F2;
-  --muted-foreground:    #B6B09F;
+  --muted:               #F4FAF4;
+  --muted-foreground:    color-mix(in srgb, var(--brand-forest) 70%, #ffffff);
 
-  --accent:              #B6B09F;
-  --accent-foreground:   #000000;
+  --accent:              var(--brand-sage);
+  --accent-foreground:   var(--brand-forest);
 
-  --destructive:         #000000;
+  --destructive:         #A44A3F;
   --destructive-foreground: #ffffff;
 
-  --border:              #EAE4D5;
-  --input:               #EAE4D5;
-  --ring:                #000000;
+  --border:              color-mix(in srgb, var(--brand-sage) 42%, #ffffff);
+  --input:               color-mix(in srgb, var(--brand-sage) 42%, #ffffff);
+  --ring:                var(--brand-herb);
 
   --radius:              0.5rem;
-  --page-bg:             #F2F2F2;
+  --page-bg:             var(--brand-soft);
 
   /* Sidebar tokens */
-  --sidebar-bg:            #000000;
-  --sidebar-text:          rgba(242, 242, 242, 0.65);
-  --sidebar-text-active:   #F2F2F2;
+  --sidebar-bg:            var(--brand-forest);
+  --sidebar-text:          rgba(214, 239, 216, 0.72);
+  --sidebar-text-active:   #ffffff;
   --sidebar-active-bg:     rgba(255, 255, 255, 0.15);
   --sidebar-hover-bg:      rgba(255, 255, 255, 0.08);
-  --sidebar-border:        rgba(242, 242, 242, 0.10);
-  --sidebar-section-label: rgba(242, 242, 242, 0.40);
-  --sidebar-toggle-bg:     #F2F2F2;
-  --sidebar-toggle-fg:     #000000;
-  --sidebar-toggle-border: #EAE4D5;
+  --sidebar-border:        rgba(214, 239, 216, 0.14);
+  --sidebar-section-label: rgba(214, 239, 216, 0.46);
+  --sidebar-toggle-bg:     var(--brand-soft);
+  --sidebar-toggle-fg:     var(--brand-forest);
+  --sidebar-toggle-border: var(--brand-sage);
 
   /* Card / panel tokens */
-  --card-divider:             #EAE4D5;
+  --card-divider:             color-mix(in srgb, var(--brand-sage) 36%, #ffffff);
 
   /* "Next up" feature card */
-  --nextup-bg:                #000000;
-  --nextup-fg:                #F2F2F2;
-  --nextup-label:             rgba(242, 242, 242, 0.55);
-  --nextup-muted:             rgba(242, 242, 242, 0.65);
+  --nextup-bg:                var(--brand-forest);
+  --nextup-fg:                var(--brand-soft);
+  --nextup-label:             rgba(214, 239, 216, 0.62);
+  --nextup-muted:             rgba(214, 239, 216, 0.72);
   --nextup-hover-fg:          #ffffff;
 
   /* Attention indicator dot */
-  --attention-dot:            #000000;
+  --attention-dot:            var(--brand-herb);
 
   /* Status pill tokens */
-  --status-pending-bg:        #F5F1EA;
-  --status-pending-fg:        #6B5E4F;
-  --status-pending-ring:      #E8E0D3;
+  --status-pending-bg:        #FFF8E3;
+  --status-pending-fg:        #8A641A;
+  --status-pending-ring:      #EBD89A;
 
-  --status-approved-bg:       #EAEAEA;
-  --status-approved-fg:       #333333;
-  --status-approved-ring:     #DADADA;
+  --status-approved-bg:       var(--brand-soft);
+  --status-approved-fg:       var(--brand-forest);
+  --status-approved-ring:     var(--brand-sage);
 
-  --status-cancelled-bg:      #E0E0E0;
-  --status-cancelled-fg:      #222222;
-  --status-cancelled-ring:    #CFCFCF;
+  --status-cancelled-bg:      #F8E7E2;
+  --status-cancelled-fg:      #A44A3F;
+  --status-cancelled-ring:    #E8B8AE;
 
-  --status-completed-bg:      #EAE4D5;
-  --status-completed-fg:      #000000;
-  --status-completed-ring:    #B6B09F;
+  --status-completed-bg:      color-mix(in srgb, var(--brand-sage) 28%, #ffffff);
+  --status-completed-fg:      var(--brand-herb);
+  --status-completed-ring:    var(--brand-sage);
 
-  --status-noshow-bg:         #F7F7F7;
-  --status-noshow-fg:         #555555;
-  --status-noshow-ring:       #E5E5E5;
+  --status-noshow-bg:         #F3F5EC;
+  --status-noshow-fg:         color-mix(in srgb, var(--brand-forest) 72%, #ffffff);
+  --status-noshow-ring:       color-mix(in srgb, var(--brand-sage) 34%, #ffffff);
 
   /* Chart slice colors */
-  --chart-pending:            #B6B09F;
-  --chart-approved:           #000000;
-  --chart-completed:          #6B6B6B;
-  --chart-cancelled:          #9A9A9A;
-  --chart-noshow:             #C5C5C5;
+  --chart-pending:            var(--brand-sage);
+  --chart-approved:           var(--brand-herb);
+  --chart-completed:          var(--brand-forest);
+  --chart-cancelled:          #A44A3F;
+  --chart-noshow:             color-mix(in srgb, var(--brand-sage) 55%, #ffffff);
 
   /* Login tokens */
-  --login-page-bg:         #F2F2F2;
-  --login-panel-bg:        #000000;
-  --login-panel-fg:        #F2F2F2;
-  --login-panel-muted:     rgba(242, 242, 242, 0.65);
-  --login-panel-faint:     rgba(242, 242, 242, 0.35);
+  --login-page-bg:         var(--brand-soft);
+  --login-panel-bg:        var(--brand-forest);
+  --login-panel-fg:        #ffffff;
+  --login-panel-muted:     rgba(214, 239, 216, 0.74);
+  --login-panel-faint:     rgba(214, 239, 216, 0.44);
   --login-badge-bg:        rgba(255, 255, 255, 0.15);
-  --login-btn-bg:          #000000;
-  --login-btn-hover:       #B6B09F;
+  --login-btn-bg:          var(--brand-herb);
+  --login-btn-hover:       var(--brand-forest);
   --login-btn-fg:          #ffffff;
   --login-input-bg:        #ffffff;
 }

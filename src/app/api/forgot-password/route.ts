@@ -17,6 +17,15 @@ export async function POST(req: NextRequest) {
   const user = await prisma.adminUser.findUnique({ where: { email: email.toLowerCase().trim() } })
 
   if (user) {
+    // Silent rate limit: same response to avoid email enumeration
+    const recent = await prisma.passwordResetToken.findFirst({
+      where:   { email: user.email },
+      orderBy: { createdAt: "desc" },
+    })
+    if (recent && (Date.now() - recent.createdAt.getTime()) / 1000 < 60) {
+      return Response.json({ ok: true })
+    }
+
     // Delete any existing token for this email
     await prisma.passwordResetToken.deleteMany({ where: { email: user.email } })
 

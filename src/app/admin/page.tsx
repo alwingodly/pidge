@@ -4,6 +4,7 @@ import { getScopeFromSession } from "@/lib/tenant"
 import Link from "next/link"
 import { formatDate, formatTime } from "@/lib/utils"
 import {
+  AlertTriangle,
   ArrowRight,
   Briefcase,
   CalendarDays,
@@ -26,6 +27,10 @@ export default async function AdminDashboardPage() {
 
   const { tenantId, branchId } = getScopeFromSession(session)
   const now = new Date()
+  const tenant = await prisma.tenant.findUnique({
+    where:  { id: tenantId },
+    select: { clinicStartTime: true, clinicEndTime: true },
+  })
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const todayEnd = new Date(todayStart.getTime() + 86_400_000)
   const weekStart = new Date(todayStart.getTime() - 7 * 86_400_000)
@@ -52,22 +57,35 @@ export default async function AdminDashboardPage() {
     doctors,
     services,
     trendRaw,
+    conflictCount,
   ] = await Promise.all([
-    prisma.appointment.count({ where: { ...scope, slot: { date: { gte: todayStart, lt: todayEnd } } } }),
+    // Today: covers both assignedDate (new flow) and slot.date (legacy)
+    prisma.appointment.count({ where: { ...scope, OR: [{ assignedDate: { gte: todayStart, lt: todayEnd } }, { slot: { date: { gte: todayStart, lt: todayEnd } } }] } }),
     prisma.appointment.count({ where: { ...scope, status: "PENDING" } }),
-    prisma.appointment.count({ where: { ...scope, status: "APPROVED", slot: { date: { gte: todayStart, lt: todayEnd } } } }),
-    prisma.appointment.count({ where: { ...scope, slot: { date: { gte: todayStart, lt: weekEnd } } } }),
+    // Confirmed today
+    prisma.appointment.count({ where: { ...scope, status: "APPROVED", OR: [{ assignedDate: { gte: todayStart, lt: todayEnd } }, { slot: { date: { gte: todayStart, lt: todayEnd } } }] } }),
+    // This week
+    prisma.appointment.count({ where: { ...scope, OR: [{ assignedDate: { gte: todayStart, lt: weekEnd } }, { slot: { date: { gte: todayStart, lt: weekEnd } } }] } }),
     prisma.appointment.count({ where: { ...scope, status: "CANCELLED" } }),
     prisma.appointment.count({ where: { ...scope, status: "COMPLETED" } }),
     prisma.appointment.count({ where: { ...scope, createdAt: { gte: monthStart } } }),
-    prisma.appointment.count({ where: { ...scope, createdAt: { gte: weekStart, lt: todayStart } } }),
+    // Last week for growth calc
+    prisma.appointment.count({ where: { ...scope, OR: [{ assignedDate: { gte: weekStart, lt: todayStart } }, { slot: { date: { gte: weekStart, lt: todayStart } } }] } }),
     prisma.appointment.count({ where: { ...scope, status: "APPROVED" } }),
     prisma.appointment.count({ where: { ...scope, status: "NO_SHOW" } }),
     prisma.appointment.count({ where: scope }),
+    // Today's schedule: both assignedDate and slot.date
     prisma.appointment.findMany({
-      where: { ...scope, slot: { date: { gte: todayStart, lt: todayEnd } }, status: { not: "CANCELLED" } },
+      where: {
+        ...scope,
+        status: { not: "CANCELLED" },
+        OR: [
+          { assignedDate: { gte: todayStart, lt: todayEnd } },
+          { slot: { date: { gte: todayStart, lt: todayEnd } } },
+        ],
+      },
       include: { slot: true, service: true, doctor: true },
-      orderBy: { slot: { startTime: "asc" } },
+      orderBy: { assignedTime: { sort: "asc", nulls: "last" } },
     }),
     prisma.appointment.findMany({
       where: { ...scope, status: "PENDING" },
@@ -88,16 +106,42 @@ export default async function AdminDashboardPage() {
       take: 5,
     }),
     prisma.service.findMany({
-      where: { tenantId, isActive: true },
-      include: { _count: { select: { appointments: true } } },
-      orderBy: { appointments: { _count: "desc" } },
-      take: 5,
+      where: {
+        tenantId,
+        isActive: true,
+        // Branch admins only see services offered at their branch
+        ...(branchId ? { branchConfigs: { some: { branchId, isOffered: true } } } : {}),
+      },
+      include: {
+        _count: {
+          select: {
+            // Branch admins get a count scoped to their branch only
+            appointments: branchId ? { where: { branchId } } : true,
+          },
+        },
+      },
+      // Prisma can't orderBy a filtered _count, so branch admins sort in JS below
+      ...(branchId ? {} : { orderBy: { appointments: { _count: "desc" } }, take: 5 }),
     }),
     prisma.appointment.findMany({
       where: { ...scope, createdAt: { gte: thirtyDaysAgo } },
       select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     }),
+    tenant?.clinicStartTime && tenant?.clinicEndTime
+      ? prisma.appointment.count({
+          where: {
+            ...scope,
+            status:       "APPROVED",
+            assignedDate: { gte: todayStart },
+            assignedTime: { not: null },
+            OR: [
+              { assignedTime: { lt: tenant.clinicStartTime } },
+              { assignedTime: { gte: tenant.clinicEndTime  } },
+            ],
+          },
+        })
+      : Promise.resolve(0),
   ])
 
   const completionRate = allAppointments > 0 ? Math.round((completedTotal / allAppointments) * 100) : 0
@@ -140,11 +184,14 @@ export default async function AdminDashboardPage() {
       count: doctor._count.appointments,
     }))
 
-  const topServices = services
+  const topServices = (branchId
+    ? [...services].sort((a, b) => b._count.appointments - a._count.appointments).slice(0, 5)
+    : services
+  )
     .filter((service) => service._count.appointments > 0)
     .map((service) => ({
-      id: service.id,
-      name: service.name,
+      id:    service.id,
+      name:  service.name,
       count: service._count.appointments,
     }))
 
@@ -168,6 +215,24 @@ export default async function AdminDashboardPage() {
           Open appointments <ArrowRight className="size-3.5" />
         </Link>
       </header>
+
+      {conflictCount > 0 && (
+        <Link
+          href="/admin/appointments?conflict=true"
+          className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 transition-colors hover:bg-amber-100"
+        >
+          <AlertTriangle className="size-5 shrink-0 text-amber-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-800">
+              {conflictCount} appointment{conflictCount !== 1 ? "s" : ""} conflict with current clinic hours
+            </p>
+            <p className="text-xs text-amber-700">
+              Approved appointments scheduled outside your opening hours — click to review and reschedule.
+            </p>
+          </div>
+          <ArrowRight className="size-4 shrink-0 text-amber-600" />
+        </Link>
+      )}
 
       <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
         <div className="rounded-xl border border-border bg-card shadow-sm">

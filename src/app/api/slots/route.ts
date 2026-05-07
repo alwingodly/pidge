@@ -43,12 +43,14 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST — admin: create slots for a doctor+date+service ─────────────────────
+const HH_MM = /^\d{2}:\d{2}$/
+
 const createSchema = z.object({
-  doctorId:    z.string().min(1),
-  serviceId:   z.string().uuid().optional(),
+  doctorId:     z.string().uuid(),
+  serviceId:    z.string().uuid().optional(),
   durationMins: z.number().int().positive().optional(),
-  date:        z.string().min(1),
-  times:       z.array(z.string()).min(1),
+  date:         z.string().min(1),
+  times:        z.array(z.string().regex(HH_MM, "Each time must be HH:mm")).min(1),
 })
 
 export async function POST(req: NextRequest) {
@@ -62,11 +64,23 @@ export async function POST(req: NextRequest) {
 
   const { doctorId, serviceId, durationMins: bodyDuration, date, times } = parsed.data
 
-  // Resolve duration: prefer body value, fall back to service lookup, then default 30
+  // Validate date
+  const parsedDate = new Date(date)
+  if (isNaN(parsedDate.getTime())) return Response.json({ error: "Invalid date." }, { status: 400 })
+
+  // Verify doctor belongs to this tenant (and branch for branch admins)
+  const doctor = await prisma.doctor.findUnique({
+    where: { id: doctorId, tenantId, ...(branchId ? { branchId } : {}) },
+    select: { id: true },
+  })
+  if (!doctor) return Response.json({ error: "Invalid clinician." }, { status: 400 })
+
+  // Verify serviceId belongs to this tenant
   let duration = bodyDuration ?? 30
-  if (!bodyDuration && serviceId) {
-    const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { durationMins: true } })
-    if (svc) duration = svc.durationMins
+  if (serviceId) {
+    const svc = await prisma.service.findUnique({ where: { id: serviceId, tenantId }, select: { durationMins: true } })
+    if (!svc) return Response.json({ error: "Invalid service." }, { status: 400 })
+    if (!bodyDuration) duration = svc.durationMins
   }
 
   const slots = await prisma.$transaction(
@@ -84,7 +98,7 @@ export async function POST(req: NextRequest) {
           doctorId,
           serviceId:   serviceId ?? null,
           durationMins: duration,
-          date:        new Date(date),
+          date:        parsedDate,
           startTime:   time,
           endTime,
         },

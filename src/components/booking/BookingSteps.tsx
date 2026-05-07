@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DatePickerButton } from "@/components/ui/date-picker"
 import BookingForm from "./BookingForm"
+import { loadStripe } from "@stripe/stripe-js"
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,93 +15,127 @@ import {
   Check,
   ChevronRight,
   Clock,
+  CreditCard,
   Loader2,
-  Mail,
   MapPin,
   ShieldCheck,
   Stethoscope,
+  UserRound,
 } from "lucide-react"
 
-type Branch  = { id: string; name: string; address: string | null }
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null
+
+type Branch       = { id: string; name: string; address: string | null }
 type BranchConfig = { branchId: string; isOffered: boolean; isAvailable: boolean }
-type Service = {
+type Service      = {
   id: string
   name: string
   durationMins: number
+  price: number
   description?: string | null
   branchConfigs: BranchConfig[]
 }
+type Doctor = { id: string; name: string; speciality: string; photoUrl?: string | null }
 
 type State = {
-  step:            number
-  branchId:        string | null
-  serviceId:       string | null
-  preferredDate:   string | null
-  patientName:     string
-  patientSurname:  string
-  patientEmail:    string
-  patientPhone:    string
-  patientAddress:  string
-  patientPostcode: string
-  patientCity:     string
-  patientDOB:      string
-  patientGender:   string
-  notes:           string
+  step:           number
+  branchId:       string | null
+  serviceId:      string | null
+  doctorId:       string | null
+  preferredDate:  string | null
+  patientName:    string
+  patientSurname: string
+  patientEmail:   string
+  patientPhone:   string
+  patientDOB:     string
+  patientGender:  string
+  notes:          string
+  clientSecret:   string | null
 }
 
 export default function BookingSteps({
   services,
   branches,
   defaultBranchId,
+  showDoctorSelection,
+  currencySymbol,
 }: {
-  services:        Service[]
-  branches:        Branch[]
-  defaultBranchId: string | null
+  services:             Service[]
+  branches:             Branch[]
+  defaultBranchId:      string | null
+  showDoctorSelection:  boolean
+  currencySymbol:       string
 }) {
   const router = useRouter()
 
-  // Show a location step only when the caller passes 2+ branches to choose from.
-  const hasLocationStep = branches.length > 1
-
-  const STEPS = hasLocationStep
-    ? ["Location", "Service", "Date", "Details", "Verify"]
-    : ["Service", "Date", "Details", "Verify"]
-
-  // Step numbers depend on whether the location step is present.
-  const locationStep = hasLocationStep ? 1 : 0
-  const serviceStep  = hasLocationStep ? 2 : 1
-  const dateStep     = hasLocationStep ? 3 : 2
-  const detailsStep  = hasLocationStep ? 4 : 3
-  const otpStep      = hasLocationStep ? 5 : 4
-
   const [state, setState] = useState<State>({
-    step:            1,
-    branchId:        defaultBranchId,
-    serviceId:       null,
-    preferredDate:   null,
-    patientName:     "",
-    patientSurname:  "",
-    patientEmail:    "",
-    patientPhone:    "",
-    patientAddress:  "",
-    patientPostcode: "",
-    patientCity:     "",
-    patientDOB:      "",
-    patientGender:   "",
-    notes:           "",
+    step:           1,
+    branchId:       defaultBranchId,
+    serviceId:      null,
+    doctorId:       null,
+    preferredDate:  null,
+    patientName:    "",
+    patientSurname: "",
+    patientEmail:   "",
+    patientPhone:   "",
+    patientDOB:     "",
+    patientGender:  "",
+    notes:          "",
+    clientSecret:   null,
   })
-  const [submitting,  setSubmitting]  = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
-  const [otpDigits,   setOtpDigits]   = useState(["", "", "", ""])
-  const [otpSending,  setOtpSending]  = useState(false)
-  const [otpVerifying,setOtpVerifying]= useState(false)
-  const [otpError,    setOtpError]    = useState<string | null>(null)
+
+  const [submitting,   setSubmitting]   = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+  const [otpDigits,    setOtpDigits]    = useState(["", "", "", ""])
+  const [otpSending,   setOtpSending]   = useState(false)
+  const [otpVerifying, setOtpVerifying] = useState(false)
+  const [otpError,     setOtpError]     = useState<string | null>(null)
+
+  const [doctors,        setDoctors]        = useState<Doctor[]>([])
+  const [loadingDoctors, setLoadingDoctors] = useState(false)
+
+  // ── Derived values (after hooks) ──────────────────────────────────────────────
+  const hasLocationStep = branches.length > 1
+  const selectedService = services.find((s) => s.id === state.serviceId)
+  const hasPaidService  = (selectedService?.price ?? 0) > 0
+
+  const STEP_LABELS: string[] = []
+  if (hasLocationStep)     STEP_LABELS.push("Location")
+  STEP_LABELS.push("Service")
+  if (showDoctorSelection) STEP_LABELS.push("Clinician")
+  STEP_LABELS.push("Date", "Details", "Verify")
+  if (hasPaidService)      STEP_LABELS.push("Payment")
+
+  let n = 0
+  const locationStep = hasLocationStep     ? ++n : 0
+  const serviceStep  = ++n
+  const doctorStep   = showDoctorSelection ? ++n : 0
+  const dateStep     = ++n
+  const detailsStep  = ++n
+  const otpStep      = ++n
+  const paymentStep  = hasPaidService      ? ++n : 0
+
+  const selectedBranch = branches.find((b) => b.id === state.branchId)
+  const selectedDoctor = doctors.find((d) => d.id === state.doctorId)
 
   function set<K extends keyof State>(key: K, value: State[K]) {
     setState((p) => ({ ...p, [key]: value }))
   }
 
-  // Per-branch availability filtering
+  // Load doctors when entering the doctor step
+  useEffect(() => {
+    if (!showDoctorSelection || state.step !== doctorStep || !state.serviceId) return
+    setLoadingDoctors(true)
+    const qs = new URLSearchParams({ serviceId: state.serviceId })
+    if (state.branchId) qs.set("branchId", state.branchId)
+    fetch(`/api/doctors?${qs}`)
+      .then((r) => r.json())
+      .then((d) => setDoctors(d.data ?? []))
+      .finally(() => setLoadingDoctors(false))
+  }, [state.step, state.serviceId, state.branchId, showDoctorSelection, doctorStep])
+
   function serviceStatus(svc: Service): "available" | "unavailable" | "hidden" {
     if (!state.branchId) return "available"
     const cfg = svc.branchConfigs.find((c) => c.branchId === state.branchId)
@@ -110,10 +146,40 @@ export default function BookingSteps({
   }
 
   const visibleServices = services.filter((s) => serviceStatus(s) !== "hidden")
-  const selectedService = services.find((s) => s.id === state.serviceId)
-  const selectedBranch  = branches.find((b) => b.id === state.branchId)
 
-  // Step 1: send OTP then advance to verify step
+  function selectService(id: string) {
+    setState((p) => ({ ...p, serviceId: id, doctorId: null }))
+    set("step", showDoctorSelection ? doctorStep : dateStep)
+  }
+
+  async function createAppointment() {
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/appointments", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          branchId:       state.branchId       || undefined,
+          serviceId:      state.serviceId,
+          doctorId:       state.doctorId        || undefined,
+          preferredDate:  state.preferredDate,
+          patientName:    state.patientName,
+          patientSurname: state.patientSurname  || undefined,
+          patientEmail:   state.patientEmail,
+          patientPhone:   state.patientPhone,
+          patientDOB:     state.patientDOB      || undefined,
+          patientGender:  state.patientGender   || undefined,
+          notes:          state.notes           || undefined,
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { setOtpError(data?.error ?? "Something went wrong."); return }
+      router.push(`/confirmation/${data.bookingRef}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   async function handleSendOTP() {
     setOtpSending(true)
     setOtpError(null)
@@ -131,7 +197,6 @@ export default function BookingSteps({
     }
   }
 
-  // Step 2: verify OTP then create booking
   async function handleVerifyAndBook() {
     const otp = otpDigits.join("")
     if (otp.length < 4) { setOtpError("Please enter the 4-digit code."); return }
@@ -142,7 +207,7 @@ export default function BookingSteps({
       const verifyRes = await fetch("/api/booking-otp", {
         method:  "PUT",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ otp }),
+        body:    JSON.stringify({ email: state.patientEmail, otp }),
       })
       if (!verifyRes.ok) {
         const d = await verifyRes.json().catch(() => null)
@@ -150,32 +215,21 @@ export default function BookingSteps({
         return
       }
 
-      setSubmitting(true)
-      const res = await fetch("/api/appointments", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          branchId:        state.branchId        || undefined,
-          serviceId:       state.serviceId,
-          preferredDate:   state.preferredDate,
-          patientName:     state.patientName,
-          patientSurname:  state.patientSurname  || undefined,
-          patientEmail:    state.patientEmail,
-          patientPhone:    state.patientPhone,
-          patientAddress:  state.patientAddress  || undefined,
-          patientPostcode: state.patientPostcode || undefined,
-          patientCity:     state.patientCity     || undefined,
-          patientDOB:      state.patientDOB      || undefined,
-          patientGender:   state.patientGender   || undefined,
-          notes:           state.notes           || undefined,
-        }),
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) { setOtpError(data?.error ?? "Something went wrong."); return }
-      router.push(`/confirmation/${data.bookingRef}`)
+      if (hasPaidService && paymentStep > 0) {
+        // Create PaymentIntent then move to payment step
+        const piRes = await fetch("/api/create-payment-intent", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ serviceId: state.serviceId }),
+        })
+        const piData = await piRes.json().catch(() => null)
+        if (!piRes.ok) { setOtpError(piData?.error ?? "Failed to initiate payment."); return }
+        setState((p) => ({ ...p, clientSecret: piData.clientSecret, step: paymentStep }))
+      } else {
+        await createAppointment()
+      }
     } finally {
       setOtpVerifying(false)
-      setSubmitting(false)
     }
   }
 
@@ -188,7 +242,7 @@ export default function BookingSteps({
         {/* Step indicator */}
         <div className="border-b border-[#E8D8C5] px-5 py-4">
           <div className="flex items-center">
-            {STEPS.map((label, i) => {
+            {STEP_LABELS.map((label, i) => {
               const step   = i + 1
               const active = state.step === step
               const done   = state.step > step
@@ -206,7 +260,7 @@ export default function BookingSteps({
                       {label}
                     </span>
                   </div>
-                  {i < STEPS.length - 1 && (
+                  {i < STEP_LABELS.length - 1 && (
                     <div className={`mx-2 h-px flex-1 transition-colors ${done ? "bg-primary/30" : "bg-[#E8D8C5]"}`} />
                   )}
                 </div>
@@ -265,14 +319,14 @@ export default function BookingSteps({
               ) : (
                 <div className="space-y-1.5">
                   {visibleServices.map((service) => {
-                    const status = serviceStatus(service)
+                    const status      = serviceStatus(service)
                     const unavailable = status === "unavailable"
                     return (
                       <button
                         key={service.id}
                         type="button"
                         disabled={unavailable}
-                        onClick={() => { if (!unavailable) { set("serviceId", service.id); set("step", dateStep) } }}
+                        onClick={() => { if (!unavailable) selectService(service.id) }}
                         className={`group flex w-full items-center gap-3.5 rounded-xl border px-4 py-3 text-left transition-all ${
                           unavailable
                             ? "cursor-not-allowed border-[#E8D8C5] bg-[#FAFAF9] opacity-70"
@@ -297,8 +351,15 @@ export default function BookingSteps({
                             <p className="truncate text-xs text-muted-foreground">{service.description}</p>
                           )}
                         </div>
-                        <span className="shrink-0 text-xs font-medium text-muted-foreground">{service.durationMins} min</span>
-                        {!unavailable && <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" />}
+                        <div className="flex shrink-0 items-center gap-2">
+                          {service.price > 0 && (
+                            <span className="text-xs font-semibold text-foreground">
+                              {currencySymbol}{service.price.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-xs font-medium text-muted-foreground">{service.durationMins} min</span>
+                          {!unavailable && <ChevronRight className="size-4 text-muted-foreground/50" />}
+                        </div>
                       </button>
                     )
                   })}
@@ -312,21 +373,68 @@ export default function BookingSteps({
             </div>
           )}
 
+          {/* Step: Clinician */}
+          {showDoctorSelection && state.step === doctorStep && (
+            <div className="space-y-4">
+              <StepHeading
+                icon={<UserRound className="size-4.5" />}
+                title="Choose a clinician"
+                description="Select the practitioner you'd like to see."
+              />
+
+              {loadingDoctors ? (
+                <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Loading clinicians…
+                </div>
+              ) : doctors.length === 0 ? (
+                <EmptyState text="No clinicians are available for this service yet. Please try another service or contact the clinic." />
+              ) : (
+                <div className="space-y-1.5">
+                  {doctors.map((doctor) => (
+                    <button
+                      key={doctor.id}
+                      type="button"
+                      onClick={() => { set("doctorId", doctor.id); set("step", dateStep) }}
+                      className="group flex w-full items-center gap-3.5 rounded-xl border border-[#E8D8C5] bg-white px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-secondary/30"
+                    >
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-sm font-bold text-primary">
+                        {doctor.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
+                          {doctor.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{doctor.speciality}</p>
+                      </div>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <Button variant="outline" size="sm" className="rounded-xl bg-white" onClick={() => set("step", serviceStep)}>
+                <ArrowLeft className="size-4" /> Back
+              </Button>
+            </div>
+          )}
+
           {/* Step: Date */}
           {state.step === dateStep && (
             <div className="space-y-4">
               <StepHeading
                 icon={<CalendarClock className="size-4.5" />}
                 title="When would you like to come in?"
-                description="Pick your preferred date. Our team will confirm a time and clinician by email."
+                description={
+                  showDoctorSelection
+                    ? "Pick your preferred date. We'll confirm your appointment time by email."
+                    : "Pick your preferred date. Our team will confirm a time and clinician by email."
+                }
               />
 
               <DatePickerButton
                 value={state.preferredDate ? new Date(state.preferredDate) : undefined}
                 onChange={(d) => {
                   if (!d) { set("preferredDate", null); return }
-                  // Use local date parts — toISOString() converts to UTC and shifts
-                  // the day back for users in UTC+ timezones.
                   const y  = d.getFullYear()
                   const m  = String(d.getMonth() + 1).padStart(2, "0")
                   const dy = String(d.getDate()).padStart(2, "0")
@@ -336,15 +444,20 @@ export default function BookingSteps({
                 placeholder="Choose your preferred date"
               />
 
-              <div className="flex items-start gap-3 rounded-xl border border-[#E8D8C5] bg-secondary/30 px-4 py-3">
-                <Clock className="mt-0.5 size-4 shrink-0 text-primary/60" />
-                <p className="text-sm text-muted-foreground">
-                  You don&apos;t need to pick a time — our team will match you with the right clinician and send your confirmed appointment details by email.
-                </p>
-              </div>
+              {!showDoctorSelection && (
+                <div className="flex items-start gap-3 rounded-xl border border-[#E8D8C5] bg-secondary/30 px-4 py-3">
+                  <Clock className="mt-0.5 size-4 shrink-0 text-primary/60" />
+                  <p className="text-sm text-muted-foreground">
+                    You don&apos;t need to pick a time — our team will match you with the right clinician and send your confirmed appointment details by email.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-3">
-                <Button variant="outline" size="sm" className="rounded-xl bg-white" onClick={() => set("step", serviceStep)}>
+                <Button
+                  variant="outline" size="sm" className="rounded-xl bg-white"
+                  onClick={() => set("step", showDoctorSelection ? doctorStep : serviceStep)}
+                >
                   <ArrowLeft className="size-4" /> Back
                 </Button>
                 {state.preferredDate && (
@@ -357,7 +470,6 @@ export default function BookingSteps({
           )}
 
           {/* Step: Patient details */}
-          {/* Step: Patient details */}
           {state.step === detailsStep && (
             <div className="space-y-4">
               <StepHeading
@@ -367,16 +479,13 @@ export default function BookingSteps({
               />
               <BookingForm
                 data={{
-                  patientName:     state.patientName,
-                  patientSurname:  state.patientSurname,
-                  patientEmail:    state.patientEmail,
-                  patientPhone:    state.patientPhone,
-                  patientAddress:  state.patientAddress,
-                  patientPostcode: state.patientPostcode,
-                  patientCity:     state.patientCity,
-                  patientDOB:      state.patientDOB,
-                  patientGender:   state.patientGender,
-                  notes:           state.notes,
+                  patientName:    state.patientName,
+                  patientSurname: state.patientSurname,
+                  patientEmail:   state.patientEmail,
+                  patientPhone:   state.patientPhone,
+                  patientDOB:     state.patientDOB,
+                  patientGender:  state.patientGender,
+                  notes:          state.notes,
                 }}
                 onChange={(field, value) => set(field as keyof State, value)}
                 onSubmit={handleSendOTP}
@@ -398,10 +507,7 @@ export default function BookingSteps({
                 description={`We sent a 4-digit code to ${state.patientEmail}. Enter it below to confirm your booking.`}
               />
 
-              <OTPInput
-                value={otpDigits}
-                onChange={setOtpDigits}
-              />
+              <OTPInput value={otpDigits} onChange={setOtpDigits} />
 
               {otpError && (
                 <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-center text-sm text-destructive">
@@ -416,14 +522,12 @@ export default function BookingSteps({
               >
                 {(otpVerifying || submitting)
                   ? <><Loader2 className="size-4 animate-spin" /> Verifying…</>
-                  : "Confirm booking →"}
+                  : hasPaidService ? "Verify & proceed to payment →" : "Confirm booking →"}
               </Button>
 
               <div className="flex items-center justify-between text-sm">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl bg-white"
+                  variant="outline" size="sm" className="rounded-xl bg-white"
                   onClick={() => { set("step", detailsStep); setOtpDigits(["","","",""]); setOtpError(null) }}
                 >
                   <ArrowLeft className="size-4" /> Back
@@ -437,6 +541,30 @@ export default function BookingSteps({
                   {otpSending ? "Sending…" : "Resend code"}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Step: Payment */}
+          {hasPaidService && state.step === paymentStep && state.clientSecret && (
+            <div className="space-y-6">
+              <StepHeading
+                icon={<CreditCard className="size-4.5" />}
+                title="Complete your payment"
+                description={`Pay ${currencySymbol}${(selectedService?.price ?? 0).toFixed(2)} to confirm your booking.`}
+              />
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret: state.clientSecret,
+                  appearance: { theme: "stripe", variables: { borderRadius: "12px" } },
+                }}
+              >
+                <PaymentStepForm
+                  onBack={() => set("step", otpStep)}
+                  onSuccess={createAppointment}
+                  submitting={submitting}
+                />
+              </Elements>
             </div>
           )}
 
@@ -463,6 +591,20 @@ export default function BookingSteps({
               value={selectedService?.name ?? null}
               badge={selectedService ? `${selectedService.durationMins} min` : null}
             />
+            {selectedService && selectedService.price > 0 && (
+              <SummaryRow
+                icon={<CreditCard className="size-3.5" />}
+                label="Price"
+                value={`${currencySymbol}${selectedService.price.toFixed(2)}`}
+              />
+            )}
+            {showDoctorSelection && (
+              <SummaryRow
+                icon={<UserRound className="size-3.5" />}
+                label="Clinician"
+                value={selectedDoctor?.name ?? null}
+              />
+            )}
             <SummaryRow
               icon={<CalendarClock className="size-3.5" />}
               label="Preferred date"
@@ -472,13 +614,84 @@ export default function BookingSteps({
             />
             <div className="mt-3 rounded-xl border border-[#E8D8C5] bg-secondary/30 px-3 py-2.5">
               <p className="text-xs leading-relaxed text-muted-foreground">
-                A clinician and confirmed time will be assigned by our team and sent to your email.
+                {showDoctorSelection
+                  ? "A confirmed appointment time will be sent to your email."
+                  : "A clinician and confirmed time will be assigned by our team and sent to your email."}
               </p>
             </div>
           </div>
         </div>
       </aside>
 
+    </div>
+  )
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function PaymentStepForm({
+  onBack,
+  onSuccess,
+  submitting,
+}: {
+  onBack:     () => void
+  onSuccess:  () => Promise<void>
+  submitting: boolean
+}) {
+  const stripe   = useStripe()
+  const elements = useElements()
+  const [paying,   setPaying]   = useState(false)
+  const [payError, setPayError] = useState<string | null>(null)
+
+  async function handlePay() {
+    if (!stripe || !elements) return
+    setPaying(true)
+    setPayError(null)
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        redirect:      "if_required",
+        confirmParams: { return_url: window.location.href },
+      })
+      if (error) {
+        setPayError(error.message ?? "Payment failed. Please try again.")
+        return
+      }
+      await onSuccess()
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  const busy = paying || submitting
+
+  return (
+    <div className="space-y-5">
+      <PaymentElement options={{ layout: "tabs" }} />
+
+      {payError && (
+        <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-center text-sm text-destructive">
+          {payError}
+        </p>
+      )}
+
+      <Button
+        className="h-12 w-full rounded-xl font-semibold"
+        onClick={handlePay}
+        disabled={busy || !stripe || !elements}
+      >
+        {busy
+          ? <><Loader2 className="size-4 animate-spin" /> Processing…</>
+          : "Pay & confirm booking →"}
+      </Button>
+
+      <Button
+        variant="outline" size="sm" className="rounded-xl bg-white"
+        onClick={onBack}
+        disabled={busy}
+      >
+        <ArrowLeft className="size-4" /> Back
+      </Button>
     </div>
   )
 }

@@ -46,10 +46,7 @@ type FullAppointment = {
   patientSurname?: string | null
   patientEmail:    string
   patientPhone:    string
-  patientAddress?: string | null
-  patientPostcode?: string | null
-  patientCity?:    string | null
-  patientDOB?:     Date | null
+  patientDOB?:     Date | string | null
   patientGender?:  string | null
   notes?:          string | null
   attachmentName?: string | null
@@ -61,7 +58,7 @@ type FullAppointment = {
   slot?:    { date: Date; startTime: string } | null
   service:  { name: string }
   doctor?:  { name: string } | null
-  tenant:   { name: string; slug: string }
+  tenant:   { name: string; slug: string; notificationEmail?: string | null; adminEmail?: string | null }
   branch?:  { address?: string | null; name: string } | null
 }
 
@@ -94,13 +91,13 @@ export async function sendBookingAcknowledgement(appt: FullAppointment) {
 export async function sendAdminNewRequest(appt: FullAppointment) {
   const {
     patientName, patientSurname, patientEmail, patientPhone,
-    patientAddress, patientPostcode, patientCity, patientDOB, patientGender,
+    patientDOB, patientGender,
     notes, attachmentName, bookingRef, service, tenant, preferredDate,
   } = appt
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL ?? process.env.EMAIL_FROM!
+  const adminEmail = appt.tenant.notificationEmail ?? appt.tenant.adminEmail
+  if (!adminEmail) return  // no recipient configured, skip silently
 
   const fullName = [patientName, patientSurname].filter(Boolean).join(" ")
-  const address  = [patientAddress, patientCity, patientPostcode].filter(Boolean).join(", ")
   const dateStr  = preferredDate
     ? new Date(preferredDate).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
     : "Not specified"
@@ -118,7 +115,6 @@ export async function sendAdminNewRequest(appt: FullAppointment) {
        row("Email",          patientEmail),
        ...(dobStr              ? [row("Date of birth",    dobStr)]                          : []),
        ...(patientGender       ? [row("Gender identity",  patientGender.replace(/-/g, " "))] : []),
-       ...(address             ? [row("Address",          address)]                          : []),
        row("Service",        service.name),
        row("Preferred date", dateStr),
        row("Notes",          notes ?? "None"),
@@ -229,11 +225,114 @@ export async function sendBookingOTPEmail(email: string, otp: string, patientNam
         <p style="color:#1C1007;font-size:14px;margin:0 0 16px">Hi ${patientName}, please use the code below to verify your email and complete your booking.</p>
         <div style="background:#FFF4EA;border:1px solid #EDDCC6;border-radius:10px;padding:20px;text-align:center;margin:0 0 20px">
           <p style="color:#9A7A5A;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Verification code</p>
-          <p style="color:#BF4646;font-size:36px;font-weight:900;letter-spacing:10px;margin:0;font-family:monospace">${otp}</p>
+          <p style="color:#BF4646;font-size:32px;font-weight:900;letter-spacing:6px;margin:0;font-family:monospace">${otp}</p>
         </div>
         <p style="color:#9A7A5A;font-size:12px;margin:0">This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
       </div>
     </div>`
+  )
+}
+
+// ── Patient receives when admin reschedules a confirmed appointment ───────────
+export async function sendRescheduleEmail(appt: FullAppointment, previousDate: string, previousTime: string) {
+  const { patientName, patientEmail, bookingRef, cancelToken, service, doctor, tenant, branch, assignedDate, assignedTime, slot } = appt
+
+  const date = assignedDate ?? slot?.date
+  const time = assignedTime ?? slot?.startTime
+
+  const newDateStr = date
+    ? new Date(date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    : "To be confirmed"
+
+  return send(
+    patientEmail,
+    `Appointment rescheduled — ${bookingRef}`,
+    `<p style="font-family:sans-serif;color:#1C1007">Hi ${patientName},</p>
+     <p style="font-family:sans-serif;color:#1C1007">Your appointment has been rescheduled. Please see your updated details below.</p>
+     ${table(
+       row("Service",      service.name),
+       row("Clinician",    doctor?.name ?? "To be advised"),
+       row("New date",     newDateStr),
+       row("New time",     time ?? "To be confirmed"),
+       row("Previous",     `${previousDate} at ${previousTime}`),
+       ...(branch?.address ? [row("Address", branch.address)] : []),
+       row("Reference",    bookingRef),
+     )}
+     <p style="font-family:sans-serif;color:#9A7A5A;font-size:13px">
+       We apologise for any inconvenience caused.<br/>
+       <a href="${cancelLink(cancelToken)}" style="color:#BF4646">Cancel appointment</a>
+     </p>
+     <p style="font-family:sans-serif;color:#1C1007">— ${tenant.name}</p>`
+  )
+}
+
+// ── Walk-in check-in emails ───────────────────────────────────────────────────
+
+type WalkInAppt = {
+  bookingRef:      string
+  patientName:     string
+  patientSurname?: string | null
+  patientEmail:    string
+  patientPhone:    string
+  checkedInAt:     Date
+  service:  { name: string }
+  tenant:   { name: string; slug: string; notificationEmail?: string | null; adminEmail?: string | null }
+  branch?:  { name: string; address?: string | null } | null
+}
+
+export async function sendWalkInCheckIn(appt: WalkInAppt) {
+  const { patientName, patientEmail, bookingRef, service, tenant, branch, checkedInAt } = appt
+  const timeStr = new Date(checkedInAt).toLocaleTimeString("en-GB", {
+    hour:   "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/London",
+  })
+
+  return send(
+    patientEmail,
+    `You're checked in — ${bookingRef}`,
+    `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+      <div style="background:#436850;border-radius:12px 12px 0 0;padding:24px 28px">
+        <p style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px">Walk-in check-in</p>
+        <h1 style="color:#fff;font-size:20px;font-weight:800;margin:0">You're in the queue</h1>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px">
+        <p style="color:#1C1007;font-size:14px;margin:0 0 16px">Hi ${patientName}, you've been checked in at <strong>${tenant.name}</strong>. Please take a seat — a member of the team will call your name shortly.</p>
+        ${table(
+          row("Reference",   bookingRef),
+          row("Service",     service.name),
+          row("Checked in",  timeStr),
+          ...(branch ? [row("Location", branch.name)] : []),
+        )}
+        <p style="color:#9A7A5A;font-size:12px;margin:16px 0 0">Please keep this reference number handy in case you are asked for it.</p>
+      </div>
+      <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">${tenant.name} · Powered by Pikatym</p>
+    </div>`
+  )
+}
+
+export async function sendAdminWalkInAlert(appt: WalkInAppt) {
+  const adminEmail = appt.tenant.notificationEmail ?? appt.tenant.adminEmail
+  if (!adminEmail) return
+  const fullName   = [appt.patientName, appt.patientSurname].filter(Boolean).join(" ")
+
+  return send(
+    adminEmail,
+    `Walk-in arrived — ${fullName} — ${appt.service.name}`,
+    `<p style="font-family:sans-serif;color:#1C1007">A patient has checked in at the clinic.</p>
+     ${table(
+       row("Patient",   fullName),
+       row("Phone",     appt.patientPhone),
+       row("Email",     appt.patientEmail),
+       row("Service",   appt.service.name),
+       row("Reference", appt.bookingRef),
+       ...(appt.branch ? [row("Branch", appt.branch.name)] : []),
+     )}
+     <p style="font-family:sans-serif">
+       <a href="${bookingUrl(appt.tenant.slug)}/admin/queue" style="color:#436850;font-weight:bold">
+         View walk-in queue →
+       </a>
+     </p>`
   )
 }
 
@@ -260,6 +359,34 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
         </p>
       </div>
       <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">Pikatym · OutRift Technologies</p>
+    </div>`
+  )
+}
+
+// ── Patient receives when appointment is marked COMPLETED ─────────────────────
+export async function sendReviewRequestEmail(appt: FullAppointment, reviewLink: string) {
+  const { patientName, patientEmail, bookingRef, service, tenant } = appt
+  return send(
+    patientEmail,
+    `How was your visit? — ${tenant.name}`,
+    `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+      <div style="background:#436850;border-radius:12px 12px 0 0;padding:24px 28px">
+        <p style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px">Appointment complete</p>
+        <h1 style="color:#fff;font-size:20px;font-weight:800;margin:0">Thank you for your visit</h1>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:28px">
+        <p style="color:#1C1007;font-size:14px;margin:0 0 12px">Hi ${patientName},</p>
+        <p style="color:#1C1007;font-size:14px;margin:0 0 20px">
+          Thank you for choosing <strong>${tenant.name}</strong> for your <strong>${service.name}</strong> appointment (${bookingRef}).
+          We hope everything went well. If you have a moment, we'd love to hear about your experience.
+        </p>
+        <a href="${reviewLink}"
+           style="display:inline-block;background:#436850;color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px">
+          Leave a review →
+        </a>
+        <p style="color:#9A7A5A;font-size:12px;margin:20px 0 0">Thank you — it means a lot to us.</p>
+      </div>
+      <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">${tenant.name} · Powered by Pikatym</p>
     </div>`
   )
 }

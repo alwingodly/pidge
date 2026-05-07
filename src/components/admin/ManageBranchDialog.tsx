@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { GitBranch, MapPin, Phone, Clock, Users } from "lucide-react"
+import { Check, Copy, Download, GitBranch, MapPin, Phone, Clock, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -27,8 +27,30 @@ type Branch = {
   adminUsers: BranchAdmin[]
 }
 
-export default function ManageBranchDialog({ branch }: { branch: Branch }) {
-  const [open, setOpen] = useState(false)
+export default function ManageBranchDialog({
+  branch,
+  checkinUrl,
+  qrDataUrl,
+}: {
+  branch:      Branch
+  checkinUrl:  string
+  qrDataUrl:   string
+}) {
+  const [open,   setOpen]   = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(checkinUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  function handleDownload() {
+    const a    = document.createElement("a")
+    a.href     = qrDataUrl
+    a.download = `checkin-qr-${branch.name.toLowerCase().replace(/\s+/g, "-")}.png`
+    a.click()
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -75,6 +97,33 @@ export default function ManageBranchDialog({ branch }: { branch: Branch }) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Walk-in QR */}
+          <div className="border-b border-[#F3EAE0] px-5 py-4">
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              Walk-in QR Code
+            </p>
+            <div className="flex items-start gap-4">
+              <div className="overflow-hidden rounded-xl border border-[#F0EAE2] bg-white p-2 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrDataUrl} alt="Walk-in check-in QR code" width={80} height={80} className="block" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <p className="break-all font-mono text-[11px] text-muted-foreground">{checkinUrl}</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="h-7 rounded-lg border-[#E8D8C5] text-xs" onClick={handleCopy}>
+                    {copied
+                      ? <><Check className="mr-1 size-3 text-emerald-600" />Copied!</>
+                      : <><Copy className="mr-1 size-3" />Copy</>}
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 rounded-lg border-[#E8D8C5] text-xs" onClick={handleDownload}>
+                    <Download className="mr-1 size-3" />Download
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Print at A5 and display at reception.</p>
+              </div>
             </div>
           </div>
 

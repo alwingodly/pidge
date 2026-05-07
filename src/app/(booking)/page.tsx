@@ -79,7 +79,7 @@ export default async function BookingHomePage() {
               for you.
             </h1>
 
-            <p className="mt-5 max-w-110 text-[15px] leading-7 text-muted-foreground">
+            <p className="mt-5 max-w-[440px] text-[15px] leading-7 text-muted-foreground">
               Book an appointment at{" "}
               <span className="font-semibold text-foreground">{tenantName}</span>{" "}
               in minutes — choose a service, pick a date, done.
@@ -276,7 +276,7 @@ export default async function BookingHomePage() {
           ].map(({ num, icon, title, desc }, i) => (
             <div key={i} className="relative overflow-hidden rounded-2xl border border-border bg-card p-6">
               {/* Ghost number for depth */}
-              <p className="pointer-events-none absolute right-4 top-3 select-none text-7xl font-black leading-none text-foreground/[0.07]">
+              <p className="pointer-events-none absolute right-4 top-3 select-none text-7xl font-black leading-none text-muted/50">
                 {num}
               </p>
               <div className="relative">
@@ -319,7 +319,7 @@ export default async function BookingHomePage() {
                 className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
 
                 {/* Hover tint */}
-                <div className="pointer-events-none absolute inset-0 bg-primary/0 transition-colors duration-200 group-hover:bg-primary/2" />
+                <div className="pointer-events-none absolute inset-0 bg-primary/0 transition-colors duration-200 group-hover:bg-primary/[0.02]" />
 
                 <div className="relative flex items-center justify-between gap-2">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">

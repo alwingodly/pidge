@@ -14,8 +14,9 @@ const updateSchema = z.object({
   plan:           z.enum(["FREE","BASIC","PRO"]).optional(),
   primaryColor:   z.string().optional(),
   logoUrl:        z.url().optional(),
-  isActive:       z.boolean().optional(),
-  adminName:      z.string().optional(),
+  isActive:            z.boolean().optional(),
+  showDoctorSelection: z.boolean().optional(),
+  adminName:           z.string().optional(),
   adminEmail:     z.email().optional(),
   adminPass:      z.string().min(8).optional(),
 })

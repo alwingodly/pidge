@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sheet"
 import { formatDate, formatTime } from "@/lib/utils"
 import {
-  CalendarDays, Clock, Stethoscope, UserRound, MapPin,
+  CalendarDays, Clock, Stethoscope, UserRound,
   FileText, Check, X, UserX, Loader2, Mail, Phone, Hash,
   Building2,
 } from "lucide-react"
@@ -36,7 +36,6 @@ type Appointment = {
   patientName: string; patientSurname?: string | null
   patientEmail: string; patientPhone: string
   patientDOB?: string | null; patientGender?: string | null
-  patientAddress?: string | null; patientCity?: string | null; patientPostcode?: string | null
   notes?: string | null; attachmentName?: string | null
   assignedDate?: string | null; assignedTime?: string | null
   preferredDate?: string | null
@@ -153,9 +152,6 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
     return `${formatDate(dob)} (${a} yrs)`
   }
 
-  const address = appt
-    ? [appt.patientAddress, appt.patientCity, appt.patientPostcode].filter(Boolean).join(", ")
-    : null
   const fullName = appt
     ? [appt.patientName, appt.patientSurname].filter(Boolean).join(" ")
     : ""
@@ -254,7 +250,6 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
                 {appt.patientGender && (
                   <Row icon={UserRound} label="Gender" value={appt.patientGender.replace(/-/g, " ")} />
                 )}
-                {address && <Row icon={MapPin} label="Address" value={address} />}
               </Section>
 
               {/* Notes */}

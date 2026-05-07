@@ -49,8 +49,10 @@ export async function proxy(req: NextRequest) {
   const res = NextResponse.next({ request: { headers: requestHeaders } })
   if (rememberTenant) {
     res.cookies.set("__tenant", slug, {
-      path: "/",
+      path:     "/",
       sameSite: "lax",
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === "production",
     })
   }
   return res

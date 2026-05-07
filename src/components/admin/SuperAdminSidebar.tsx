@@ -6,6 +6,10 @@ import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Building2, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 const NAV = [
   { href: "/superadmin",         label: "Dashboard", icon: LayoutDashboard },
@@ -14,6 +18,7 @@ const NAV = [
 
 export default function SuperAdminSidebar() {
   const pathname    = usePathname()
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [collapsed, setCollapsed] = useState(() => (
     typeof window !== "undefined" && localStorage.getItem("superadmin-sidebar-collapsed") === "true"
   ))
@@ -26,6 +31,7 @@ export default function SuperAdminSidebar() {
   }
 
   return (
+    <>
     <aside
       className="sticky top-0 flex flex-col shrink-0 h-screen transition-all duration-300"
       style={{ width: collapsed ? 56 : 200, background: "var(--primary)" }}
@@ -89,7 +95,7 @@ export default function SuperAdminSidebar() {
       {/* Sign out */}
       <div className="px-2 py-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
         <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => setConfirmSignOut(true)}
           title={collapsed ? "Sign out" : undefined}
           className={cn(
             "w-full flex items-center rounded-md text-sm font-medium transition-all",
@@ -111,5 +117,28 @@ export default function SuperAdminSidebar() {
       </div>
 
     </aside>
+
+    <Dialog open={confirmSignOut} onOpenChange={setConfirmSignOut}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader>
+          <DialogTitle>Sign out?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">You will be returned to the login page.</p>
+        <DialogFooter>
+          <Button variant="outline" className="rounded-xl" onClick={() => setConfirmSignOut(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            className="rounded-xl"
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          >
+            <LogOut className="size-4" />
+            Sign out
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
