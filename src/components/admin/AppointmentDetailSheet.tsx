@@ -99,15 +99,29 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
   const [acting,  setActing]  = useState<Status | null>(null)
   const [error,   setError]   = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!appointmentId) { setAppt(null); return }
-    setLoading(true)
+  function fetchAppt(id: string, showSpinner = true) {
+    if (showSpinner) setLoading(true)
     setError(null)
-    fetch(`/api/appointments/${appointmentId}`)
+    fetch(`/api/appointments/${id}`)
       .then(r => r.json())
       .then(d => setAppt(d.data ?? null))
       .catch(() => setError("Failed to load appointment."))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    if (!appointmentId) { setAppt(null); return }
+    fetchAppt(appointmentId)
+  }, [appointmentId])
+
+  // Re-fetch silently when the admin returns to the tab — catches patient cancellations
+  useEffect(() => {
+    if (!appointmentId) return
+    function onVisible() {
+      if (document.visibilityState === "visible") fetchAppt(appointmentId!, false)
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
   }, [appointmentId])
 
   async function doAction(status: Status) {

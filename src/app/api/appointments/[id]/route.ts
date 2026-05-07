@@ -68,6 +68,16 @@ export const PATCH = auth(async (req) => {
       return Response.json({ error: "Invalid assignedDate." }, { status: 400 })
   }
 
+  // Reject changes to already-terminal appointments
+  const current = await prisma.appointment.findUnique({
+    where:  { id, tenantId, ...(branchId ? { branchId } : {}) },
+    select: { status: true },
+  })
+  if (!current) return Response.json({ error: "Not found" }, { status: 404 })
+  if (current.status === "CANCELLED" || current.status === "COMPLETED") {
+    return Response.json({ error: "This appointment can no longer be modified." }, { status: 409 })
+  }
+
   // Verify the doctor being assigned belongs to this tenant (and branch for branch admins)
   if (doctorId) {
     const doctor = await prisma.doctor.findUnique({
