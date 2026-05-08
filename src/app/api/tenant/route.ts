@@ -12,8 +12,10 @@ const patchSchema = z.object({
   reviewLink:          z.string().url("Must be a valid URL").or(z.literal("")).optional(),
   reminderEnabled:      z.boolean().optional(),
   reminderHoursBefore:  z.number().int().min(1).max(168).optional(),
-  bookingAlertsEnabled: z.boolean().optional(),
-  notificationEmail:    z.string().email("Must be a valid email").or(z.literal("")).optional(),
+  bookingAlertsEnabled:   z.boolean().optional(),
+  assignmentEmailEnabled: z.boolean().optional(),
+  rescheduleEmailEnabled: z.boolean().optional(),
+  notificationEmail:      z.string().email("Must be a valid email").or(z.literal("")).optional(),
 })
 
 export async function GET() {
@@ -56,13 +58,15 @@ export async function PATCH(req: NextRequest) {
       ...(notificationEmail !== undefined ? { notificationEmail: notificationEmail || null } : {}),
     },
     select: {
-      clinicStartTime:      true,
-      clinicEndTime:        true,
-      reviewLink:           true,
-      reminderEnabled:      true,
-      reminderHoursBefore:  true,
-      bookingAlertsEnabled: true,
-      notificationEmail:    true,
+      clinicStartTime:        true,
+      clinicEndTime:          true,
+      reviewLink:             true,
+      reminderEnabled:        true,
+      reminderHoursBefore:    true,
+      bookingAlertsEnabled:   true,
+      assignmentEmailEnabled: true,
+      rescheduleEmailEnabled: true,
+      notificationEmail:      true,
     },
   })
   return Response.json({ data: tenant })

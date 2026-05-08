@@ -2,10 +2,11 @@ import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import { redirect } from "next/navigation"
-import { Bell, Mail, Star } from "lucide-react"
+import { Bell, Mail, MessageSquare, Star } from "lucide-react"
 import ReviewLinkForm from "@/components/admin/ReviewLinkForm"
 import ReminderSettingsForm from "@/components/admin/ReminderSettingsForm"
 import NotificationEmailForm from "@/components/admin/NotificationEmailForm"
+import PatientNotificationsForm from "@/components/admin/PatientNotificationsForm"
 
 export default async function NotificationsSettingsPage() {
   const session = await auth()
@@ -18,11 +19,13 @@ export default async function NotificationsSettingsPage() {
     prisma.tenant.findUnique({
       where:  { id: tenantId },
       select: {
-        reviewLink:           true,
-        reminderEnabled:      true,
-        reminderHoursBefore:  true,
-        bookingAlertsEnabled: true,
-        notificationEmail:    true,
+        reviewLink:             true,
+        reminderEnabled:        true,
+        reminderHoursBefore:    true,
+        bookingAlertsEnabled:   true,
+        assignmentEmailEnabled: true,
+        rescheduleEmailEnabled: true,
+        notificationEmail:      true,
       },
     }),
     prisma.adminUser.findFirst({
@@ -53,6 +56,27 @@ export default async function NotificationsSettingsPage() {
           <ReminderSettingsForm
             initialEnabled={tenant?.reminderEnabled     ?? true}
             initialHoursBefore={tenant?.reminderHoursBefore ?? 24}
+          />
+        </div>
+      </div>
+
+      {/* Patient email notifications */}
+      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+        <div className="flex items-start gap-3 border-b border-[#F3EAE0] px-5 py-4">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+            <MessageSquare className="size-4" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-foreground">Patient emails</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Control which emails patients receive during their appointment journey.
+            </p>
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          <PatientNotificationsForm
+            initialAssignment={tenant?.assignmentEmailEnabled ?? true}
+            initialReschedule={tenant?.rescheduleEmailEnabled ?? true}
           />
         </div>
       </div>

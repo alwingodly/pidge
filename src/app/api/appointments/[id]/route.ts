@@ -106,10 +106,13 @@ export const PATCH = auth(async (req) => {
   }
 
   const decrypted = decryptAppointment(appointment)
-  if (status === "APPROVED" && reschedule && previousDate && previousTime)
-    await sendRescheduleEmail(decrypted, previousDate, previousTime)
-  else if (status === "APPROVED")
-    await sendAssignmentConfirmation(decrypted)
+  if (status === "APPROVED" && reschedule && previousDate && previousTime) {
+    if (appointment.tenant.rescheduleEmailEnabled)
+      await sendRescheduleEmail(decrypted, previousDate, previousTime)
+  } else if (status === "APPROVED") {
+    if (appointment.tenant.assignmentEmailEnabled)
+      await sendAssignmentConfirmation(decrypted)
+  }
   if (status === "CANCELLED") await sendCancellationEmail(decrypted)
   if (status === "COMPLETED" && appointment.tenant.reviewLink)
     await sendReviewRequestEmail(decrypted, appointment.tenant.reviewLink)

@@ -27,7 +27,9 @@ model Tenant {
   reviewLink           String?  // e.g. Google Maps review URL — sent to patients after COMPLETED
   reminderEnabled      Boolean  @default(true)   // send appointment reminders to patients
   reminderHoursBefore  Int      @default(24)      // how many hours before to send the reminder
-  bookingAlertsEnabled Boolean  @default(true)  // send admin email when a new booking arrives
+  bookingAlertsEnabled      Boolean  @default(true)  // send admin email when a new booking arrives
+  assignmentEmailEnabled    Boolean  @default(true)  // send patient email when appointment is approved
+  rescheduleEmailEnabled    Boolean  @default(true)  // send patient email when appointment is rescheduled
   notificationEmail    String?  // override recipient for booking alerts; defaults to tenant admin email
   isActive            Boolean  @default(true)
   showDoctorSelection Boolean  @default(false) // super-admin feature flag
