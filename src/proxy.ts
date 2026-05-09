@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server"
 // Actual DB lookup happens in server components via getTenantFromHeaders().
 export async function proxy(req: NextRequest) {
   const hostname  = req.headers.get("host") || ""
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || process.env.VERCEL_URL || "pikatym.io"
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "pikatym.com"
   const pathname  = req.nextUrl.pathname
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/static")) {

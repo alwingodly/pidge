@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db"
 import { getTenantFromHeaders } from "@/lib/tenant"
 import Image from "next/image"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import {
   ArrowRight, CalendarCheck, CalendarDays, Check,
   Clock, MapPin, Stethoscope, UserRound, Zap,
@@ -9,15 +10,21 @@ import {
 import { Fragment } from "react"
 
 export default async function BookingHomePage() {
-  const { tenantId, branchId, tenantName, logoUrl } = await getTenantFromHeaders()
+  const { tenantId, branchId, tenantName, tenantSlug, logoUrl } = await getTenantFromHeaders()
 
   if (!tenantId) {
+    if (!tenantSlug) redirect("/admin/login")
+
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center text-center">
         <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-card text-primary shadow-sm">
           <MapPin className="size-6" />
         </div>
         <h1 className="text-2xl font-semibold text-foreground">Clinic not found</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Visit your clinic&apos;s booking page at{" "}
+          <span className="font-mono">clinicname.pikatym.com</span>.
+        </p>
       </div>
     )
   }

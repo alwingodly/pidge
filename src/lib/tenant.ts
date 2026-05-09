@@ -23,7 +23,7 @@ export const getTenantFromHeaders = cache(async () => {
   const tenant = await prisma.tenant.findUnique({
     where: { slug, isActive: true },
   })
-  if (!tenant) return EMPTY_TENANT
+  if (!tenant) return { ...EMPTY_TENANT, tenantSlug: slug }
 
   const candidate = h.get("x-branch-slug-candidate")
   let branchId:   string | null = null
