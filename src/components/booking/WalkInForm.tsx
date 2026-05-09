@@ -98,7 +98,7 @@ export default function WalkInForm({ services, branches, defaultBranchId, tenant
             What brings you in today?
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Select the service and we'll add you to the queue.
+            Select the service and we&apos;ll add you to the queue.
           </p>
         </div>
 

@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth"
 import { getTenantFromHeaders, getScopeFromSession } from "@/lib/tenant"
 import { generateBookingRef, generateCancelToken } from "@/lib/booking-ref"
 import { sendBookingAcknowledgement, sendAdminNewRequest } from "@/lib/email"
-import { encryptField, decryptField } from "@/lib/encryption"
+import { encryptField, decryptField, verifyBookingToken } from "@/lib/encryption"
 import { z } from "zod"
 
 // Fields that are stored encrypted: patientPhone, patientDOB, patientGender, notes, attachmentData
@@ -57,6 +57,7 @@ export const GET = auth(async (req) => {
 
 // ── Patient creates a booking request ─────────────────────────────────────────
 const createSchema = z.object({
+  bookingToken:    z.string().min(1),
   branchId:        z.string().uuid().optional(),
   serviceId:       z.string().uuid(),
   doctorId:        z.string().uuid().optional(), // set when tenant has showDoctorSelection enabled
@@ -95,12 +96,17 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
 
   const {
+    bookingToken,
     branchId: bodyBranchId,
     serviceId, doctorId, preferredDate,
     patientName, patientSurname, patientEmail, patientPhone,
     patientDOB, patientGender,
     notes, attachmentData, attachmentName,
   } = parsed.data
+
+  if (!verifyBookingToken(bookingToken, patientEmail)) {
+    return Response.json({ error: "Email verification required." }, { status: 401 })
+  }
 
   if (!validateAttachment(attachmentData)) {
     return Response.json(

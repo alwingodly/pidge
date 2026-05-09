@@ -18,10 +18,6 @@ export default async function BookingHomePage() {
           <MapPin className="size-6" />
         </div>
         <h1 className="text-2xl font-semibold text-foreground">Clinic not found</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Visit your clinic&apos;s booking page at{" "}
-          <span className="font-mono">clinicname.pikatym.io</span>.
-        </p>
       </div>
     )
   }

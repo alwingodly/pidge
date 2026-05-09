@@ -45,3 +45,32 @@ export function hmacOTP(otp: string): string {
   const key = process.env.ENCRYPTION_KEY ?? process.env.AUTH_SECRET ?? ""
   return createHmac("sha256", key).update(otp).digest("hex")
 }
+
+const BOOKING_TOKEN_TTL_MS = 15 * 60 * 1000 // 15 minutes
+
+// Issues a short-lived signed token after OTP is verified.
+// Appointments API validates this before creating a booking.
+export function signBookingToken(email: string): string {
+  const key       = process.env.ENCRYPTION_KEY ?? process.env.AUTH_SECRET ?? ""
+  const expiresAt = Date.now() + BOOKING_TOKEN_TTL_MS
+  const payload   = Buffer.from(`${email}:${expiresAt}`).toString("base64url")
+  const sig       = createHmac("sha256", key).update(payload).digest("hex")
+  return `${payload}.${sig}`
+}
+
+export function verifyBookingToken(token: string, email: string): boolean {
+  try {
+    const key             = process.env.ENCRYPTION_KEY ?? process.env.AUTH_SECRET ?? ""
+    const [payload, sig]  = token.split(".")
+    if (!payload || !sig) return false
+    const expected = createHmac("sha256", key).update(payload).digest("hex")
+    if (expected !== sig) return false
+    const decoded  = Buffer.from(payload, "base64url").toString("utf8")
+    const [tokenEmail, expiresAtStr] = decoded.split(":")
+    if (tokenEmail !== email) return false
+    if (Date.now() > parseInt(expiresAtStr, 10)) return false
+    return true
+  } catch {
+    return false
+  }
+}

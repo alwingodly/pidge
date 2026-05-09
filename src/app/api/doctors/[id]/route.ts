@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { serviceIds, branchId: bodyBranchId, ...rest } = parsed.data
 
   // Branch admins can only keep or set their own branch
-  let resolvedBranchId: string | null | undefined = bodyBranchId
+  const resolvedBranchId: string | null | undefined = bodyBranchId
   if (branchId && bodyBranchId !== undefined) {
     // Branch admin: only allowed to set their own branchId or keep it (null not allowed)
     if (bodyBranchId !== branchId) return Response.json({ error: "Invalid branch." }, { status: 400 })

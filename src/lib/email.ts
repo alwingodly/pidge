@@ -17,6 +17,17 @@ async function send(to: string, subject: string, html: string) {
   })
 }
 
+// ── HTML escaping ─────────────────────────────────────────────────────────────
+function h(str: string | null | undefined): string {
+  if (!str) return ""
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL
@@ -31,7 +42,7 @@ function bookingUrl(slug: string) {
 }
 
 function row(label: string, value: string) {
-  return `<tr><td style="padding:4px 12px 4px 0;color:#9A7A5A;font-size:13px">${label}</td><td style="padding:4px 0;font-size:13px;font-weight:600">${value}</td></tr>`
+  return `<tr><td style="padding:4px 12px 4px 0;color:#9A7A5A;font-size:13px">${h(label)}</td><td style="padding:4px 0;font-size:13px;font-weight:600">${h(value)}</td></tr>`
 }
 
 function table(...rows: string[]) {
@@ -72,7 +83,7 @@ export async function sendBookingAcknowledgement(appt: FullAppointment) {
   return send(
     patientEmail,
     `Booking request received — ${bookingRef}`,
-    `<p style="font-family:sans-serif;color:#1C1007">Hi ${patientName},</p>
+    `<p style="font-family:sans-serif;color:#1C1007">Hi ${h(patientName)},</p>
      <p style="font-family:sans-serif;color:#1C1007">We've received your appointment request. Our team will review it and confirm your clinician and time shortly.</p>
      ${table(
        row("Reference", bookingRef),
@@ -83,7 +94,7 @@ export async function sendBookingAcknowledgement(appt: FullAppointment) {
        We'll send another email once your appointment is confirmed.<br/>
        <a href="${cancelLink(cancelToken)}" style="color:#BF4646">Cancel this request</a>
      </p>
-     <p style="font-family:sans-serif;color:#1C1007">— ${tenant.name}</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— ${h(tenant.name)}</p>`
   )
 }
 
@@ -143,7 +154,7 @@ export async function sendAssignmentConfirmation(appt: FullAppointment) {
   return send(
     patientEmail,
     `Appointment confirmed — ${bookingRef}`,
-    `<p style="font-family:sans-serif;color:#1C1007">Hi ${patientName},</p>
+    `<p style="font-family:sans-serif;color:#1C1007">Hi ${h(patientName)},</p>
      <p style="font-family:sans-serif;color:#1C1007">Your appointment has been confirmed. See the details below.</p>
      ${table(
        row("Service", service.name),
@@ -156,7 +167,7 @@ export async function sendAssignmentConfirmation(appt: FullAppointment) {
      <p style="font-family:sans-serif;color:#9A7A5A;font-size:13px">
        <a href="${cancelLink(cancelToken)}" style="color:#BF4646">Cancel appointment</a>
      </p>
-     <p style="font-family:sans-serif;color:#1C1007">— ${tenant.name}</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— ${h(tenant.name)}</p>`
   )
 }
 
@@ -179,12 +190,12 @@ export async function sendCancellationEmail(appt: FullAppointment) {
   return send(
     patientEmail,
     `Appointment cancelled — ${bookingRef}`,
-    `<p style="font-family:sans-serif;color:#1C1007">Hi ${patientName},</p>
-     <p style="font-family:sans-serif;color:#1C1007">Your appointment (${bookingRef}) has been cancelled.</p>
+    `<p style="font-family:sans-serif;color:#1C1007">Hi ${h(patientName)},</p>
+     <p style="font-family:sans-serif;color:#1C1007">Your appointment (${h(bookingRef)}) has been cancelled.</p>
      <p style="font-family:sans-serif;color:#9A7A5A">
        To rebook visit: <a href="${bookingUrl(tenant.slug)}" style="color:#BF4646">${bookingUrl(tenant.slug)}</a>
      </p>
-     <p style="font-family:sans-serif;color:#1C1007">— ${tenant.name}</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— ${h(tenant.name)}</p>`
   )
 }
 
@@ -196,7 +207,7 @@ export async function sendReminderEmail(appt: FullAppointment) {
   return send(
     patientEmail,
     `Reminder — appointment tomorrow at ${time}`,
-    `<p style="font-family:sans-serif;color:#1C1007">Hi ${patientName},</p>
+    `<p style="font-family:sans-serif;color:#1C1007">Hi ${h(patientName)},</p>
      <p style="font-family:sans-serif;color:#1C1007">Reminder for your appointment tomorrow.</p>
      ${table(
        row("Clinician", doctor?.name ?? ""),
@@ -208,7 +219,7 @@ export async function sendReminderEmail(appt: FullAppointment) {
      <p style="font-family:sans-serif;color:#9A7A5A;font-size:13px">
        <a href="${cancelLink(cancelToken)}" style="color:#BF4646">Cancel appointment</a>
      </p>
-     <p style="font-family:sans-serif;color:#1C1007">— ${tenant.name}</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— ${h(tenant.name)}</p>`
   )
 }
 
@@ -222,7 +233,7 @@ export async function sendBookingOTPEmail(email: string, otp: string, patientNam
         <h1 style="color:#fff;font-size:18px;font-weight:700;margin:12px 0 0">Email verification</h1>
       </div>
       <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px">
-        <p style="color:#1C1007;font-size:14px;margin:0 0 16px">Hi ${patientName}, please use the code below to verify your email and complete your booking.</p>
+        <p style="color:#1C1007;font-size:14px;margin:0 0 16px">Hi ${h(patientName)}, please use the code below to verify your email and complete your booking.</p>
         <div style="background:#FFF4EA;border:1px solid #EDDCC6;border-radius:10px;padding:20px;text-align:center;margin:0 0 20px">
           <p style="color:#9A7A5A;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px">Verification code</p>
           <p style="color:#BF4646;font-size:32px;font-weight:900;letter-spacing:6px;margin:0;font-family:monospace">${otp}</p>
@@ -247,7 +258,7 @@ export async function sendRescheduleEmail(appt: FullAppointment, previousDate: s
   return send(
     patientEmail,
     `Appointment rescheduled — ${bookingRef}`,
-    `<p style="font-family:sans-serif;color:#1C1007">Hi ${patientName},</p>
+    `<p style="font-family:sans-serif;color:#1C1007">Hi ${h(patientName)},</p>
      <p style="font-family:sans-serif;color:#1C1007">Your appointment has been rescheduled. Please see your updated details below.</p>
      ${table(
        row("Service",      service.name),
@@ -262,7 +273,7 @@ export async function sendRescheduleEmail(appt: FullAppointment, previousDate: s
        We apologise for any inconvenience caused.<br/>
        <a href="${cancelLink(cancelToken)}" style="color:#BF4646">Cancel appointment</a>
      </p>
-     <p style="font-family:sans-serif;color:#1C1007">— ${tenant.name}</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— ${h(tenant.name)}</p>`
   )
 }
 

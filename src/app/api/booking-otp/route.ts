@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { sendBookingOTPEmail } from "@/lib/email"
-import { hmacOTP } from "@/lib/encryption"
+import { hmacOTP, signBookingToken } from "@/lib/encryption"
 import { randomInt } from "crypto"
 
 const OTP_TTL_MS   = 10 * 60 * 1000 // 10 minutes
@@ -86,5 +86,5 @@ export async function PUT(req: NextRequest) {
 
   // Single-use: delete immediately after successful verification
   await prisma.bookingOTP.delete({ where: { id: record.id } })
-  return Response.json({ ok: true })
+  return Response.json({ ok: true, bookingToken: signBookingToken(email) })
 }

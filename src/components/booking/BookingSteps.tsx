@@ -62,6 +62,7 @@ type State = {
   patientGender:  string
   notes:          string
   clientSecret:   string | null
+  bookingToken:   string | null
 }
 
 export default function BookingSteps({
@@ -93,6 +94,7 @@ export default function BookingSteps({
     patientGender:  "",
     notes:          "",
     clientSecret:   null,
+    bookingToken:   null,
   })
 
   const [submitting,   setSubmitting]   = useState(false)
@@ -168,6 +170,7 @@ export default function BookingSteps({
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          bookingToken:   state.bookingToken,
           branchId:       state.branchId       || undefined,
           serviceId:      state.serviceId,
           doctorId:       state.doctorId        || undefined,
@@ -218,11 +221,12 @@ export default function BookingSteps({
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ email: state.patientEmail, otp }),
       })
+      const verifyData = await verifyRes.json().catch(() => null)
       if (!verifyRes.ok) {
-        const d = await verifyRes.json().catch(() => null)
-        setOtpError(d?.error ?? "Incorrect code. Please try again.")
+        setOtpError(verifyData?.error ?? "Incorrect code. Please try again.")
         return
       }
+      setState(p => ({ ...p, bookingToken: verifyData?.bookingToken ?? null }))
 
       if (hasPaidService && paymentStep > 0) {
         // Create PaymentIntent then move to payment step

@@ -3,7 +3,14 @@ import { Inter } from "next/font/google"
 import Providers from "@/components/Providers"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const inter = Inter({
+  subsets:  ["latin"],
+  variable: "--font-inter",
+  display:  "swap",
+  preload:  true,
+  // Self-hosted via next/font — no external network request at runtime
+  fallback: ["system-ui", "Arial", "sans-serif"],
+})
 
 export const metadata: Metadata = {
   title:       "Pikatym — Clinic Booking",

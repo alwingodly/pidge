@@ -36,7 +36,12 @@ export async function GET(req: NextRequest) {
         tenantId:     { in: tenantIds },
         status:       "APPROVED",
         reminderSent: false,
-        slot:         { date: { gte: target, lt: next } },
+        OR: [
+          // Slot-based bookings
+          { slot:         { date: { gte: target, lt: next } } },
+          // Direct assignedDate bookings (slotId is null)
+          { slotId: null, assignedDate: { gte: target, lt: next } },
+        ],
       },
       include: { slot: true, doctor: true, service: true, tenant: true, branch: true },
     })

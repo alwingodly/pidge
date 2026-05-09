@@ -89,7 +89,7 @@ export default function DayScheduleView({
             <CalendarDays className="size-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">Today's Schedule</p>
+            <p className="text-sm font-bold text-foreground">Today&apos;s Schedule</p>
             <p className="text-[11px] text-muted-foreground">{todayLabel}</p>
           </div>
         </div>
