@@ -1,0 +1,219 @@
+.shell {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: clip;
+  background:
+    radial-gradient(760px 500px at 14% 0%, rgba(255, 255, 255, 0.95), transparent 62%),
+    radial-gradient(780px 540px at 100% 8%, rgba(132, 177, 159, 0.42), transparent 60%),
+    radial-gradient(640px 460px at 72% 86%, rgba(236, 210, 167, 0.34), transparent 62%),
+    linear-gradient(145deg, #f9fbf6 0%, #eef4ed 46%, #f7f3ed 100%);
+}
+
+.shell::before,
+.shell::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(12px);
+}
+
+.shell::before {
+  top: 78px;
+  left: max(16px, calc(50% - 620px));
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(173, 188, 159, 0.18) 54%, transparent 70%);
+}
+
+.shell::after {
+  right: max(12px, calc(50% - 650px));
+  bottom: 110px;
+  width: 340px;
+  height: 340px;
+  border-radius: 44% 56% 62% 38%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.72), rgba(67, 104, 80, 0.16) 58%, transparent 72%);
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+}
+
+.footerPill {
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 18px 44px rgba(18, 55, 42, 0.12);
+  backdrop-filter: blur(24px) saturate(1.55);
+  -webkit-backdrop-filter: blur(24px) saturate(1.55);
+}
+
+.hero,
+.bottomCta {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.38)),
+    linear-gradient(110deg, rgba(173, 188, 159, 0.24), rgba(255, 255, 255, 0.06));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28),
+    0 34px 90px rgba(18, 55, 42, 0.16);
+  backdrop-filter: blur(34px) saturate(1.55);
+  -webkit-backdrop-filter: blur(34px) saturate(1.55);
+}
+
+.hero::before,
+.bottomCta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.9) 0%, transparent 30%),
+    radial-gradient(520px 220px at 78% 16%, rgba(255, 255, 255, 0.56), transparent 72%);
+  pointer-events: none;
+}
+
+.heroBeamLeft,
+.heroBeamRight {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(34px);
+}
+
+.heroBeamLeft {
+  left: -72px;
+  top: 38%;
+  width: 520px;
+  height: 130px;
+  rotate: -18deg;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.heroBeamRight {
+  right: -110px;
+  bottom: 18%;
+  width: 560px;
+  height: 180px;
+  rotate: -12deg;
+  background: rgba(67, 104, 80, 0.14);
+}
+
+.glassCard,
+.glassChip {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.44)),
+    rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 16px 42px rgba(18, 55, 42, 0.1);
+  backdrop-filter: blur(24px) saturate(1.45);
+  -webkit-backdrop-filter: blur(24px) saturate(1.45);
+}
+
+.glassChip {
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 12px 30px rgba(18, 55, 42, 0.08);
+}
+
+.primaryButton {
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+    0 18px 42px rgba(67, 104, 80, 0.3);
+}
+
+.primaryButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.34), transparent 38%, rgba(255, 255, 255, 0.14));
+  pointer-events: none;
+}
+
+.heroTitle {
+  text-wrap: balance;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.heroAccent {
+  color: transparent;
+  background: linear-gradient(135deg, var(--primary), #1f4f41 58%, #8a9e75);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.previewCard {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 30px 80px rgba(18, 55, 42, 0.2);
+}
+
+.previewHeader {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(67, 104, 80, 0.96), rgba(18, 55, 42, 0.9)),
+    var(--primary);
+}
+
+.previewHeader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(180px 120px at 78% 10%, rgba(255, 255, 255, 0.2), transparent 66%),
+    linear-gradient(110deg, rgba(255, 255, 255, 0.18), transparent 38%);
+  pointer-events: none;
+}
+
+.iconWell {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.42));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -10px 18px rgba(67, 104, 80, 0.05);
+}
+
+.stepCard,
+.serviceCard {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.stepCard::before,
+.serviceCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.68), transparent 42%);
+  pointer-events: none;
+}
+
+.serviceCard:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 24px 56px rgba(18, 55, 42, 0.14);
+}
+
+.bottomCta {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.42)),
+    radial-gradient(420px 220px at 50% 0%, rgba(173, 188, 159, 0.32), transparent 70%);
+}

@@ -8,6 +8,7 @@ import {
   Clock, MapPin, Stethoscope, UserRound, Zap,
 } from "lucide-react"
 import { Fragment } from "react"
+import styles from "./BookingLanding.module.css"
 
 export default async function BookingHomePage() {
   const { tenantId, branchId, tenantName, tenantSlug, logoUrl } = await getTenantFromHeaders()
@@ -42,13 +43,13 @@ export default async function BookingHomePage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/*  HERO                                                          */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden rounded-3xl bg-card px-6 py-14 sm:px-12 sm:py-20">
+      <section className={`${styles.hero} relative overflow-hidden rounded-[2rem] px-6 py-14 sm:px-12 sm:py-20`}>
 
         {/* Depth mesh */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -right-48 -top-48 size-140 rounded-full bg-primary/5 blur-[120px]" />
-          <div className="absolute -bottom-40 -left-32 size-96 rounded-full bg-secondary blur-[100px]" />
-          <div className="absolute left-1/3 top-0 h-px w-1/3 bg-border" />
+          <div className="absolute inset-x-8 top-0 h-px bg-white/80" />
+          <div className={styles.heroBeamLeft} />
+          <div className={styles.heroBeamRight} />
         </div>
 
         <div className="relative grid items-center gap-14 lg:grid-cols-[1fr_420px]">
@@ -56,7 +57,7 @@ export default async function BookingHomePage() {
           {/* ── Left copy ── */}
           <div>
             {/* Animated brand pill */}
-            <div className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-border bg-muted/60 py-1.5 pl-2 pr-4 text-xs shadow-sm backdrop-blur-sm">
+            <div className={`${styles.glassChip} mb-8 inline-flex items-center gap-2.5 rounded-full py-1.5 pl-2 pr-4 text-xs`}>
               <span className="relative flex size-2">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-50" />
                 <span className="relative inline-flex size-2 rounded-full bg-primary" />
@@ -65,7 +66,7 @@ export default async function BookingHomePage() {
                 <Image src={logoUrl} alt={tenantName || "Clinic"} width={16} height={16}
                   className="size-4 rounded object-contain" />
               ) : (
-                <span className="flex size-4 shrink-0 items-center justify-center rounded bg-primary text-[9px] font-black text-primary-foreground">
+                <span className="flex size-4 shrink-0 items-center justify-center rounded bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
                   {(tenantName || "P")[0]}
                 </span>
               )}
@@ -74,10 +75,10 @@ export default async function BookingHomePage() {
             </div>
 
             {/* Headline — 3-line rhythm, 7xl on desktop */}
-            <h1 className="text-5xl font-black leading-[1.02] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+            <h1 className={`${styles.heroTitle} text-5xl font-black leading-[1.02] tracking-tight text-foreground sm:text-6xl lg:text-7xl`}>
               Healthcare
               <br />
-              <span className="text-primary">made simple</span>
+              <span className={styles.heroAccent}>made simple</span>
               <br />
               for you.
             </h1>
@@ -91,14 +92,14 @@ export default async function BookingHomePage() {
             {/* CTAs */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/book"
-                className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-lg transition-all duration-200 hover:-translate-y-px hover:opacity-90 hover:shadow-xl">
+                className={`${styles.primaryButton} group inline-flex items-center justify-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all duration-200 hover:-translate-y-px hover:opacity-95`}>
                 Book appointment
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 transition-transform duration-200 group-hover:translate-x-0.5">
+                <span className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 transition-transform duration-200 group-hover:translate-x-0.5">
                   <ArrowRight className="size-3.5" />
                 </span>
               </Link>
               <a href="#services"
-                className="inline-flex items-center justify-center rounded-2xl border border-border bg-transparent px-6 py-4 text-sm font-semibold text-foreground transition-colors hover:bg-secondary">
+                className={`${styles.glassChip} inline-flex items-center justify-center rounded-2xl px-6 py-4 text-sm font-semibold text-foreground transition-all duration-200 hover:-translate-y-px`}>
                 See all services
               </a>
             </div>
@@ -110,7 +111,7 @@ export default async function BookingHomePage() {
                 { v: "3 min",         s: "avg. booking" },
                 { v: "24 / 7",        s: "available" },
               ].map(({ v, s }) => (
-                <div key={s} className="rounded-xl border border-border/60 bg-muted/40 px-3 py-3 text-center">
+                <div key={s} className={`${styles.glassCard} rounded-2xl px-3 py-3 text-center`}>
                   <p className="text-lg font-black tabular-nums text-foreground">{v}</p>
                   <p className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{s}</p>
                 </div>
@@ -122,8 +123,8 @@ export default async function BookingHomePage() {
           <div className="relative hidden lg:block">
 
             {/* Floating "just confirmed" chip */}
-            <div className="absolute -left-12 top-8 z-10 flex items-center gap-2.5 rounded-2xl border border-border bg-card px-3.5 py-2.5 shadow-lg">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <div className={`${styles.glassChip} absolute -left-12 top-8 z-10 flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5`}>
+              <div className={`${styles.iconWell} flex size-7 shrink-0 items-center justify-center rounded-xl text-primary`}>
                 <CalendarCheck className="size-3.5 text-primary" />
               </div>
               <div>
@@ -133,12 +134,12 @@ export default async function BookingHomePage() {
             </div>
 
             {/* Card — slight rotation */}
-            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
+            <div className={`${styles.previewCard} ${styles.glassCard} overflow-hidden rounded-[1.75rem]`}
               style={{ transform: "rotate(1.5deg)" }}>
 
               {/* Solid primary header */}
-              <div className="relative overflow-hidden bg-primary px-5 py-5">
-                <div className="pointer-events-none absolute -right-4 -top-4 size-20 rounded-full bg-primary-foreground/5" />
+              <div className={`${styles.previewHeader} relative px-5 py-5 backdrop-blur-xl`}>
+                <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-primary-foreground/45" />
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground/50">Appointment</p>
@@ -154,8 +155,8 @@ export default async function BookingHomePage() {
                 <div className="mt-4 flex items-center gap-3">
                   <div className="flex -space-x-2">
                     {[
-                      "bg-primary/90", "bg-primary/70",
-                      "bg-primary/50", "bg-primary/30",
+                      "bg-primary/[0.90]", "bg-primary/[0.72]",
+                      "bg-primary/[0.54]", "bg-primary/[0.36]",
                     ].map((bg, i) => (
                       <div key={i}
                         className={`flex size-7 items-center justify-center rounded-full border-2 border-primary text-[10px] font-black text-primary-foreground ${bg}`}
@@ -171,14 +172,14 @@ export default async function BookingHomePage() {
               </div>
 
               {/* Detail rows */}
-              <div className="divide-y divide-border px-5">
+              <div className="divide-y divide-white/55 px-5">
                 {[
                   { icon: <Stethoscope className="size-4" />, label: "Service", value: "General Consultation", badge: "30 min" },
                   { icon: <UserRound   className="size-4" />, label: "Doctor",  value: "To be assigned" },
                   { icon: <Clock       className="size-4" />, label: "Date",    value: "Thu 8 May · 10:30 AM" },
                 ].map(({ icon, label, value, badge }) => (
                   <div key={label} className="flex items-center gap-3 py-3.5">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <div className={`${styles.iconWell} flex size-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground`}>
                       {icon}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -186,7 +187,7 @@ export default async function BookingHomePage() {
                       <p className="truncate text-sm font-semibold text-foreground">{value}</p>
                     </div>
                     {badge && (
-                      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      <span className={`${styles.glassChip} shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold text-muted-foreground`}>
                         {badge}
                       </span>
                     )}
@@ -195,7 +196,7 @@ export default async function BookingHomePage() {
               </div>
 
               {/* Step progress */}
-              <div className="border-t border-border bg-muted/30 px-5 py-3.5">
+              <div className="border-t border-white/55 bg-white/26 px-5 py-3.5">
                 <div className="flex items-center">
                   {["Service", "Date", "Details"].map((step, i) => (
                     <Fragment key={step}>
@@ -209,7 +210,7 @@ export default async function BookingHomePage() {
                         </div>
                         <span className="text-[10px] font-semibold text-muted-foreground">{step}</span>
                       </div>
-                      {i < 2 && <div className="mx-2 h-px flex-1 bg-border" />}
+                      {i < 2 && <div className="mx-2 h-px flex-1 bg-white/60" />}
                     </Fragment>
                   ))}
                 </div>
@@ -217,7 +218,7 @@ export default async function BookingHomePage() {
             </div>
 
             {/* "Slots available" chip bottom-right */}
-            <div className="absolute -bottom-4 -right-6 z-10 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-md">
+            <div className={`${styles.glassChip} absolute -bottom-4 -right-6 z-10 flex items-center gap-2 rounded-xl px-3 py-2`}>
               <span className="relative flex size-1.5">
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-50" />
                 <span className="relative inline-flex size-1.5 rounded-full bg-primary" />
@@ -240,7 +241,7 @@ export default async function BookingHomePage() {
           "Cancel any time",
         ].map((t) => (
           <span key={t}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground">
+            className={`${styles.glassChip} inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium text-muted-foreground`}>
             <Check className="size-3 text-primary" strokeWidth={3} />
             {t}
           </span>
@@ -277,13 +278,13 @@ export default async function BookingHomePage() {
               desc: "Receive an email confirmation right away. No waiting, no phone calls.",
             },
           ].map(({ num, icon, title, desc }, i) => (
-            <div key={i} className="relative overflow-hidden rounded-2xl border border-border bg-card p-6">
+            <div key={i} className={`${styles.stepCard} ${styles.glassCard} relative overflow-hidden rounded-3xl p-6`}>
               {/* Ghost number for depth */}
-              <p className="pointer-events-none absolute right-4 top-3 select-none text-7xl font-black leading-none text-muted/50">
+              <p className="pointer-events-none absolute right-4 top-3 select-none text-7xl font-black leading-none text-white/65">
                 {num}
               </p>
               <div className="relative">
-                <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <div className={`${styles.iconWell} flex size-11 items-center justify-center rounded-2xl text-primary`}>
                   {icon}
                 </div>
                 <p className="mt-4 font-bold text-foreground">{title}</p>
@@ -312,23 +313,23 @@ export default async function BookingHomePage() {
         </div>
 
         {services.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          <div className={`${styles.glassCard} rounded-3xl p-8 text-center text-sm text-muted-foreground`}>
             No services listed yet. Check back soon.
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {services.map((service) => (
               <Link key={service.id} href={`/book?serviceId=${service.id}`}
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+                className={`${styles.serviceCard} ${styles.glassCard} group relative flex flex-col overflow-hidden rounded-3xl p-4 hover:-translate-y-0.5 hover:border-primary/35`}>
 
                 {/* Hover tint */}
-                <div className="pointer-events-none absolute inset-0 bg-primary/0 transition-colors duration-200 group-hover:bg-primary/[0.02]" />
+                <div className="pointer-events-none absolute inset-0 bg-primary/0 transition-colors duration-200 group-hover:bg-primary/[0.04]" />
 
                 <div className="relative flex items-center justify-between gap-2">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+                  <div className={`${styles.iconWell} flex size-9 shrink-0 items-center justify-center rounded-2xl text-primary`}>
                     <Stethoscope className="size-4" />
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  <span className={`${styles.glassChip} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-muted-foreground`}>
                     <Clock className="size-2.5" />
                     {service.durationMins}m
                   </span>
@@ -355,34 +356,31 @@ export default async function BookingHomePage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/*  BOTTOM CTA                                                    */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden rounded-3xl px-8 py-16 text-center"
-        style={{ background: "var(--primary)" }}>
+      <section className={`${styles.bottomCta} relative overflow-hidden rounded-[2rem] px-8 py-16 text-center`}>
 
-        {/* Decorative orbs inside dark panel */}
-        <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-primary-foreground/5 blur-[80px]" />
-        <div className="pointer-events-none absolute -bottom-16 -right-16 size-56 rounded-full bg-primary-foreground/5 blur-[60px]" />
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-white/80" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-28 w-[34rem] -translate-x-1/2 rounded-full bg-white/36 blur-3xl" />
 
         <div className="relative">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: "color-mix(in srgb, var(--primary-foreground) 45%, transparent)" }}>
+            style={{ color: "var(--primary)" }}>
             Get started
           </p>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl"
-            style={{ color: "var(--primary-foreground)" }}>
+            style={{ color: "var(--foreground)" }}>
             Let&apos;s get you booked.
           </h2>
           <p className="mx-auto mt-3 max-w-sm text-sm"
-            style={{ color: "color-mix(in srgb, var(--primary-foreground) 55%, transparent)" }}>
+            style={{ color: "var(--muted-foreground)" }}>
             No account needed. Takes under 3 minutes. Free to book.
           </p>
           <Link href="/book"
-            className="mt-8 inline-flex items-center gap-3 rounded-2xl px-8 py-4 text-sm font-bold shadow-lg transition-all duration-200 hover:-translate-y-px hover:shadow-xl"
-            style={{ background: "var(--primary-foreground)", color: "var(--primary)" }}>
+            className={`${styles.primaryButton} mt-8 inline-flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all duration-200 hover:-translate-y-px`}>
             Book appointment
             <ArrowRight className="size-4" />
           </Link>
           <p className="mt-4 text-[11px]"
-            style={{ color: "color-mix(in srgb, var(--primary-foreground) 35%, transparent)" }}>
+            style={{ color: "var(--muted-foreground)" }}>
             Free · No account · Cancel any time
           </p>
         </div>
