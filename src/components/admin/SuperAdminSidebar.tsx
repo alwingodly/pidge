@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Building2, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
@@ -44,10 +45,10 @@ export default function SuperAdminSidebar() {
         {!collapsed && (
           <>
             <div
-              className="w-7 h-7 rounded-md flex items-center justify-center font-black text-sm shrink-0"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+              style={{ background: "var(--accent)" }}
             >
-              P
+              <Image src="/pikatym-white.svg" alt="Pikatym" width={16} height={22} className="h-5 w-auto object-contain" />
             </div>
             <div className="ml-2 overflow-hidden">
               <p className="font-bold text-sm leading-none whitespace-nowrap" style={{ color: "var(--sidebar-text-active)" }}>Pikatym</p>
@@ -122,6 +123,9 @@ export default function SuperAdminSidebar() {
       <DialogContent className="max-w-sm rounded-2xl">
         <DialogHeader>
           <DialogTitle>Sign out?</DialogTitle>
+          <DialogDescription>
+            Confirm whether you want to sign out of the super admin area.
+          </DialogDescription>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">You will be returned to the login page.</p>
         <DialogFooter>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -10,9 +11,8 @@ import {
   LogOut, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Settings, Users,
 } from "lucide-react"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogTitle,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 
 const ALL_NAV = [
   { href: "/admin",              label: "Dashboard",      icon: LayoutDashboard, roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
@@ -25,7 +25,12 @@ const ALL_NAV = [
   { href: "/admin/settings",     label: "Settings",       icon: Settings,        roles: ["TENANT_ADMIN"] },
 ]
 
-export default function Sidebar({ role }: { role: string }) {
+type Features = {
+  walkInEnabled: boolean
+  branchModeEnabled: boolean
+}
+
+export default function Sidebar({ role, features }: { role: string; features: Features }) {
   const pathname   = usePathname()
   const [collapsed,       setCollapsed]       = useState(false)
   const [confirmSignOut,  setConfirmSignOut]  = useState(false)
@@ -37,7 +42,12 @@ export default function Sidebar({ role }: { role: string }) {
     return () => window.clearTimeout(id)
   }, [])
 
-  const nav = ALL_NAV.filter((item) => item.roles.includes(role))
+  const nav = ALL_NAV.filter((item) => {
+    if (!item.roles.includes(role)) return false
+    if (item.href === "/admin/queue" && !features.walkInEnabled) return false
+    if (item.href === "/admin/branches" && !features.branchModeEnabled) return false
+    return true
+  })
 
   function toggle() {
     setCollapsed((p) => {
@@ -66,10 +76,10 @@ export default function Sidebar({ role }: { role: string }) {
         {!collapsed && (
           <>
             <div
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg font-black text-sm"
-              style={{ background: "var(--accent)", color: "var(--accent-foreground)" }}
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: "var(--accent)" }}
             >
-              P
+              <Image src="/pikatym-white.svg" alt="Pikatym" width={18} height={24} className="h-6 w-auto object-contain" />
             </div>
             <div className="ml-2.5 min-w-0 overflow-hidden">
               <p className="truncate text-sm font-bold leading-tight" style={{ color: "var(--sidebar-text-active)" }}>Pikatym</p>
@@ -187,8 +197,11 @@ export default function Sidebar({ role }: { role: string }) {
           <DialogTitle className="mt-3 text-base font-semibold text-foreground">
             Sign out?
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Confirm whether you want to sign out of the admin area.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
-            You'll be returned to the login page.
+            You&apos;ll be returned to the login page.
           </p>
         </div>
 

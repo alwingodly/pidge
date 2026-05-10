@@ -13,6 +13,11 @@ export default async function CheckinPage({
 
   const sp              = await searchParams
   const branchSlugParam = sp.branch
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { walkInEnabled: true, branchModeEnabled: true },
+  })
+  if (!tenant?.walkInEnabled) notFound()
 
   const [services, branches] = await Promise.all([
     prisma.service.findMany({
@@ -20,11 +25,13 @@ export default async function CheckinPage({
       orderBy: { name: "asc" },
       select:  { id: true, name: true, durationMins: true, description: true },
     }),
-    prisma.branch.findMany({
-      where:   { tenantId, isActive: true },
-      orderBy: { name: "asc" },
-      select:  { id: true, name: true, slug: true },
-    }),
+    tenant.branchModeEnabled
+      ? prisma.branch.findMany({
+          where:   { tenantId, isActive: true },
+          orderBy: { name: "asc" },
+          select:  { id: true, name: true, slug: true },
+        })
+      : Promise.resolve([]),
   ])
 
   // Priority: 1. ?branch= query param  2. header-resolved branch  3. only branch

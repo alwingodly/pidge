@@ -29,10 +29,11 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
     }),
     prisma.tenant.findUnique({
       where:  { id: tenantId },
-      select: { slug: true },
+      select: { slug: true, branchModeEnabled: true },
     }),
   ])
 
+  if (!tenant?.branchModeEnabled) notFound()
   if (!branch) notFound()
 
   const appDomain  = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pikatym.io"

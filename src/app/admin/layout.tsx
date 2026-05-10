@@ -24,10 +24,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const previewUrl = tenantUrl(session.user.tenantSlug)
   const previewLabel = previewUrl.replace(/^https?:\/\//, "")
+  const tenantFeatures = await prismaTenantFeatures(session.user.tenantId)
 
   return (
     <div className="flex min-h-screen" style={{ background: "#F5F2EE" }}>
-      <Sidebar role={session.user.role} />
+      <Sidebar role={session.user.role} features={tenantFeatures} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-auto">
         {/* Topbar */}
@@ -61,4 +62,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </div>
     </div>
   )
+}
+
+async function prismaTenantFeatures(tenantId: string) {
+  const { prisma } = await import("@/lib/db")
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: {
+      walkInEnabled: true,
+      branchModeEnabled: true,
+    },
+  })
+  return {
+    walkInEnabled: tenant?.walkInEnabled ?? true,
+    branchModeEnabled: tenant?.branchModeEnabled ?? false,
+  }
 }

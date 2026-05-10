@@ -6,6 +6,7 @@ import { getTenantFromHeaders, getScopeFromSession } from "@/lib/tenant"
 import { generateBookingRef, generateCancelToken } from "@/lib/booking-ref"
 import { sendBookingAcknowledgement, sendAdminNewRequest } from "@/lib/email"
 import { encryptField, decryptField, verifyBookingToken } from "@/lib/encryption"
+import { recordAppointmentStatusChange } from "@/lib/audit"
 import { z } from "zod"
 
 // Fields that are stored encrypted: patientPhone, patientDOB, patientGender, notes, attachmentData
@@ -26,6 +27,15 @@ function decryptAppointment<T extends {
   }
 }
 
+function parseDateOnly(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return { error: "date must be YYYY-MM-DD." }
+  const date = new Date(value)
+  if (isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    return { error: "Invalid date." }
+  }
+  return { date }
+}
+
 export const GET = auth(async (req) => {
   if (!req.auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
   const { tenantId, branchId } = getScopeFromSession(req.auth)
@@ -34,25 +44,56 @@ export const GET = auth(async (req) => {
   const status   = searchParams.get("status")
   const doctorId = searchParams.get("doctorId")
   const date     = searchParams.get("date")
+  const parsedDate = date ? parseDateOnly(date) : null
 
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      tenantId,
-      branchId: branchId ?? undefined,
-      status:   status && status !== "ALL" ? status : undefined,
-      doctorId: doctorId && doctorId !== "ALL" ? doctorId : undefined,
-      ...(date ? {
-        OR: [
-          { assignedDate: new Date(date) },
-          { preferredDate: new Date(date) },
-        ],
-      } : {}),
-    },
-    include: { slot: true, service: true, doctor: true },
-    orderBy: { createdAt: "desc" },
-  })
+  if (parsedDate?.error) return Response.json({ error: parsedDate.error }, { status: 400 })
 
-  return Response.json({ data: appointments.map(decryptAppointment) })
+  try {
+    if (doctorId && doctorId !== "ALL" && parsedDate?.date) {
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          tenantId,
+          branchId: branchId ?? undefined,
+          doctorId,
+          OR: [
+            { assignedDate: parsedDate.date },
+            { preferredDate: parsedDate.date },
+          ],
+        },
+        select: {
+          id: true,
+          status: true,
+          assignedTime: true,
+          service: { select: { durationMins: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+
+      return Response.json({ data: appointments })
+    }
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        tenantId,
+        branchId: branchId ?? undefined,
+        status:   status && status !== "ALL" ? status : undefined,
+        doctorId: doctorId && doctorId !== "ALL" ? doctorId : undefined,
+        ...(parsedDate?.date ? {
+          OR: [
+            { assignedDate: parsedDate.date },
+            { preferredDate: parsedDate.date },
+          ],
+        } : {}),
+      },
+      include: { slot: true, service: true, doctor: true },
+      orderBy: { createdAt: "desc" },
+    })
+
+    return Response.json({ data: appointments.map(decryptAppointment) })
+  } catch (error) {
+    console.error("GET /api/appointments failed", error)
+    return Response.json({ error: "Could not load appointments." }, { status: 500 })
+  }
 })
 
 // ── Patient creates a booking request ─────────────────────────────────────────
@@ -204,6 +245,13 @@ export async function POST(req: NextRequest) {
   }
 
   await Promise.all([
+    recordAppointmentStatusChange({
+      tenantId,
+      appointmentId: appointment.id,
+      toStatus: "PENDING",
+      note: "Patient booking request created",
+      metadata: { appointmentType: "ONLINE" },
+    }),
     sendBookingAcknowledgement(apptForEmail),
     ...(tenant.bookingAlertsEnabled ? [sendAdminNewRequest(apptForEmail)] : []),
   ])

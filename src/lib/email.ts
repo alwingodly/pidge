@@ -41,6 +41,14 @@ function bookingUrl(slug: string) {
   return `${appUrl}?__tenant=${encodeURIComponent(slug)}`
 }
 
+const pikatymLogoUrl = `${appUrl}/pikatym-white.svg`
+
+function pikatymEmailMark(size = 32) {
+  return `<div style="width:${size}px;height:${size}px;background:rgba(255,255,255,0.2);border-radius:8px;display:inline-flex;align-items:center;justify-content:center">
+    <img src="${pikatymLogoUrl}" alt="Pikatym" width="${Math.round(size * 0.48)}" style="display:block;height:${Math.round(size * 0.72)}px;width:auto"/>
+  </div>`
+}
+
 function row(label: string, value: string) {
   return `<tr><td style="padding:4px 12px 4px 0;color:#9A7A5A;font-size:13px">${h(label)}</td><td style="padding:4px 0;font-size:13px;font-weight:600">${h(value)}</td></tr>`
 }
@@ -229,7 +237,7 @@ export async function sendBookingOTPEmail(email: string, otp: string, patientNam
     `Your verification code — ${otp}`,
     `<div style="font-family:sans-serif;max-width:420px;margin:0 auto">
       <div style="background:#BF4646;border-radius:12px 12px 0 0;padding:24px 28px">
-        <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">P</div>
+        ${pikatymEmailMark(32)}
         <h1 style="color:#fff;font-size:18px;font-weight:700;margin:12px 0 0">Email verification</h1>
       </div>
       <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px">
@@ -353,7 +361,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
     "Reset your password — Pikatym",
     `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
       <div style="background:#BF4646;border-radius:12px 12px 0 0;padding:28px 32px">
-        <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:18px">P</div>
+        ${pikatymEmailMark(36)}
         <h1 style="color:#fff;font-size:22px;font-weight:700;margin:16px 0 4px">Reset your password</h1>
         <p style="color:rgba(255,255,255,0.75);font-size:13px;margin:0">Pikatym Admin</p>
       </div>

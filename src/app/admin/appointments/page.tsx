@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import AppointmentTable from "@/components/admin/AppointmentTable"
+import NewAppointmentDialog from "@/components/admin/NewAppointmentDialog"
 import { Prisma } from "@prisma/client"
 import Link from "next/link"
 import { AlertTriangle } from "lucide-react"
@@ -11,7 +12,16 @@ const PAGE_SIZE = 20
 export default async function AppointmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; date?: string; doctorId?: string; page?: string; conflict?: string }>
+  searchParams: Promise<{
+    status?: string
+    date?: string
+    doctorId?: string
+    serviceId?: string
+    branchId?: string
+    q?: string
+    page?: string
+    conflict?: string
+  }>
 }) {
   const session = await auth()
   if (!session) return null
@@ -21,6 +31,9 @@ export default async function AppointmentsPage({
   const statusFilter   = sp.status   ?? "ALL"
   const dateFilter     = sp.date     ?? "ALL"
   const doctorIdFilter = sp.doctorId ?? "ALL"
+  const serviceIdFilter = sp.serviceId ?? "ALL"
+  const branchIdFilter = sp.branchId ?? "ALL"
+  const query = (sp.q ?? "").trim()
   const page           = Math.max(1, parseInt(sp.page ?? "1", 10) || 1)
   const conflictOnly   = sp.conflict === "true"
 
@@ -32,44 +45,77 @@ export default async function AppointmentsPage({
   // Fetch tenant first — needed for clinic hours in conflict query
   const tenant = await prisma.tenant.findUnique({
     where:  { id: tenantId },
-    select: { clinicStartTime: true, clinicEndTime: true },
+    select: {
+      clinicStartTime: true,
+      clinicEndTime: true,
+      manualBookingEnabled: true,
+      branchModeEnabled: true,
+    },
   })
 
   const { clinicStartTime, clinicEndTime } = tenant ?? {}
+  const branchFilter =
+    tenant?.branchModeEnabled && !branchId && branchIdFilter !== "ALL"
+      ? branchIdFilter
+      : branchId ?? undefined
 
   const dateRange: { gte: Date; lt: Date } | undefined =
-    dateFilter === "TODAY" ? { gte: todayStart, lt: todayEnd } :
-    dateFilter === "WEEK"  ? { gte: todayStart, lt: weekEnd }  :
+    dateFilter === "TODAY"    ? { gte: todayStart, lt: todayEnd } :
+    dateFilter === "TOMORROW" ? { gte: todayEnd, lt: new Date(todayEnd.getTime() + 86_400_000) } :
+    dateFilter === "WEEK"     ? { gte: todayStart, lt: weekEnd }  :
     undefined
 
-  const where: Prisma.AppointmentWhereInput = {
-    tenantId,
-    branchId: branchId ?? undefined,
-    status:   conflictOnly ? "APPROVED" : statusFilter !== "ALL" ? statusFilter : undefined,
-    doctorId: doctorIdFilter !== "ALL" ? doctorIdFilter : undefined,
-    ...(conflictOnly && clinicStartTime && clinicEndTime ? {
+  const andFilters: Prisma.AppointmentWhereInput[] = []
+  if (query) {
+    andFilters.push({
+      OR: [
+        { bookingRef: { contains: query, mode: "insensitive" } },
+        { patientName: { contains: query, mode: "insensitive" } },
+        { patientSurname: { contains: query, mode: "insensitive" } },
+        { patientEmail: { contains: query, mode: "insensitive" } },
+      ],
+    })
+  }
+
+  if (dateRange && !conflictOnly) {
+    andFilters.push({
+      OR: [
+        { assignedDate:  dateRange },
+        { slot: { date: dateRange } },
+        { preferredDate: dateRange },
+      ],
+    })
+  }
+
+  if (conflictOnly && clinicStartTime && clinicEndTime) {
+    andFilters.push({
       assignedDate: { gte: todayStart },
       assignedTime: { not: null },
       OR: [
         { assignedTime: { lt: clinicStartTime } },
         { assignedTime: { gte: clinicEndTime  } },
       ],
-    } : conflictOnly ? {
+    })
+  } else if (conflictOnly) {
+    andFilters.push({
       assignedDate: { gte: todayStart },
       assignedTime: { not: null },
-    } : dateRange ? {
-      OR: [
-        { assignedDate:  dateRange },
-        { slot: { date: dateRange } },
-        { preferredDate: dateRange },
-      ],
-    } : {}),
+    })
+  }
+
+  const where: Prisma.AppointmentWhereInput = {
+    tenantId,
+    branchId: branchFilter,
+    status:   conflictOnly ? "APPROVED" : statusFilter !== "ALL" ? statusFilter : undefined,
+    doctorId: doctorIdFilter !== "ALL" ? doctorIdFilter : undefined,
+    serviceId: serviceIdFilter !== "ALL" ? serviceIdFilter : undefined,
+    ...(andFilters.length ? { AND: andFilters } : {}),
   }
 
   const conflictWhere: Prisma.AppointmentWhereInput | null =
     clinicStartTime && clinicEndTime ? {
       tenantId,
-      branchId:     branchId ?? undefined,
+      branchId:     branchFilter,
       status:       "APPROVED",
       assignedDate: { gte: todayStart },
       assignedTime: { not: null },
@@ -79,7 +125,7 @@ export default async function AppointmentsPage({
       ],
     } : null
 
-  const [appointments, total, doctors, conflictCount] = await Promise.all([
+  const [appointments, total, doctors, services, branches, conflictCount] = await Promise.all([
     prisma.appointment.findMany({
       where,
       include:  { slot: true, service: true, doctor: true, branch: true },
@@ -91,17 +137,53 @@ export default async function AppointmentsPage({
     prisma.doctor.findMany({
       where:   { tenantId, branchId: branchId ?? undefined, isActive: true },
       orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        branchId: true,
+        doctorServices: { select: { serviceId: true } },
+      },
     }),
+    prisma.service.findMany({
+      where:   { tenantId, isActive: true },
+      orderBy: { name: "asc" },
+      select:  {
+        id: true,
+        name: true,
+        durationMins: true,
+        branchConfigs: { select: { branchId: true, isOffered: true, isAvailable: true } },
+      },
+    }),
+    tenant?.branchModeEnabled && !branchId
+      ? prisma.branch.findMany({
+          where:   { tenantId, isActive: true },
+          orderBy: { name: "asc" },
+          select:  { id: true, name: true },
+        })
+      : Promise.resolve([]),
     conflictWhere ? prisma.appointment.count({ where: conflictWhere }) : Promise.resolve(0),
   ])
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Appointments</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          {total} result{total !== 1 ? "s" : ""}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Appointments</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {total} result{total !== 1 ? "s" : ""}
+          </p>
+        </div>
+        {tenant?.manualBookingEnabled && (
+          <NewAppointmentDialog
+            services={services}
+            doctors={doctors}
+            branches={branches}
+            branchModeEnabled={tenant.branchModeEnabled}
+            defaultBranchId={branchId}
+            clinicStartTime={clinicStartTime ?? null}
+            clinicEndTime={clinicEndTime ?? null}
+          />
+        )}
       </div>
 
       {/* Conflict banner — shown when approved appointments fall outside clinic hours */}
@@ -140,7 +222,17 @@ export default async function AppointmentsPage({
       <AppointmentTable
         appointments={appointments}
         doctors={doctors}
-        filters={{ status: statusFilter, date: dateFilter, doctorId: doctorIdFilter, page: String(page) }}
+        services={services}
+        branches={branches}
+        filters={{
+          status: statusFilter,
+          date: dateFilter,
+          doctorId: doctorIdFilter,
+          serviceId: serviceIdFilter,
+          branchId: branchIdFilter,
+          q: query,
+          page: String(page),
+        }}
         total={total}
         pageSize={PAGE_SIZE}
         clinicStartTime={clinicStartTime ?? null}

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { BadgeDollarSign, Building2, Palette, Save, Settings2, ShieldCheck, UserCog } from "lucide-react"
+import type { ComponentType } from "react"
 
 // ── Currency catalogue ─────────────────────────────────────────────────────────
 const CURRENCIES = [
@@ -32,7 +34,12 @@ type Tenant = {
   plan:                string
   primaryColor:        string
   logoUrl?:            string | null
+  isActive:            boolean
   showDoctorSelection: boolean
+  manualBookingEnabled: boolean
+  patientHistoryEnabled: boolean
+  walkInEnabled: boolean
+  branchModeEnabled: boolean
   adminUsers?:         { name: string; email: string }[]
 }
 
@@ -48,13 +55,18 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
   const [currency,     setCurrency]     = useState(tenant?.currency     ?? "GBP")
   const [plan,         setPlan]         = useState(tenant?.plan         ?? "FREE")
   const [primaryColor, setPrimaryColor] = useState(tenant?.primaryColor ?? "#436850")
-  const [logoUrl,      setLogoUrl]      = useState(tenant?.logoUrl      ?? "")
+  const [logoUrl,      setLogoUrl]      = useState(tenant?.logoUrl?.startsWith("data:") ? "" : tenant?.logoUrl ?? "")
+  const [isActive,     setIsActive]     = useState(tenant?.isActive     ?? true)
 
   const [adminName,  setAdminName]  = useState(tenant?.adminUsers?.[0]?.name  ?? "")
   const [adminEmail, setAdminEmail] = useState(tenant?.adminUsers?.[0]?.email ?? "")
   const [adminPass,  setAdminPass]  = useState("")
 
   const [showDoctorSelection, setShowDoctorSelection] = useState(tenant?.showDoctorSelection ?? false)
+  const [manualBookingEnabled, setManualBookingEnabled] = useState(tenant?.manualBookingEnabled ?? false)
+  const [patientHistoryEnabled, setPatientHistoryEnabled] = useState(tenant?.patientHistoryEnabled ?? true)
+  const [walkInEnabled, setWalkInEnabled] = useState(tenant?.walkInEnabled ?? true)
+  const [branchModeEnabled, setBranchModeEnabled] = useState(tenant?.branchModeEnabled ?? false)
 
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -83,7 +95,12 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
         currency:            selectedCurrency.code,
         currencySymbol:      selectedCurrency.symbol,
         plan, primaryColor,
+        isActive,
         showDoctorSelection,
+        manualBookingEnabled,
+        patientHistoryEnabled,
+        walkInEnabled,
+        branchModeEnabled,
         logoUrl:    logoUrl    || undefined,
         adminName:  adminName  || undefined,
         adminEmail: adminEmail || undefined,
@@ -97,11 +114,11 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-xl border border-border bg-white p-6">
+    <form onSubmit={handleSubmit} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 
       {/* ── Clinic details ─────────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Clinic details</h2>
+      <div className="space-y-4 p-5">
+        <SectionTitle icon={Building2} title="Clinic details" description="Core identity used across booking, admin, and tenant routing." />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
@@ -155,8 +172,8 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
       <Separator />
 
       {/* ── Currency ───────────────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Currency</h2>
+      <div className="space-y-4 p-5">
+        <SectionTitle icon={BadgeDollarSign} title="Currency" description="Prices and patient-facing payment amounts use this currency." />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
@@ -191,8 +208,8 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
       <Separator />
 
       {/* ── Branding ───────────────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Branding</h2>
+      <div className="space-y-4 p-5">
+        <SectionTitle icon={Palette} title="Branding" description="Clinic color and logo shown on public booking pages." />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
             <Label>Primary colour</Label>
@@ -221,38 +238,53 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
       <Separator />
 
       {/* ── Booking features ───────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Booking features</h2>
+      <div className="space-y-4 p-5">
+        <SectionTitle icon={Settings2} title="Booking features" description="Control what this tenant can use in the admin and patient flows." />
 
-        <label className="flex cursor-pointer items-start gap-4 rounded-xl border border-border p-4 transition-colors hover:bg-secondary/30">
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-foreground">Doctor selection in booking flow</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              When enabled, patients must choose a preferred clinician during booking.
-              When disabled, the clinic assigns a clinician after the request is received.
-            </p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={showDoctorSelection}
-            onClick={() => setShowDoctorSelection(v => !v)}
-            className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              showDoctorSelection ? "bg-primary" : "bg-muted-foreground/30"
-            }`}
-          >
-            <span className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${
-              showDoctorSelection ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </button>
-        </label>
+        <FeatureToggle
+          label="Tenant active"
+          description="When disabled, the tenant is retained but should be treated as inactive in platform operations."
+          checked={isActive}
+          onChange={() => setIsActive(v => !v)}
+        />
+
+        <FeatureToggle
+          label="Doctor selection in booking flow"
+          description="When enabled, patients can choose a preferred clinician during booking. When disabled, the clinic assigns one after the request is received."
+          checked={showDoctorSelection}
+          onChange={() => setShowDoctorSelection(v => !v)}
+        />
+        <FeatureToggle
+          label="Manual appointment creation"
+          description="Allows clinic staff to create appointments from phone or reception requests."
+          checked={manualBookingEnabled}
+          onChange={() => setManualBookingEnabled(v => !v)}
+        />
+        <FeatureToggle
+          label="Patient history"
+          description="Shows previous appointments for the same patient email inside admin appointment details."
+          checked={patientHistoryEnabled}
+          onChange={() => setPatientHistoryEnabled(v => !v)}
+        />
+        <FeatureToggle
+          label="Walk-in queue"
+          description="Enables QR/walk-in check-in and the live queue screen."
+          checked={walkInEnabled}
+          onChange={() => setWalkInEnabled(v => !v)}
+        />
+        <FeatureToggle
+          label="Multiple branches"
+          description="Enables branch management, branch admins, and branch-aware appointment views."
+          checked={branchModeEnabled}
+          onChange={() => setBranchModeEnabled(v => !v)}
+        />
       </div>
 
       <Separator />
 
       {/* ── Admin credentials ──────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Admin credentials</h2>
+      <div className="space-y-4 p-5">
+        <SectionTitle icon={UserCog} title="Admin credentials" description="Primary tenant admin account for clinic access." />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1">
             <Label>Admin name</Label>
@@ -272,11 +304,79 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
         </div>
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mx-5 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
-      <Button type="submit" disabled={loading}>
-        {loading ? "Saving…" : isNew ? "Create tenant" : "Save changes"}
-      </Button>
+      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border bg-white/95 px-5 py-4 backdrop-blur-sm">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">{isNew ? "Ready to create tenant" : "Save tenant changes"}</p>
+          <p className="text-xs text-muted-foreground">
+            {isNew ? "A welcome email is sent after the tenant is created." : "Changes apply to this tenant immediately."}
+          </p>
+        </div>
+        <Button type="submit" disabled={loading} className="shrink-0 rounded-lg px-5">
+          <Save className="size-4" />
+          {loading ? "Saving…" : isNew ? "Create tenant" : "Save changes"}
+        </Button>
+      </div>
     </form>
+  )
+}
+
+function SectionTitle({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: ComponentType<{ className?: string }>
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+        <Icon className="size-4" />
+      </div>
+      <div>
+        <h2 className="text-sm font-bold text-foreground">{title}</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  )
+}
+
+function FeatureToggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string
+  description: string
+  checked: boolean
+  onChange: () => void
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-4 rounded-lg border border-border bg-white p-4 transition-colors hover:border-primary/30 hover:bg-secondary/30">
+      <div className="flex-1">
+        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          {checked && <ShieldCheck className="size-3.5 text-primary" />}
+          {label}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onChange}
+        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+          checked ? "bg-primary" : "bg-muted-foreground/30"
+        }`}
+      >
+        <span className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-5" : "translate-x-0"
+        }`} />
+      </button>
+    </label>
   )
 }

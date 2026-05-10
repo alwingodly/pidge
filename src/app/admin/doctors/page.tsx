@@ -17,6 +17,11 @@ export default async function DoctorsPage() {
   if (!session) return null
   const { tenantId, branchId } = getScopeFromSession(session)
 
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { branchModeEnabled: true },
+  })
+
   const [doctors, branches, services] = await Promise.all([
     prisma.doctor.findMany({
       where:   { tenantId, branchId: branchId ?? undefined },
@@ -26,7 +31,9 @@ export default async function DoctorsPage() {
         _count: { select: { appointments: true } },
       },
     }),
-    prisma.branch.findMany({ where: { tenantId, isActive: true }, orderBy: { name: "asc" } }),
+    tenant?.branchModeEnabled
+      ? prisma.branch.findMany({ where: { tenantId, isActive: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
     prisma.service.findMany({ where: { tenantId, isActive: true }, orderBy: { name: "asc" } }),
   ])
 

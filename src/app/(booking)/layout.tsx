@@ -1,4 +1,5 @@
 import styles from "./BookingLanding.module.css"
+import Image from "next/image"
 
 export default async function BookingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,9 +9,14 @@ export default async function BookingLayout({ children }: { children: React.Reac
       </main>
 
       <footer className="fixed bottom-3 left-0 z-20 w-full px-4 text-center">
-        <p className={`${styles.footerPill} mx-auto inline-flex rounded-full px-4 py-2 text-[11px] text-muted-foreground`}>
+        <p className={`${styles.footerPill} mx-auto inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] text-muted-foreground`}>
           Powered by{" "}
-          <span className="font-semibold text-foreground">Pikatym</span>
+          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+            <span className="flex size-5 items-center justify-center rounded-full bg-primary">
+              <Image src="/pikatym-white.svg" alt="" width={10} height={15} className="h-3.5 w-auto object-contain" />
+            </span>
+            Pikatym
+          </span>
         </p>
       </footer>
     </div>

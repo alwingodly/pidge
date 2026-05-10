@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
 import { formatDate } from "@/lib/utils"
-import { CalendarDays, CalendarClock, ChevronLeft, ChevronRight, Stethoscope, UserRound } from "lucide-react"
+import { CalendarDays, CalendarClock, ChevronLeft, ChevronRight, Search, Stethoscope, UserRound, X } from "lucide-react"
 import AssignDialog from "./AssignDialog"
 import RescheduleDialog from "./RescheduleDialog"
 import AppointmentDetailSheet from "./AppointmentDetailSheet"
@@ -35,7 +36,17 @@ type Appointment = {
 }
 
 type Doctor  = { id: string; name: string }
-type Filters = { status: string; date: string; doctorId: string; page: string }
+type Service = { id: string; name: string }
+type Branch = { id: string; name: string }
+type Filters = {
+  status: string
+  date: string
+  doctorId: string
+  serviceId: string
+  branchId: string
+  q: string
+  page: string
+}
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING:    "bg-amber-50  text-amber-700  ring-amber-200",
@@ -67,9 +78,11 @@ function apptTimeStr(appt: Appointment): string | null {
   return null
 }
 
-export default function AppointmentTable({ appointments, doctors, filters, total, pageSize, clinicStartTime, clinicEndTime }: {
+export default function AppointmentTable({ appointments, doctors, services, branches, filters, total, pageSize, clinicStartTime, clinicEndTime }: {
   appointments:    Appointment[]
   doctors:         Doctor[]
+  services:        Service[]
+  branches:        Branch[]
   filters:         Filters
   total:           number
   pageSize:        number
@@ -86,8 +99,10 @@ export default function AppointmentTable({ appointments, doctors, filters, total
   const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null)
   const [loadingId,        setLoadingId]        = useState<string | null>(null)
   const [detailId,         setDetailId]         = useState<string | null>(null)
+  const [search,           setSearch]           = useState(filters.q)
 
   useEffect(() => { setRows(appointments) }, [appointments])
+  useEffect(() => { setSearch(filters.q) }, [filters.q])
 
   // Silently re-fetch table data when admin returns to the tab
   useEffect(() => {
@@ -105,7 +120,17 @@ export default function AppointmentTable({ appointments, doctors, filters, total
     // Any filter change resets to page 1 except explicit page changes
     const newPage = key === "page" ? value : "1"
     const params  = new URLSearchParams({ ...filters, [key]: value, page: newPage })
+    for (const [paramKey, paramValue] of Array.from(params.entries())) {
+      if (!paramValue || paramValue === "ALL" || (paramKey === "page" && paramValue === "1")) {
+        params.delete(paramKey)
+      }
+    }
     router.push(`?${params.toString()}`)
+  }
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault()
+    updateFilter("q", search.trim())
   }
 
   async function handleCancel(id: string) {
@@ -140,6 +165,26 @@ export default function AppointmentTable({ appointments, doctors, filters, total
 
       {/* ── Filters ──────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
+        <form onSubmit={submitSearch} className="relative min-w-56 flex-1 sm:max-w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email, ref"
+            className="h-8 rounded-xl border-[#E8D8C5] bg-white pl-8 pr-8 text-xs"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); updateFilter("q", "") }}
+              className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="size-3" />
+            </button>
+          )}
+        </form>
+
         <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
           <SelectTrigger className="h-8 w-36 rounded-xl border-[#E8D8C5] bg-white text-xs">
             <SelectValue placeholder="Status" />
@@ -157,6 +202,7 @@ export default function AppointmentTable({ appointments, doctors, filters, total
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="TODAY">Today</SelectItem>
+            <SelectItem value="TOMORROW">Tomorrow</SelectItem>
             <SelectItem value="WEEK">This week</SelectItem>
             <SelectItem value="ALL">All time</SelectItem>
           </SelectContent>
@@ -173,6 +219,32 @@ export default function AppointmentTable({ appointments, doctors, filters, total
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={filters.serviceId} onValueChange={(v) => updateFilter("serviceId", v)}>
+          <SelectTrigger className="h-8 w-44 rounded-xl border-[#E8D8C5] bg-white text-xs">
+            <SelectValue placeholder="Service" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All services</SelectItem>
+            {services.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {branches.length > 0 && (
+          <Select value={filters.branchId} onValueChange={(v) => updateFilter("branchId", v)}>
+            <SelectTrigger className="h-8 w-40 rounded-xl border-[#E8D8C5] bg-white text-xs">
+              <SelectValue placeholder="Branch" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All branches</SelectItem>
+              {branches.map((b) => (
+                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <span className="ml-auto text-xs text-muted-foreground">
           {total} result{total !== 1 ? "s" : ""}
@@ -452,6 +524,9 @@ export default function AppointmentTable({ appointments, doctors, filters, total
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Cancel this appointment?</DialogTitle>
+            <DialogDescription>
+              Confirm cancellation and notify the patient by email.
+            </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">The patient will be notified by email.</p>
           <DialogFooter>

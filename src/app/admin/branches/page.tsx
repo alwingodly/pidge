@@ -5,6 +5,7 @@ import { getScopeFromSession } from "@/lib/tenant"
 import AddBranchDialog from "@/components/admin/AddBranchDialog"
 import ManageBranchDialog from "@/components/admin/ManageBranchDialog"
 import { CalendarDays, GitBranch, Users } from "lucide-react"
+import { notFound } from "next/navigation"
 
 export default async function BranchesPage() {
   const session = await auth()
@@ -27,9 +28,10 @@ export default async function BranchesPage() {
     }),
     prisma.tenant.findUnique({
       where:  { id: tenantId },
-      select: { slug: true },
+      select: { slug: true, branchModeEnabled: true },
     }),
   ])
+  if (!tenant?.branchModeEnabled) notFound()
 
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pikatym.io"
 

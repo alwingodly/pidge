@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { sendCancellationEmail } from "@/lib/email"
 import { formatDate, formatTime } from "@/lib/utils"
+import { recordAppointmentStatusChange } from "@/lib/audit"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -56,6 +57,13 @@ export async function DELETE(req: NextRequest) {
 
   // Update appointment status; free the slot only if one exists (legacy flow)
   await prisma.appointment.update({ where: { id: appointment.id }, data: { status: "CANCELLED" } })
+  await recordAppointmentStatusChange({
+    tenantId: appointment.tenantId,
+    appointmentId: appointment.id,
+    fromStatus: appointment.status,
+    toStatus: "CANCELLED",
+    note: "Patient cancelled via link",
+  })
 
   if (appointment.slotId) {
     await prisma.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } }).catch(() => null)

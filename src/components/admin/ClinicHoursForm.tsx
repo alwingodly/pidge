@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { AlertTriangle, Check, Clock, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { format } from "date-fns"
 
 type Conflict = {
@@ -108,6 +108,9 @@ export default function ClinicHoursForm({ initialStart, initialEnd }: Props) {
               <DialogTitle className="text-base font-bold">
                 {conflicts.length} appointment{conflicts.length !== 1 ? "s" : ""} conflict with these hours
               </DialogTitle>
+              <DialogDescription className="sr-only">
+                Review approved appointments that fall outside the proposed clinic hours.
+              </DialogDescription>
             </div>
           </DialogHeader>
 

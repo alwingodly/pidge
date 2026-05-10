@@ -33,11 +33,12 @@ export default async function ServicesPage() {
     }),
     prisma.tenant.findUnique({
       where:  { id: tenantId },
-      select: { currencySymbol: true },
+      select: { currencySymbol: true, branchModeEnabled: true },
     }),
   ])
 
   const symbol     = tenant?.currencySymbol ?? "£"
+  const visibleBranches = tenant?.branchModeEnabled ? branches : []
   const activeCount = services.filter(s => s.isActive).length
 
   return (
@@ -152,7 +153,7 @@ export default async function ServicesPage() {
 
                   <EditServiceDialog
                     service={service}
-                    branches={branches}
+                    branches={visibleBranches}
                     isTenantAdmin={isTenantAdmin}
                     myBranchId={branchId}
                     currencySymbol={symbol}

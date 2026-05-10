@@ -12,17 +12,36 @@ export async function GET(req: NextRequest) {
   const doctorId  = searchParams.get("doctorId")
   const serviceId = searchParams.get("serviceId")
   const date      = searchParams.get("date")
+  const filterBranchId = searchParams.get("branchId")
+  const availableOnly = searchParams.get("available") === "true"
 
   if (!doctorId || !date) {
     return Response.json({ error: "doctorId and date are required" }, { status: 400 })
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return Response.json({ error: "date must be YYYY-MM-DD" }, { status: 400 })
+  }
+  const parsedDate = new Date(date)
+  if (isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
+    return Response.json({ error: "Invalid date." }, { status: 400 })
+  }
+
+  const effectiveBranchId = branchId ?? filterBranchId ?? undefined
+  if (filterBranchId && !branchId) {
+    const branch = await prisma.branch.findUnique({
+      where: { id: filterBranchId, tenantId, isActive: true },
+      select: { id: true },
+    })
+    if (!branch) return Response.json({ error: "Invalid branch." }, { status: 400 })
   }
 
   const slots = await prisma.slot.findMany({
     where: {
       tenantId,
-      branchId:  branchId ?? undefined,
+      branchId:  effectiveBranchId,
       doctorId,
-      date:      new Date(date),
+      date:      parsedDate,
+      ...(availableOnly ? { isBooked: false } : {}),
       // When serviceId provided, show only slots for that service (or legacy slots with no service)
       ...(serviceId ? { OR: [{ serviceId }, { serviceId: null }] } : {}),
     },

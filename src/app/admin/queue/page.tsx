@@ -3,11 +3,17 @@ import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import { decryptField } from "@/lib/encryption"
 import WalkInQueue from "@/components/admin/WalkInQueue"
+import { notFound } from "next/navigation"
 
 export default async function QueuePage() {
   const session = await auth()
   if (!session) return null
   const { tenantId, branchId } = getScopeFromSession(session)
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { walkInEnabled: true },
+  })
+  if (!tenant?.walkInEnabled) notFound()
 
   const [queue, doctors] = await Promise.all([
     prisma.appointment.findMany({

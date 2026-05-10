@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db"
 import { getTenantFromHeaders } from "@/lib/tenant"
-import Image from "next/image"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import {
@@ -63,8 +62,10 @@ export default async function BookingHomePage() {
                 <span className="relative inline-flex size-2 rounded-full bg-primary" />
               </span>
               {logoUrl ? (
-                <Image src={logoUrl} alt={tenantName || "Clinic"} width={16} height={16}
-                  className="size-4 rounded object-contain" />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoUrl} alt={tenantName || "Clinic"} className="size-4 rounded object-contain" />
+                </>
               ) : (
                 <span className="flex size-4 shrink-0 items-center justify-center rounded bg-primary text-[9px] font-black text-primary-foreground shadow-sm">
                   {(tenantName || "P")[0]}

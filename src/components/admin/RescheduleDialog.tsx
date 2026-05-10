@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { DatePickerButton } from "@/components/ui/date-picker"
@@ -11,6 +11,7 @@ import { AlertCircle, CalendarClock, Check, Clock, Loader2 } from "lucide-react"
 type Doctor     = { id: string; name: string; speciality: string }
 type WorkingH   = { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }
 type BookedSlot = { time: string; durationMins: number }
+type AvailableSlot = { id: string; startTime: string; endTime: string; durationMins: number }
 
 type Props = {
   appointmentId:       string
@@ -69,8 +70,10 @@ export default function RescheduleDialog({
   const [doctorId,       setDoctorId]       = useState(currentDoctorId ?? "")
   const [date,           setDate]           = useState<Date | undefined>(currentDate ?? undefined)
   const [time,           setTime]           = useState("")
+  const [slotId,         setSlotId]         = useState("")
   const [workingHours,   setWorkingHours]   = useState<WorkingH[]>([])
   const [bookedSlots,    setBookedSlots]    = useState<BookedSlot[]>([])
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([])
   const [loadingDoctors, setLoadingDoctors] = useState(true)
   const [loadingBooked,  setLoadingBooked]  = useState(false)
   const [submitting,     setSubmitting]     = useState(false)
@@ -82,6 +85,7 @@ export default function RescheduleDialog({
     setDoctorId(currentDoctorId ?? "")
     setDate(currentDate ?? undefined)
     setTime("")
+    setSlotId("")
     setError(null)
   }, [open, currentDoctorId, currentDate])
 
@@ -92,8 +96,9 @@ export default function RescheduleDialog({
     const qs = new URLSearchParams({ serviceId })
     if (branchId) qs.set("branchId", branchId)
     fetch(`/api/doctors?${qs}`)
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : { data: [] })
       .then((d) => setDoctors(d.data ?? []))
+      .catch(() => setDoctors([]))
       .finally(() => setLoadingDoctors(false))
   }, [open, serviceId, branchId])
 
@@ -101,8 +106,9 @@ export default function RescheduleDialog({
   useEffect(() => {
     if (!doctorId) { setWorkingHours([]); return }
     fetch(`/api/working-hours?doctorId=${doctorId}`)
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : { data: [] })
       .then((d) => setWorkingHours(d.data ?? []))
+      .catch(() => setWorkingHours([]))
   }, [doctorId])
 
   // Fetch booked slots for the selected doctor+date (exclude this appointment's current slot)
@@ -110,7 +116,7 @@ export default function RescheduleDialog({
     if (!doctorId || !date) { setBookedSlots([]); return }
     setLoadingBooked(true)
     fetch(`/api/appointments?doctorId=${doctorId}&date=${localDateStr(date)}`)
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : { data: [] })
       .then((d) => {
         const slots: BookedSlot[] = (d.data ?? [])
           .filter((a: { id: string; assignedTime?: string | null; status: string; service: { durationMins: number } }) =>
@@ -124,8 +130,29 @@ export default function RescheduleDialog({
           }))
         setBookedSlots(slots)
       })
+      .catch(() => setBookedSlots([]))
       .finally(() => setLoadingBooked(false))
   }, [doctorId, date, appointmentId])
+
+  useEffect(() => {
+    setAvailableSlots([])
+    setSlotId("")
+    setTime("")
+    if (!doctorId || !date) return
+    setLoadingBooked(true)
+    const qs = new URLSearchParams({
+      doctorId,
+      serviceId,
+      date: localDateStr(date),
+      available: "true",
+    })
+    if (branchId) qs.set("branchId", branchId)
+    fetch(`/api/slots/by-date?${qs}`)
+      .then((r) => r.ok ? r.json() : { data: [] })
+      .then((d) => setAvailableSlots(d.data ?? []))
+      .catch(() => setAvailableSlots([]))
+      .finally(() => setLoadingBooked(false))
+  }, [branchId, date, doctorId, serviceId])
 
   const suggestedTimes: string[] = (() => {
     if (!date || !doctorId) return []
@@ -153,6 +180,7 @@ export default function RescheduleDialog({
         body: JSON.stringify({
           status:       "APPROVED",
           doctorId,
+          ...(slotId ? { slotId } : {}),
           assignedDate: localDateStr(date),
           assignedTime: time,
           reschedule:   true,
@@ -160,8 +188,8 @@ export default function RescheduleDialog({
           previousTime: currentTime ?? "—",
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? "Something went wrong."); return }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) { setError(data?.error ?? "Something went wrong."); return }
       onRescheduled(selectedDoctor?.name ?? doctorId, format(date, "d MMM yyyy"), time)
       onClose()
     } finally {
@@ -178,6 +206,9 @@ export default function RescheduleDialog({
               <CalendarClock className="size-4" />
             </div>
             <DialogTitle className="text-base font-bold">Reschedule appointment</DialogTitle>
+            <DialogDescription className="sr-only">
+              Choose a new clinician, date, and time for this appointment.
+            </DialogDescription>
           </div>
           <p className="text-sm text-muted-foreground">
             Service: <span className="font-semibold text-foreground">{serviceName}</span>
@@ -203,7 +234,7 @@ export default function RescheduleDialog({
                   <button
                     key={d.id}
                     type="button"
-                    onClick={() => { setDoctorId(d.id); setTime("") }}
+                    onClick={() => { setDoctorId(d.id); setTime(""); setSlotId("") }}
                     className="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all"
                     style={{
                       borderColor: doctorId === d.id ? C.primary : C.border,
@@ -229,7 +260,7 @@ export default function RescheduleDialog({
             <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">New date</Label>
             <DatePickerButton
               value={date}
-              onChange={(d) => { setDate(d); setTime("") }}
+              onChange={(d) => { setDate(d); setTime(""); setSlotId("") }}
               placeholder="Pick a date"
             />
           </div>
@@ -252,17 +283,43 @@ export default function RescheduleDialog({
               </div>
             </div>
 
-            {suggestedTimes.length > 0 ? (
+            {availableSlots.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {availableSlots.map((slot) => {
+                  const taken = overlaps(slot.startTime, serviceDurationMins, bookedSlots)
+                  const selected = slotId === slot.id
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      disabled={taken}
+                      onClick={() => { setSlotId(slot.id); setTime(slot.startTime) }}
+                      title={taken ? "Already booked" : undefined}
+                      className="relative rounded-lg border px-3 py-1.5 text-sm font-semibold transition-all disabled:cursor-not-allowed"
+                      style={
+                        taken
+                          ? { background: "#F5F5F5", color: "#BDBDBD", borderColor: "#E0E0E0" }
+                          : selected
+                          ? { background: C.primary, color: "#fff", borderColor: C.primary }
+                          : { background: "#fff", color: "#444", borderColor: C.border }
+                      }
+                    >
+                      {slot.startTime}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : suggestedTimes.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {suggestedTimes.map((t) => {
-                  const taken    = overlaps(t, serviceDurationMins, bookedSlots)
-                  const selected = time === t
+                  const taken = overlaps(t, serviceDurationMins, bookedSlots)
+                  const selected = time === t && !slotId
                   return (
                     <button
                       key={t}
                       type="button"
                       disabled={taken}
-                      onClick={() => setTime(t)}
+                      onClick={() => { setSlotId(""); setTime(t) }}
                       title={taken ? "Already booked" : undefined}
                       className="relative rounded-lg border px-3 py-1.5 text-sm font-semibold transition-all disabled:cursor-not-allowed"
                       style={
@@ -274,9 +331,6 @@ export default function RescheduleDialog({
                       }
                     >
                       {t}
-                      {taken && (
-                        <span className="ml-1.5 text-[10px] font-medium text-red-400">Taken</span>
-                      )}
                     </button>
                   )
                 })}
@@ -287,7 +341,7 @@ export default function RescheduleDialog({
                 <input
                   type="time"
                   value={time}
-                  onChange={(e) => setTime(e.target.value)}
+                  onChange={(e) => { setSlotId(""); setTime(e.target.value) }}
                   className="flex-1 text-sm font-semibold text-foreground outline-none"
                 />
               </div>

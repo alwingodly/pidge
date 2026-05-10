@@ -5,6 +5,7 @@ import { getTenantFromHeaders } from "@/lib/tenant"
 import { generateBookingRef, generateCancelToken } from "@/lib/booking-ref"
 import { sendWalkInCheckIn, sendAdminWalkInAlert } from "@/lib/email"
 import { encryptField } from "@/lib/encryption"
+import { recordAppointmentStatusChange } from "@/lib/audit"
 import { z } from "zod"
 
 const checkinSchema = z.object({
@@ -23,6 +24,14 @@ export async function POST(req: NextRequest) {
   const { tenantId, branchId } = await getTenantFromHeaders()
   if (!tenantId) return Response.json({ error: "Tenant not found" }, { status: 404 })
 
+  const featureTenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { walkInEnabled: true, branchModeEnabled: true },
+  })
+  if (!featureTenant?.walkInEnabled) {
+    return Response.json({ error: "Walk-in check-in is not enabled." }, { status: 403 })
+  }
+
   const body   = await req.json()
   const parsed = checkinSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
@@ -34,7 +43,7 @@ export async function POST(req: NextRequest) {
   } = parsed.data
 
   let resolvedBranchId = branchId ?? null
-  if (bodyBranchId) {
+  if (featureTenant.branchModeEnabled && bodyBranchId) {
     const branch = await prisma.branch.findUnique({
       where:  { id: bodyBranchId, tenantId, isActive: true },
       select: { id: true },
@@ -107,6 +116,13 @@ export async function POST(req: NextRequest) {
   }
 
   await Promise.all([
+    recordAppointmentStatusChange({
+      tenantId,
+      appointmentId: appointment.id,
+      toStatus: "CHECKED_IN",
+      note: "Walk-in check-in created",
+      metadata: { appointmentType: "WALK_IN" },
+    }),
     sendWalkInCheckIn(apptForEmail),
     ...(tenant.bookingAlertsEnabled ? [sendAdminWalkInAlert(apptForEmail)] : []),
   ])

@@ -31,6 +31,10 @@ model Tenant {
   assignmentEmailEnabled    Boolean  @default(true)  // send patient email when appointment is approved
   rescheduleEmailEnabled    Boolean  @default(true)  // send patient email when appointment is rescheduled
   notificationEmail    String?  // override recipient for booking alerts; defaults to tenant admin email
+  manualBookingEnabled Boolean @default(false)
+  patientHistoryEnabled Boolean @default(true)
+  walkInEnabled Boolean @default(true)
+  branchModeEnabled Boolean @default(false)
   isActive            Boolean  @default(true)
   showDoctorSelection Boolean  @default(false) // super-admin feature flag
   createdAt      DateTime @default(now())
@@ -42,6 +46,8 @@ model Tenant {
   services     Service[]
   slots        Slot[]
   appointments Appointment[]
+  appointmentStatusHistory AppointmentStatusHistory[]
+  auditLogs    AuditLog[]
   workingHours   WorkingHours[]
   serviceConfigs ServiceBranchConfig[]
 }
@@ -206,6 +212,48 @@ model Appointment {
   slot    Slot?    @relation(fields: [slotId],    references: [id])
   service Service  @relation(fields: [serviceId], references: [id])
   doctor  Doctor?  @relation(fields: [doctorId],  references: [id])
+  statusHistory AppointmentStatusHistory[]
+  auditLogs     AuditLog[]
+}
+
+// ── AppointmentStatusHistory — lightweight lifecycle timeline ────────────────
+model AppointmentStatusHistory {
+  id            String   @id @default(uuid())
+  tenantId      String
+  appointmentId String
+  fromStatus    String?
+  toStatus      String
+  actorId       String?
+  actorName     String?
+  actorRole     String?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, appointmentId, createdAt])
+}
+
+// ── AuditLog — internal admin/system event trail ─────────────────────────────
+model AuditLog {
+  id            String   @id @default(uuid())
+  tenantId      String
+  appointmentId String?
+  actorId       String?
+  actorName     String?
+  actorRole     String?
+  action        String
+  entityType    String
+  entityId      String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([appointmentId, createdAt])
 }
 
 // ── BookingOTP — short-lived email verification codes for patient booking ─────

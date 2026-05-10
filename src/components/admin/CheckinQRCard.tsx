@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Check, Copy, Download, QrCode } from "lucide-react"
 
@@ -48,6 +48,9 @@ export default function CheckinQRCard({ url, qrDataUrl, branchName }: Props) {
             <DialogTitle className="text-base font-bold">
               Walk-in QR code{branchName ? ` — ${branchName}` : ""}
             </DialogTitle>
+            <DialogDescription>
+              Scan or share this QR code for walk-in patient check-in.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col items-center gap-5 py-2">

@@ -43,6 +43,28 @@ type Appointment = {
   service: { name: string; durationMins: number }
   doctor?: { name: string; speciality: string } | null
   branch?: { name: string } | null
+  statusHistory?: {
+    id: string
+    fromStatus?: string | null
+    toStatus: string
+    actorName?: string | null
+    actorRole?: string | null
+    note?: string | null
+    createdAt: string
+  }[]
+  patientHistoryEnabled?: boolean
+  patientHistory?: {
+    id: string
+    bookingRef: string
+    status: string
+    appointmentType?: string | null
+    preferredDate?: string | null
+    assignedDate?: string | null
+    assignedTime?: string | null
+    createdAt: string
+    service: { name: string }
+    doctor?: { name: string } | null
+  }[]
 }
 
 type Props = {
@@ -275,6 +297,57 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
                   {appt.attachmentName && (
                     <Row icon={FileText} label="Attachment" value={appt.attachmentName} />
                   )}
+                </Section>
+              )}
+
+              {appt.patientHistoryEnabled && appt.patientHistory && appt.patientHistory.length > 0 && (
+                <Section title="Patient history">
+                  {appt.patientHistory.map((item) => {
+                    const itemDate = item.assignedDate ?? item.preferredDate ?? item.createdAt
+                    return (
+                      <div key={item.id} className="px-4 py-2.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-semibold text-foreground">{item.service.name}</span>
+                          <StatusBadge status={item.status} />
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          <span className="font-mono">{item.bookingRef}</span>
+                          <span className="mx-1.5 text-[#D8CFC5]">·</span>
+                          {formatDate(new Date(itemDate))}
+                          {item.assignedTime && <span className="ml-1 font-medium text-foreground">{item.assignedTime}</span>}
+                          {item.doctor?.name && (
+                            <>
+                              <span className="mx-1.5 text-[#D8CFC5]">·</span>
+                              {item.doctor.name}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </Section>
+              )}
+
+              {appt.statusHistory && appt.statusHistory.length > 0 && (
+                <Section title="Status history">
+                  {appt.statusHistory.map((item) => (
+                    <div key={item.id} className="px-4 py-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">
+                          {item.fromStatus ? `${item.fromStatus.replace("_", " ")} -> ` : ""}
+                          {item.toStatus.replace("_", " ")}
+                        </p>
+                        <span className="text-[11px] text-muted-foreground">{formatDate(new Date(item.createdAt))}</span>
+                      </div>
+                      {(item.actorName || item.note) && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.actorName ?? "System"}
+                          {item.actorRole && ` · ${item.actorRole.replace("_", " ")}`}
+                          {item.note && ` · ${item.note}`}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </Section>
               )}
 

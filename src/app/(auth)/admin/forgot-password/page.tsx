@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Mail } from "lucide-react"
@@ -37,7 +38,9 @@ export default function ForgotPasswordPage() {
       {/* Brand panel */}
       <div className="hidden w-80 flex-col justify-between p-10 lg:flex" style={{ background: "#BF4646" }}>
         <div>
-          <div className="flex size-10 items-center justify-center rounded-xl bg-white/20 font-black text-lg text-white">P</div>
+          <div className="flex size-10 items-center justify-center rounded-xl bg-white/20">
+            <Image src="/pikatym-white.svg" alt="Pikatym" width={20} height={30} className="h-7 w-auto object-contain" priority />
+          </div>
           <h1 className="mt-8 text-3xl font-bold leading-tight text-white">Reset your<br />password.</h1>
           <p className="mt-3 text-sm text-white/70">
             We&apos;ll send a secure link to your email address.
@@ -52,7 +55,9 @@ export default function ForgotPasswordPage() {
 
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <div className="flex size-8 items-center justify-center rounded-lg font-black text-sm text-white" style={{ background: "#BF4646" }}>P</div>
+            <div className="flex size-8 items-center justify-center rounded-lg" style={{ background: "#BF4646" }}>
+              <Image src="/pikatym-white.svg" alt="Pikatym" width={16} height={24} className="h-6 w-auto object-contain" />
+            </div>
             <span className="font-bold text-foreground">Pikatym Admin</span>
           </div>
 

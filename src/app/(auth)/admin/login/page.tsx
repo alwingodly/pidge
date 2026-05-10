@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { signIn, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
@@ -40,10 +41,10 @@ export default function LoginPage() {
       >
         <div>
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg"
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
             style={{ background: "var(--login-badge-bg)", color: "var(--login-panel-fg)" }}
           >
-            P
+            <Image src="/pikatym-white.svg" alt="Pikatym" width={20} height={30} className="h-7 w-auto object-contain" priority />
           </div>
           <h1 className="font-bold text-3xl mt-8 leading-tight" style={{ color: "var(--login-panel-fg)" }}>
             Welcome<br />back.
@@ -62,10 +63,10 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
               style={{ background: "var(--login-panel-bg)", color: "var(--login-btn-fg)" }}
             >
-              P
+              <Image src="/pikatym-white.svg" alt="Pikatym" width={16} height={24} className="h-6 w-auto object-contain" />
             </div>
             <span className="font-bold text-foreground">Pikatym Admin</span>
           </div>
