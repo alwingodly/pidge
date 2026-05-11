@@ -232,7 +232,6 @@ export default function TodaySchedule({
       {detailId && (
         <AppointmentDetailSheet
           appointmentId={detailId}
-          open={!!detailId}
           onClose={() => { setDetailId(null); router.refresh() }}
         />
       )}

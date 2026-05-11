@@ -11,6 +11,7 @@ import {
   FileText, Check, X, UserX, Loader2, Mail, Phone, Hash,
   Building2,
 } from "lucide-react"
+import IosConfirmDialog from "@/components/admin/IosConfirmDialog"
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<string, { ring: string; bg: string; text: string }> = {
@@ -116,10 +117,11 @@ function Row({
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AppointmentDetailSheet({ appointmentId, onClose, onStatusChange }: Props) {
   const router = useRouter()
-  const [appt,    setAppt]    = useState<Appointment | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [acting,  setActing]  = useState<Status | null>(null)
-  const [error,   setError]   = useState<string | null>(null)
+  const [appt,          setAppt]          = useState<Appointment | null>(null)
+  const [loading,       setLoading]       = useState(false)
+  const [acting,        setActing]        = useState<Status | null>(null)
+  const [error,         setError]         = useState<string | null>(null)
+  const [confirmStatus, setConfirmStatus] = useState<Status | null>(null)
 
   function fetchAppt(id: string, showSpinner = true) {
     if (showSpinner) setLoading(true)
@@ -181,6 +183,7 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
   function ageStr() {
     if (!appt?.patientDOB) return null
     const dob = new Date(appt.patientDOB)
+    if (isNaN(dob.getTime())) return "[deleted]"
     const today = new Date()
     let a = today.getFullYear() - dob.getFullYear()
     const m = today.getMonth() - dob.getMonth()
@@ -206,6 +209,7 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
+    <>
     <Sheet open={!!appointmentId} onOpenChange={v => { if (!v) onClose() }}>
       <SheetContent
         side="right"
@@ -373,24 +377,54 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
             )}
             {availableActions.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {availableActions.map(({ status, label, icon: Icon, style }) => (
-                  <button
-                    key={status}
-                    onClick={() => doAction(status)}
-                    disabled={!!acting}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${style}`}
-                  >
-                    {acting === status
-                      ? <Loader2 className="size-3.5 animate-spin" />
-                      : <Icon className="size-3.5" />}
-                    {acting === status ? "Saving…" : label}
-                  </button>
-                ))}
+                {availableActions.map(({ status, label, icon: Icon, style }) => {
+                  const needsConfirm = status === "CANCELLED" || status === "NO_SHOW"
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => needsConfirm ? setConfirmStatus(status) : doAction(status)}
+                      disabled={!!acting}
+                      className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${style}`}
+                    >
+                      {acting === status
+                        ? <Loader2 className="size-3.5 animate-spin" />
+                        : <Icon className="size-3.5" />}
+                      {acting === status ? "Saving…" : label}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
         )}
       </SheetContent>
     </Sheet>
+
+    <IosConfirmDialog
+      open={!!confirmStatus}
+      onOpenChange={v => { if (!v) setConfirmStatus(null) }}
+      icon={
+        <div className={`flex size-14 items-center justify-center rounded-full ${confirmStatus === "CANCELLED" ? "bg-red-50" : "bg-amber-50"}`}>
+          {confirmStatus === "CANCELLED"
+            ? <X className="size-6 text-destructive" />
+            : <UserX className="size-6 text-amber-600" />}
+        </div>
+      }
+      title={confirmStatus === "CANCELLED" ? "Cancel appointment?" : "Mark as no-show?"}
+      description={
+        confirmStatus === "CANCELLED"
+          ? "The patient will be notified by email. This cannot be undone."
+          : "This will mark the patient as not attending."
+      }
+      confirmLabel={confirmStatus === "CANCELLED" ? "Cancel appointment" : "Mark no-show"}
+      loading={!!acting}
+      onConfirm={() => {
+        if (confirmStatus) {
+          doAction(confirmStatus)
+          setConfirmStatus(null)
+        }
+      }}
+    />
+    </>
   )
 }

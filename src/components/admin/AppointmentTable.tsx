@@ -7,14 +7,12 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog"
 import { formatDate } from "@/lib/utils"
 import { CalendarDays, CalendarClock, ChevronLeft, ChevronRight, Search, Stethoscope, UserRound, X } from "lucide-react"
 import AssignDialog from "./AssignDialog"
 import RescheduleDialog from "./RescheduleDialog"
 import AppointmentDetailSheet from "./AppointmentDetailSheet"
+import IosConfirmDialog from "./IosConfirmDialog"
 
 type Appointment = {
   id:                string
@@ -538,31 +536,20 @@ export default function AppointmentTable({ appointments, doctors, services, bran
         }
       />
 
-      {/* ── Cancel confirm dialog ────────────────────────────────────── */}
-      <Dialog open={!!cancelTarget} onOpenChange={() => setCancelTarget(null)}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Cancel this appointment?</DialogTitle>
-            <DialogDescription>
-              Confirm cancellation and notify the patient by email.
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">The patient will be notified by email.</p>
-          <DialogFooter>
-            <Button variant="outline" className="rounded-xl" onClick={() => setCancelTarget(null)}>
-              Keep it
-            </Button>
-            <Button
-              variant="destructive"
-              className="rounded-xl"
-              disabled={!!loadingId}
-              onClick={() => cancelTarget && handleCancel(cancelTarget)}
-            >
-              Yes, cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <IosConfirmDialog
+        open={!!cancelTarget}
+        onOpenChange={v => { if (!v) setCancelTarget(null) }}
+        icon={
+          <div className="flex size-14 items-center justify-center rounded-full bg-red-50">
+            <X className="size-6 text-destructive" />
+          </div>
+        }
+        title="Cancel appointment?"
+        description="The patient will be notified by email. This cannot be undone."
+        confirmLabel="Cancel appointment"
+        loading={!!loadingId}
+        onConfirm={() => { if (cancelTarget) handleCancel(cancelTarget) }}
+      />
     </div>
   )
 }

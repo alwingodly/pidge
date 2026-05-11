@@ -178,7 +178,6 @@ export default function RequestsQueue({
           preferredDate={assignTarget.preferredDate ?? null}
           initialDoctorId={assignTarget.doctor?.id ?? null}
           branchId={assignTarget.branchId ?? null}
-          doctors={doctors}
           open={!!assignTarget}
           onClose={() => setAssignTarget(null)}
           onAssigned={(doctorName, _date, time) => {
@@ -196,7 +195,6 @@ export default function RequestsQueue({
       {detailId && (
         <AppointmentDetailSheet
           appointmentId={detailId}
-          open={!!detailId}
           onClose={() => { setDetailId(null); router.refresh() }}
         />
       )}

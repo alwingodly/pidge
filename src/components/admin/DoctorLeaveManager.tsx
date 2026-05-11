@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, CalendarOff, Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import IosConfirmDialog from "@/components/admin/IosConfirmDialog"
 
 type Leave = {
   id:        string
@@ -55,6 +56,7 @@ export default function DoctorLeaveManager({
   const [reason,     setReason]     = useState("")
   const [saving,     setSaving]     = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmId,  setConfirmId]  = useState<string | null>(null)
   const [error,      setError]      = useState<string | null>(null)
   const [affected,   setAffected]   = useState<number | null>(null)
 
@@ -234,7 +236,7 @@ export default function DoctorLeaveManager({
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Upcoming</p>
           <div className="overflow-hidden rounded-xl border border-border divide-y divide-border">
             {upcoming.map(l => (
-              <LeaveRow key={l.id} leave={l} onDelete={handleDelete} deletingId={deletingId} />
+              <LeaveRow key={l.id} leave={l} onDelete={setConfirmId} deletingId={deletingId} />
             ))}
           </div>
         </div>
@@ -249,11 +251,26 @@ export default function DoctorLeaveManager({
           </summary>
           <div className="mt-2 overflow-hidden rounded-xl border border-border divide-y divide-border opacity-50">
             {past.map(l => (
-              <LeaveRow key={l.id} leave={l} onDelete={handleDelete} deletingId={deletingId} />
+              <LeaveRow key={l.id} leave={l} onDelete={setConfirmId} deletingId={deletingId} />
             ))}
           </div>
         </details>
       )}
+
+      <IosConfirmDialog
+        open={!!confirmId}
+        onOpenChange={v => { if (!v) setConfirmId(null) }}
+        icon={
+          <div className="flex size-14 items-center justify-center rounded-full bg-red-50">
+            <Trash2 className="size-6 text-destructive" />
+          </div>
+        }
+        title="Delete leave record?"
+        description="This leave period will be removed and the dates will become available for booking again."
+        confirmLabel="Delete"
+        loading={!!deletingId}
+        onConfirm={() => { if (confirmId) { handleDelete(confirmId); setConfirmId(null) } }}
+      />
 
     </div>
   )

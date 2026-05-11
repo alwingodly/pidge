@@ -53,6 +53,7 @@ export default async function DoctorDetailPage({ params }: { params: Promise<{ i
             id:        l.id,
             startDate: l.startDate.toISOString().slice(0, 10),
             endDate:   l.endDate.toISOString().slice(0, 10),
+            period:    l.period ?? "FULL",
             reason:    l.reason ?? null,
           }))}
         />
