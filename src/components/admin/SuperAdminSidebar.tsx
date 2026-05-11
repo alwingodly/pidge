@@ -8,9 +8,8 @@ import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Building2, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogDescription, DialogTitle,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 
 const NAV = [
   { href: "/superadmin",         label: "Dashboard", icon: LayoutDashboard },
@@ -120,27 +119,38 @@ export default function SuperAdminSidebar() {
     </aside>
 
     <Dialog open={confirmSignOut} onOpenChange={setConfirmSignOut}>
-      <DialogContent className="max-w-sm rounded-2xl">
-        <DialogHeader>
-          <DialogTitle>Sign out?</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-70 gap-0 overflow-hidden rounded-2xl p-0 shadow-2xl">
+        {/* Icon + text */}
+        <div className="flex flex-col items-center gap-1.5 px-6 pb-4 pt-6 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <LogOut className="size-6 text-foreground" />
+          </div>
+          <DialogTitle className="mt-3 text-base font-semibold text-foreground">
+            Sign out?
+          </DialogTitle>
+          <DialogDescription className="sr-only">
             Confirm whether you want to sign out of the super admin area.
           </DialogDescription>
-        </DialogHeader>
-        <p className="text-sm text-muted-foreground">You will be returned to the login page.</p>
-        <DialogFooter>
-          <Button variant="outline" className="rounded-xl" onClick={() => setConfirmSignOut(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            className="rounded-xl"
+          <p className="text-sm text-muted-foreground">
+            You&apos;ll be returned to the login page.
+          </p>
+        </div>
+
+        {/* iOS-style stacked buttons */}
+        <div className="border-t border-border">
+          <button
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            className="flex w-full items-center justify-center border-b border-border py-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-muted"
           >
-            <LogOut className="size-4" />
             Sign out
-          </Button>
-        </DialogFooter>
+          </button>
+          <button
+            onClick={() => setConfirmSignOut(false)}
+            className="flex w-full items-center justify-center py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Cancel
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
     </>
