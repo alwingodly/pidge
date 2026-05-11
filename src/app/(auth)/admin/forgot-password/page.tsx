@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
             We&apos;ll send a secure link to your email address.
           </p>
         </div>
-        <p className="text-xs text-white/40">Pikatym · OutRift Technologies</p>
+        <p className="text-xs text-white/40">Pikatym · outriftmedia</p>
       </div>
 
       {/* Form panel */}

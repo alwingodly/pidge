@@ -59,7 +59,7 @@ function ResetPasswordForm() {
           <h1 className="mt-8 text-3xl font-bold leading-tight text-white">Choose a new<br />password.</h1>
           <p className="mt-3 text-sm text-white/70">Make it strong and unique.</p>
         </div>
-        <p className="text-xs text-white/40">Pikatym · OutRift Technologies</p>
+        <p className="text-xs text-white/40">Pikatym · outriftmedia</p>
       </div>
 
       {/* Form panel */}

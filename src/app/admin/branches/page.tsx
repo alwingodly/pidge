@@ -6,6 +6,7 @@ import AddBranchDialog from "@/components/admin/AddBranchDialog"
 import ManageBranchDialog from "@/components/admin/ManageBranchDialog"
 import { CalendarDays, GitBranch, Users } from "lucide-react"
 import { notFound } from "next/navigation"
+import { tenantUrl } from "@/lib/app-url"
 
 export default async function BranchesPage() {
   const session = await auth()
@@ -33,11 +34,9 @@ export default async function BranchesPage() {
   ])
   if (!tenant?.branchModeEnabled) notFound()
 
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pikatym.io"
-
   const branchesWithQR = await Promise.all(
     branches.map(async (b) => {
-      const checkinUrl = `https://${tenant!.slug}.${appDomain}/checkin?branch=${b.slug}`
+      const checkinUrl = tenantUrl(tenant.slug, "/checkin", { branch: b.slug })
       const qrDataUrl  = await QRCode.toDataURL(checkinUrl, {
         width: 200, margin: 2, color: { dark: "#1C1007", light: "#FFFFFF" },
       })

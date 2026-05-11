@@ -3,18 +3,9 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 import Sidebar from "@/components/admin/Sidebar"
+import { tenantUrl } from "@/lib/app-url"
 
 const ALLOWED_ROLES = ["TENANT_ADMIN", "BRANCH_ADMIN", "SUPER_ADMIN"]
-
-function appBaseUrl() {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://pikatym.com"
-}
-
-function tenantUrl(slug: string) {
-  return `${appBaseUrl()}?__tenant=${encodeURIComponent(slug)}`
-}
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()

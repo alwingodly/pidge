@@ -7,6 +7,7 @@ import Link from "next/link"
 import { MapPin, Phone, Clock, Users } from "lucide-react"
 import BranchAdminManager from "@/components/admin/BranchAdminManager"
 import CheckinQRCard from "@/components/admin/CheckinQRCard"
+import { tenantUrl } from "@/lib/app-url"
 
 export default async function BranchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,8 +37,7 @@ export default async function BranchDetailPage({ params }: { params: Promise<{ i
   if (!tenant?.branchModeEnabled) notFound()
   if (!branch) notFound()
 
-  const appDomain  = process.env.NEXT_PUBLIC_APP_DOMAIN ?? "pikatym.io"
-  const checkinUrl = `https://${tenant!.slug}.${appDomain}/checkin?branch=${branch.slug}`
+  const checkinUrl = tenantUrl(tenant.slug, "/checkin", { branch: branch.slug })
   const qrDataUrl  = await QRCode.toDataURL(checkinUrl, {
     width:  220,
     margin: 2,

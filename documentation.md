@@ -1,5 +1,5 @@
 # Pikatym — Clinic Booking Platform
-### Built by OutRift Technologies
+### Built by outriftmedia
 
 > This documentation is written for Claude Code (VS Code).
 > Read the entire file before writing any code.
@@ -38,7 +38,7 @@
 - **You (super admin)** manage all tenants from a separate dashboard
 
 **Product name:** Pikatym
-**Company name:** OutRift Technologies
+**Company name:** outriftmedia
 **Domain:** pikatym.io
 
 ---
@@ -1702,5 +1702,5 @@ npm run dev
 
 ---
 
-*Pikatym — by OutRift Technologies*
+*Pikatym — by outriftmedia*
 *Build Phase 1 first. Ship it. Then listen to your clients.*

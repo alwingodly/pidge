@@ -377,7 +377,7 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
           <a href="${resetUrl}" style="color:#BF4646;word-break:break-all">${resetUrl}</a>
         </p>
       </div>
-      <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">Pikatym · OutRift Technologies</p>
+      <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">Pikatym · outriftmedia</p>
     </div>`
   )
 }
@@ -422,6 +422,6 @@ export async function sendWelcomeEmail(name: string, email: string, password: st
        row("Temp password", password),
      )}
      <p style="font-family:sans-serif;color:#9A7A5A;font-size:13px">Please change your password after logging in.</p>
-     <p style="font-family:sans-serif;color:#1C1007">— OutRift Technologies / Pikatym</p>`
+     <p style="font-family:sans-serif;color:#1C1007">— outriftmedia / Pikatym</p>`
   )
 }

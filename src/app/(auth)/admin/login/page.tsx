@@ -53,7 +53,7 @@ export default function LoginPage() {
             Manage your clinic, doctors, and appointments from one place.
           </p>
         </div>
-        <p className="text-xs" style={{ color: "var(--login-panel-faint)" }}>Pikatym · OutRift Technologies</p>
+        <p className="text-xs" style={{ color: "var(--login-panel-faint)" }}>Pikatym · outriftmedia</p>
       </div>
 
       {/* Right form panel */}
