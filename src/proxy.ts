@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options":    "nosniff",
+  "X-Frame-Options":           "DENY",
+  "X-XSS-Protection":         "1; mode=block",
+  "Referrer-Policy":           "strict-origin-when-cross-origin",
+  "Permissions-Policy":        "camera=(), microphone=(), geolocation=()",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+}
+
+const BOT_PATTERN = /curl|python-requests|scrapy|httpclient|libwww|zgrab|masscan/i
+
+const RATE_LIMITED_PATHS = ["/api/booking-otp", "/api/reschedule"]
+
 // Runs in the Edge runtime — no Node.js modules allowed.
 // Extracts the tenant slug from the subdomain and forwards it as a header.
 // Actual DB lookup happens in server components via getTenantFromHeaders().
@@ -10,6 +23,12 @@ export async function proxy(req: NextRequest) {
 
   if (pathname.startsWith("/_next") || pathname.startsWith("/static")) {
     return NextResponse.next()
+  }
+
+  // Block known bad bots from sensitive endpoints
+  const ua = req.headers.get("user-agent") ?? ""
+  if (BOT_PATTERN.test(ua) && RATE_LIMITED_PATHS.some(p => pathname.startsWith(p))) {
+    return new NextResponse("Forbidden", { status: 403 })
   }
 
   // "riverside.pikatym.com" → "riverside"
@@ -37,7 +56,9 @@ export async function proxy(req: NextRequest) {
   }
 
   if (!slug || slug === hostname) {
-    return NextResponse.next() // root domain — no tenant
+    const res = NextResponse.next()
+    applySecurityHeaders(res)
+    return res
   }
 
   const requestHeaders = new Headers(req.headers)
@@ -50,6 +71,7 @@ export async function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next({ request: { headers: requestHeaders } })
+  applySecurityHeaders(res)
   if (rememberTenant) {
     res.cookies.set("__tenant", slug, {
       path:     "/",
@@ -59,6 +81,12 @@ export async function proxy(req: NextRequest) {
     })
   }
   return res
+}
+
+function applySecurityHeaders(res: NextResponse) {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    res.headers.set(key, value)
+  }
 }
 
 export const config = {

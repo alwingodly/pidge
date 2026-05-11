@@ -8,7 +8,7 @@ export default async function TeamSettingsPage() {
   if (session.user.role !== "TENANT_ADMIN") redirect("/admin")
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
       <div className="flex items-start gap-3 border-b border-[#F3EAE0] px-5 py-4">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
           <Users className="size-4" />

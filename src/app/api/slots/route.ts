@@ -15,31 +15,57 @@ export async function GET(req: NextRequest) {
   if (!tenantId) return Response.json({ error: "Tenant not found" }, { status: 404 })
   if (!date)     return Response.json({ error: "date is required" }, { status: 400 })
 
-  const isAny = !doctorId || doctorId === "any"
+  const parsedDate = new Date(date + "T00:00:00.000Z")
+  const isAny      = !doctorId || doctorId === "any"
+
+  // Find leave records for this date — FULL blocks all slots; MORNING/AFTERNOON block half
+  const leaveRecords = await prisma.doctorLeave.findMany({
+    where: {
+      tenantId,
+      startDate: { lte: parsedDate },
+      endDate:   { gte: parsedDate },
+      ...(isAny ? {} : { doctorId }),
+    },
+    select: { doctorId: true, period: true },
+  })
+
+  const fullLeaveIds      = new Set(leaveRecords.filter(l => l.period === "FULL").map(l => l.doctorId))
+  const morningLeaveIds   = new Set(leaveRecords.filter(l => l.period === "MORNING").map(l => l.doctorId))
+  const afternoonLeaveIds = new Set(leaveRecords.filter(l => l.period === "AFTERNOON").map(l => l.doctorId))
+
+  // If specific doctor is on full-day leave, return nothing immediately
+  if (!isAny && doctorId && fullLeaveIds.has(doctorId)) {
+    return Response.json({ data: [] })
+  }
 
   const slots = await prisma.slot.findMany({
     where: {
       tenantId,
       branchId: branchId ?? undefined,
       isBooked: false,
-      date:     new Date(date),
-      // Specific doctor or "any"
+      date:     parsedDate,
       ...(isAny ? {} : { doctorId }),
-      // When "any" + serviceId: only doctors who offer that service
       ...(isAny && serviceId
         ? { doctor: { doctorServices: { some: { serviceId } } } }
         : {}),
-      // Match slot's own serviceId (new slot model)
-      // Slots without serviceId (legacy) are visible to all
       ...(serviceId
         ? { OR: [{ serviceId }, { serviceId: null }] }
         : {}),
+      ...(fullLeaveIds.size > 0 ? { doctorId: { notIn: [...fullLeaveIds] } } : {}),
     },
     include: { doctor: true },
     orderBy: { startTime: "asc" },
   })
 
-  return Response.json({ data: slots })
+  // Filter half-day leave slots in memory (MORNING = before 12:00, AFTERNOON = 12:00+)
+  const filtered = slots.filter(s => {
+    const hour = parseInt(s.startTime.slice(0, 2), 10)
+    if (morningLeaveIds.has(s.doctorId)   && hour < 12)  return false
+    if (afternoonLeaveIds.has(s.doctorId) && hour >= 12) return false
+    return true
+  })
+
+  return Response.json({ data: filtered })
 }
 
 // ── POST — admin: create slots for a doctor+date+service ─────────────────────
@@ -50,7 +76,7 @@ const createSchema = z.object({
   serviceId:    z.string().uuid().optional(),
   durationMins: z.number().int().positive().optional(),
   date:         z.string().min(1),
-  times:        z.array(z.string().regex(HH_MM, "Each time must be HH:mm")).min(1),
+  times:        z.array(z.string().regex(HH_MM, "Each time must be HH:mm")).min(1).max(96),
 })
 
 export async function POST(req: NextRequest) {

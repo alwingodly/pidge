@@ -104,8 +104,8 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="rounded-xl">Edit</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg rounded-2xl border-[#E8E3DC] p-0">
-        <DialogHeader className="border-b border-[#E8E3DC] px-5 py-4">
+      <DialogContent className="max-w-lg rounded-2xl border-border p-0">
+        <DialogHeader className="border-b border-border px-5 py-4">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
               <Briefcase className="size-4.5" />
@@ -192,7 +192,7 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
                   const cfg = configs[branch.id] ?? { branchId: branch.id, isOffered: true, isAvailable: true }
                   const busy = configSaving?.startsWith(branch.id)
                   return (
-                    <div key={branch.id} className="rounded-xl border border-[#E8E3DC] bg-white px-4 py-3">
+                    <div key={branch.id} className="rounded-xl border border-border bg-white px-4 py-3">
                       <p className="text-sm font-semibold text-foreground">{branch.name}</p>
                       <div className="mt-2 flex flex-wrap gap-4">
 

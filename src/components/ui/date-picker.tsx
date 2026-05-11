@@ -30,7 +30,7 @@ export function DatePickerButton({
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-xl border border-[#E8D8C5] bg-white px-4 py-2.5 text-left text-sm transition-colors hover:border-primary/40 hover:bg-secondary/30",
+            "flex w-full items-center gap-2.5 rounded-xl border border-border bg-white px-4 py-2.5 text-left text-sm transition-colors hover:border-primary/40 hover:bg-secondary/30",
             open && "border-primary/40 ring-2 ring-primary/10",
             className,
           )}
@@ -113,12 +113,12 @@ function MiniCalendar({
           "absolute inset-x-0 top-0 flex items-center justify-between",
         ),
         button_previous: cn(
-          "flex items-center justify-center rounded-lg border border-[#E8D8C5]",
+          "flex items-center justify-center rounded-lg border border-border",
           "text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
           cell,
         ),
         button_next: cn(
-          "flex items-center justify-center rounded-lg border border-[#E8D8C5]",
+          "flex items-center justify-center rounded-lg border border-border",
           "text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
           cell,
         ),

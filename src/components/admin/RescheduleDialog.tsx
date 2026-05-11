@@ -29,7 +29,7 @@ type Props = {
   onRescheduled:       (doctorName: string, date: string, time: string) => void
 }
 
-const C = { primary: "#BF4646", border: "#E8DCCB", cream: "#FFF4EA" }
+const C = { primary: "var(--primary)", border: "var(--border)", cream: "var(--secondary)" }
 
 function toMins(t: string) {
   const [h, m] = t.split(":").map(Number)
@@ -225,7 +225,7 @@ export default function RescheduleDialog({
                 <Loader2 className="size-4 animate-spin" /> Loading…
               </div>
             ) : doctors.length === 0 ? (
-              <p className="rounded-xl border border-[#E8D8C5] px-4 py-3 text-sm text-muted-foreground">
+              <p className="rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground">
                 No clinicians offer this service yet.
               </p>
             ) : (
@@ -336,7 +336,7 @@ export default function RescheduleDialog({
                 })}
               </div>
             ) : doctorId && date ? (
-              <div className="flex items-center gap-2 rounded-xl border border-[#E8D8C5] px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border px-3 py-2">
                 <Clock className="size-4 text-muted-foreground" />
                 <input
                   type="time"

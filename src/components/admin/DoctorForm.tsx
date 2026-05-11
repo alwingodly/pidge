@@ -161,8 +161,8 @@ export default function DoctorForm({
                 onClick={() => { setPractitionerType(t.value); setSpeciality("") }}
                 className="flex flex-col items-start gap-0.5 rounded-xl border p-3 text-left transition-all"
                 style={{
-                  borderColor: active ? "var(--color-primary)" : "#E8D8C5",
-                  background:  active ? "rgba(var(--color-primary-rgb, 191,70,70),0.05)" : "#fff",
+                  borderColor: active ? "var(--primary)" : "var(--border)",
+                  background:  active ? "color-mix(in srgb, var(--primary) 8%, #fff)" : "#fff",
                 }}
               >
                 <div className="flex w-full items-center justify-between">

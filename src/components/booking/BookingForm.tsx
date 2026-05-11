@@ -23,11 +23,16 @@ export type BookingData = {
 }
 
 type Props = {
-  data:     BookingData
-  onChange: (field: keyof BookingData, value: string) => void
-  onSubmit: () => void
-  loading:  boolean
-  error:    string | null
+  data:                   BookingData
+  onChange:               (field: keyof BookingData, value: string) => void
+  onSubmit:               () => void
+  loading:                boolean
+  error:                  string | null
+  gdprEnabled?:           boolean
+  consentGiven?:          boolean
+  reminderOptOut?:        boolean
+  onConsentChange?:       (v: boolean) => void
+  onReminderOptOutChange?:(v: boolean) => void
 }
 
 const GENDER_OPTIONS = [
@@ -41,11 +46,17 @@ const GENDER_OPTIONS = [
   { value: "prefer-not-say",  label: "Prefer not to say" },
 ]
 
-export default function BookingForm({ data, onChange, onSubmit, loading, error }: Props) {
+export default function BookingForm({
+  data, onChange, onSubmit, loading, error,
+  gdprEnabled, consentGiven, reminderOptOut,
+  onConsentChange, onReminderOptOutChange,
+}: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     onSubmit()
   }
+
+  const blockSubmit = gdprEnabled && !consentGiven
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -150,15 +161,56 @@ export default function BookingForm({ data, onChange, onSubmit, loading, error }
         </div>
       </FormSection>
 
+      {/* ── GDPR consent (UK mode only) ───────────────────────────── */}
+      {gdprEnabled && (
+        <div className="space-y-3 rounded-xl border border-border bg-secondary/30 px-4 py-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Data & privacy</p>
+
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={consentGiven ?? false}
+              onChange={e => onConsentChange?.(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+              required
+            />
+            <span className="text-xs text-foreground leading-relaxed">
+              I consent to my personal data (name, contact details, date of birth) being stored and processed by this clinic solely for the purpose of managing my appointment.{" "}
+              <span className="text-muted-foreground">
+                Your data is held securely and will not be shared with third parties without your consent.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={reminderOptOut ?? false}
+              onChange={e => onReminderOptOutChange?.(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary"
+            />
+            <span className="text-xs text-muted-foreground leading-relaxed">
+              I do not want to receive email appointment reminders.
+            </span>
+          </label>
+        </div>
+      )}
+
       {error && (
         <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </p>
       )}
 
-      <Button type="submit" className="h-12 w-full rounded-xl font-semibold" disabled={loading}>
+      <Button type="submit" className="h-12 w-full rounded-xl font-semibold" disabled={loading || blockSubmit}>
         {loading ? "Submitting request…" : "Submit booking request"}
       </Button>
+
+      {blockSubmit && (
+        <p className="text-center text-xs text-muted-foreground">
+          Please accept the data consent above to continue.
+        </p>
+      )}
     </form>
   )
 }

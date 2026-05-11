@@ -80,10 +80,10 @@ export default function DayScheduleView({
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
 
       {/* ── Top bar ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E3DC] px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 items-center justify-center rounded-lg bg-secondary text-primary">
             <CalendarDays className="size-4" />
@@ -110,7 +110,7 @@ export default function DayScheduleView({
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
-              className="h-8 rounded-lg border border-[#E8E3DC] bg-white px-2.5 text-xs font-medium text-foreground outline-none focus:border-primary/50"
+              className="h-8 rounded-lg border border-border bg-white px-2.5 text-xs font-medium text-foreground outline-none focus:border-primary/50"
             >
               <option value="all">All branches</option>
               {branches.map((b) => (
@@ -139,14 +139,14 @@ export default function DayScheduleView({
           <div style={{ minWidth: 56 + filtered.length * 160 }}>
 
             {/* ── Doctor header row (sticky top) ─────────────────────────── */}
-            <div className="sticky top-0 z-20 flex border-b border-[#E8E3DC] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+            <div className="sticky top-0 z-20 flex border-b border-border bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
               {/* corner cell */}
-              <div className="w-14 shrink-0 border-r border-[#F0EBE5]" />
+              <div className="w-14 shrink-0 border-r border-border" />
 
               {filtered.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex min-w-40 flex-1 items-center gap-2 border-r border-[#F0EBE5] px-3 py-2.5 last:border-r-0"
+                  className="flex min-w-40 flex-1 items-center gap-2 border-r border-border px-3 py-2.5 last:border-r-0"
                 >
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-primary">
                     {initials(doc.name)}
@@ -173,7 +173,7 @@ export default function DayScheduleView({
 
               {/* Time labels column (sticky left) */}
               <div
-                className="sticky left-0 z-10 w-14 shrink-0 border-r border-[#F0EBE5] bg-white"
+                className="sticky left-0 z-10 w-14 shrink-0 border-r border-border bg-white"
                 style={{ position: "sticky" }}
               >
                 {HOURS.map(({ h, label, top }) => (
@@ -195,13 +195,13 @@ export default function DayScheduleView({
                 const wEnd   = doc.workingHours ? toMins(doc.workingHours.endTime)   : null
 
                 return (
-                  <div key={doc.id} className="relative min-w-40 flex-1 border-r border-[#F0EBE5] last:border-r-0">
+                  <div key={doc.id} className="relative min-w-40 flex-1 border-r border-border last:border-r-0">
 
                     {/* Hour lines */}
                     {HOURS.map(({ h, top }) => (
                       <div
                         key={h}
-                        className="absolute left-0 right-0 border-t border-[#F0EBE5]"
+                        className="absolute left-0 right-0 border-t border-border"
                         style={{ top }}
                       />
                     ))}

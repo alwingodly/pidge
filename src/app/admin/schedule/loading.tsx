@@ -14,7 +14,7 @@ export default function ScheduleLoading() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         {/* Day header row */}
         <div className="grid grid-cols-7 border-b border-[#F3EAE0]">
           {[...Array(7)].map((_, i) => (

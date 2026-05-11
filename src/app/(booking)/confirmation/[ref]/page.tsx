@@ -61,7 +61,7 @@ export default async function ConfirmationPage({
       service: true,
       doctor:  true,
       branch:  { select: { name: true, address: true, phone: true } },
-      tenant:  { select: { name: true } },
+      tenant:  { select: { name: true, gdprEnabled: true } },
     },
   })
 
@@ -123,7 +123,7 @@ export default async function ConfirmationPage({
       </div>
 
       {/* ── Ticket card ─────────────────────────────────────────────────── */}
-      <div className="overflow-visible rounded-2xl border border-[#E8D8C5] bg-white shadow-sm">
+      <div className="overflow-visible rounded-2xl border border-border bg-white shadow-sm">
 
         {/* Reference strip */}
         <div className="flex items-center justify-between bg-secondary/40 px-5 py-3.5">
@@ -149,7 +149,7 @@ export default async function ConfirmationPage({
         {/* Tear line */}
         <div className="relative flex items-center px-0">
           <div className="-ml-3 size-6 rounded-full bg-[#F7F3EF]" />
-          <div className="flex-1 border-t border-dashed border-[#E8D8C5]" />
+          <div className="flex-1 border-t border-dashed border-border" />
           <div className="-mr-3 size-6 rounded-full bg-[#F7F3EF]" />
         </div>
 
@@ -223,7 +223,7 @@ export default async function ConfirmationPage({
           href={calendarUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[#E8D8C5] bg-white px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary/30"
+          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary/30"
         >
           <CalendarPlus className="size-4 text-primary" />
           Add to Google Calendar
@@ -232,7 +232,7 @@ export default async function ConfirmationPage({
 
       {/* ── What happens next (pending only) ────────────────────────────── */}
       {!isAssigned && (
-        <div className="overflow-hidden rounded-2xl border border-[#E8D8C5] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
           <div className="border-b border-[#F3EAE0] px-5 py-3">
             <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               What happens next
@@ -248,7 +248,7 @@ export default async function ConfirmationPage({
                 <div className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                   done
                     ? "bg-emerald-100 text-emerald-700"
-                    : "border border-[#E8D8C5] bg-white text-muted-foreground"
+                    : "border border-border bg-white text-muted-foreground"
                 }`}>
                   {done ? <CheckCircle2 className="size-3.5" strokeWidth={2.5} /> : n}
                 </div>
@@ -268,11 +268,32 @@ export default async function ConfirmationPage({
           Book another appointment
         </Link>
         <Link
+          href="/my-bookings"
+          className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          View all my appointments
+        </Link>
+        <Link
+          href={`/reschedule?token=${appointment.cancelToken}`}
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Move to a different date
+        </Link>
+        <Link
           href={cancelHref}
           className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
           Cancel this {isAssigned ? "appointment" : "request"}
         </Link>
+
+        {appointment.tenant.gdprEnabled && (
+          <Link
+            href={`/erase?token=${appointment.cancelToken}&email=${encodeURIComponent(appointment.patientEmail)}`}
+            className="text-[11px] text-muted-foreground/60 underline-offset-2 hover:text-muted-foreground hover:underline"
+          >
+            Request deletion of my personal data
+          </Link>
+        )}
       </div>
 
     </div>

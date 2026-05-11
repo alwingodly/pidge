@@ -17,17 +17,20 @@ import RescheduleDialog from "./RescheduleDialog"
 import AppointmentDetailSheet from "./AppointmentDetailSheet"
 
 type Appointment = {
-  id:              string
-  bookingRef:      string
-  patientName:     string
-  patientSurname?: string | null
-  status:          string
-  appointmentType?: string | null
-  serviceId:       string
-  branchId?:       string | null
-  preferredDate?:  Date | null
-  assignedDate?:   Date | null
-  assignedTime?:   string | null
+  id:                string
+  bookingRef:        string
+  patientName:       string
+  patientSurname?:   string | null
+  status:            string
+  appointmentType?:  string | null
+  serviceId:         string
+  branchId?:         string | null
+  preferredDate?:    Date | null
+  assignedDate?:     Date | null
+  assignedTime?:     string | null
+  recurrenceGroupId?: string | null
+  recurrenceIndex?:   number | null
+  recurrenceTotal?:   number | null
   checkedInAt?:    Date | null
   slot?:           { date: Date; startTime: string } | null
   service:         { name: string; durationMins: number }
@@ -171,7 +174,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, email, ref"
-            className="h-8 rounded-xl border-[#E8D8C5] bg-white pl-8 pr-8 text-xs"
+            className="h-8 rounded-xl border-border bg-white pl-8 pr-8 text-xs"
           />
           {search && (
             <button
@@ -186,7 +189,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
         </form>
 
         <Select value={filters.status} onValueChange={(v) => updateFilter("status", v)}>
-          <SelectTrigger className="h-8 w-36 rounded-xl border-[#E8D8C5] bg-white text-xs">
+          <SelectTrigger className="h-8 w-36 rounded-xl border-border bg-white text-xs">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -197,7 +200,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
         </Select>
 
         <Select value={filters.date} onValueChange={(v) => updateFilter("date", v)}>
-          <SelectTrigger className="h-8 w-30 rounded-xl border-[#E8D8C5] bg-white text-xs">
+          <SelectTrigger className="h-8 w-30 rounded-xl border-border bg-white text-xs">
             <SelectValue placeholder="Date" />
           </SelectTrigger>
           <SelectContent>
@@ -209,7 +212,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
         </Select>
 
         <Select value={filters.doctorId} onValueChange={(v) => updateFilter("doctorId", v)}>
-          <SelectTrigger className="h-8 w-40 rounded-xl border-[#E8D8C5] bg-white text-xs">
+          <SelectTrigger className="h-8 w-40 rounded-xl border-border bg-white text-xs">
             <SelectValue placeholder="Doctor" />
           </SelectTrigger>
           <SelectContent>
@@ -221,7 +224,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
         </Select>
 
         <Select value={filters.serviceId} onValueChange={(v) => updateFilter("serviceId", v)}>
-          <SelectTrigger className="h-8 w-44 rounded-xl border-[#E8D8C5] bg-white text-xs">
+          <SelectTrigger className="h-8 w-44 rounded-xl border-border bg-white text-xs">
             <SelectValue placeholder="Service" />
           </SelectTrigger>
           <SelectContent>
@@ -234,7 +237,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
 
         {branches.length > 0 && (
           <Select value={filters.branchId} onValueChange={(v) => updateFilter("branchId", v)}>
-            <SelectTrigger className="h-8 w-40 rounded-xl border-[#E8D8C5] bg-white text-xs">
+            <SelectTrigger className="h-8 w-40 rounded-xl border-border bg-white text-xs">
               <SelectValue placeholder="Branch" />
             </SelectTrigger>
             <SelectContent>
@@ -252,7 +255,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
       </div>
 
       {/* ── Table ────────────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-lg bg-secondary text-primary">
@@ -275,9 +278,15 @@ export default function AppointmentTable({ appointments, doctors, services, bran
           <>
             <div className="divide-y divide-[#F3EAE0]">
               {rows.map((appt) => {
-                const dateStr  = apptDateStr(appt)
-                const timeStr  = apptTimeStr(appt)
-                const fullName = [appt.patientName, appt.patientSurname].filter(Boolean).join(" ")
+                const dateStr     = apptDateStr(appt)
+                const timeStr     = apptTimeStr(appt)
+                const fullName    = [appt.patientName, appt.patientSurname].filter(Boolean).join(" ")
+                const t           = appt.assignedTime
+                const conflictTag = t && clinicStartTime && clinicEndTime
+                  ? t < clinicStartTime ? `Before ${clinicStartTime}`
+                  : t > clinicEndTime   ? `After ${clinicEndTime}`
+                  : null
+                  : null
 
                 return (
                   <div
@@ -297,6 +306,16 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                         {appt.appointmentType === "WALK_IN" && (
                           <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 ring-1 ring-indigo-200">
                             Walk-in
+                          </span>
+                        )}
+                        {appt.recurrenceGroupId && appt.recurrenceIndex && appt.recurrenceTotal && (
+                          <span className="shrink-0 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-600 ring-1 ring-violet-200">
+                            {appt.recurrenceIndex} of {appt.recurrenceTotal}
+                          </span>
+                        )}
+                        {conflictTag && (
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                            ⚠ {conflictTag}
                           </span>
                         )}
                       </div>
@@ -386,7 +405,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                   {/* First */}
                   <Button
                     size="sm" variant="outline"
-                    className="h-7 w-7 rounded-lg p-0 border-[#E8D8C5]"
+                    className="h-7 w-7 rounded-lg p-0 border-border"
                     disabled={currentPage === 1}
                     onClick={() => goToPage(1)}
                     title="First page"
@@ -397,7 +416,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                   {/* Previous */}
                   <Button
                     size="sm" variant="outline"
-                    className="h-7 w-7 rounded-lg p-0 border-[#E8D8C5]"
+                    className="h-7 w-7 rounded-lg p-0 border-border"
                     disabled={currentPage === 1}
                     onClick={() => goToPage(currentPage - 1)}
                     title="Previous page"
@@ -414,7 +433,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                         key={p}
                         size="sm"
                         variant={currentPage === p ? "default" : "outline"}
-                        className="h-7 min-w-7 rounded-lg px-2 text-xs border-[#E8D8C5]"
+                        className="h-7 min-w-7 rounded-lg px-2 text-xs border-border"
                         onClick={() => goToPage(p)}
                       >
                         {p}
@@ -425,7 +444,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                   {/* Next */}
                   <Button
                     size="sm" variant="outline"
-                    className="h-7 w-7 rounded-lg p-0 border-[#E8D8C5]"
+                    className="h-7 w-7 rounded-lg p-0 border-border"
                     disabled={currentPage === totalPages}
                     onClick={() => goToPage(currentPage + 1)}
                     title="Next page"
@@ -435,7 +454,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                   {/* Last */}
                   <Button
                     size="sm" variant="outline"
-                    className="h-7 w-7 rounded-lg p-0 border-[#E8D8C5]"
+                    className="h-7 w-7 rounded-lg p-0 border-border"
                     disabled={currentPage === totalPages}
                     onClick={() => goToPage(totalPages)}
                     title="Last page"

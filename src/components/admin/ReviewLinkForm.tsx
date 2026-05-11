@@ -38,7 +38,7 @@ export default function ReviewLinkForm({ initialLink }: Props) {
           <Label htmlFor="review-link" className="text-xs font-semibold text-muted-foreground">
             Review URL
           </Label>
-          <div className="flex h-10 items-center gap-2 rounded-xl border border-[#E8E3DC] bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20">
             <Link2 className="size-4 shrink-0 text-muted-foreground" />
             <input
               id="review-link"

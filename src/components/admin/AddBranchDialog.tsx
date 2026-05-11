@@ -24,8 +24,8 @@ export default function AddBranchDialog({ tenantId }: { tenantId: string }) {
           Add Branch
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg rounded-2xl border-[#E8E3DC] p-0">
-        <DialogHeader className="border-b border-[#E8E3DC] px-5 py-4">
+      <DialogContent className="max-w-lg rounded-2xl border-border p-0">
+        <DialogHeader className="border-b border-border px-5 py-4">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
               <GitBranch className="size-4.5" />

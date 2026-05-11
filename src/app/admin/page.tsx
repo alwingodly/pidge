@@ -20,6 +20,7 @@ import {
   type StatusSlice,
   type TrendPoint,
 } from "@/components/admin/AdminCharts"
+import LeavePopoverButton from "@/components/admin/LeavePopoverButton"
 
 export default async function AdminDashboardPage() {
   const session = await auth()
@@ -58,6 +59,7 @@ export default async function AdminDashboardPage() {
     services,
     trendRaw,
     conflictCount,
+    doctorsOnLeaveToday,
   ] = await Promise.all([
     // Today: covers both assignedDate (new flow) and slot.date (legacy)
     prisma.appointment.count({ where: { ...scope, OR: [{ assignedDate: { gte: todayStart, lt: todayEnd } }, { slot: { date: { gte: todayStart, lt: todayEnd } } }] } }),
@@ -137,11 +139,15 @@ export default async function AdminDashboardPage() {
             assignedTime: { not: null },
             OR: [
               { assignedTime: { lt: tenant.clinicStartTime } },
-              { assignedTime: { gte: tenant.clinicEndTime  } },
+              { assignedTime: { gt: tenant.clinicEndTime } },
             ],
           },
         })
       : Promise.resolve(0),
+    prisma.doctorLeave.findMany({
+      where: { tenantId, startDate: { lte: todayEnd }, endDate: { gte: todayStart } },
+      select: { doctor: { select: { id: true, name: true } }, period: true, reason: true },
+    }),
   ])
 
   const completionRate = allAppointments > 0 ? Math.round((completedTotal / allAppointments) * 100) : 0
@@ -208,12 +214,21 @@ export default async function AdminDashboardPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{dateLabel}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Clinic desk</h1>
         </div>
-        <Link
-          href="/admin/appointments"
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          Open appointments <ArrowRight className="size-3.5" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <LeavePopoverButton
+            leaves={doctorsOnLeaveToday.map(l => ({
+              doctor: l.doctor,
+              period: l.period ?? "FULL",
+              reason: l.reason ?? null,
+            }))}
+          />
+          <Link
+            href="/admin/appointments"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            Open appointments <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
       </header>
 
       {conflictCount > 0 && (

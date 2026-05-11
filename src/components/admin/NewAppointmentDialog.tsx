@@ -27,6 +27,7 @@ export default function NewAppointmentDialog({
   doctors,
   branches,
   branchModeEnabled,
+  recurrenceEnabled,
   defaultBranchId,
   clinicStartTime,
   clinicEndTime,
@@ -34,10 +35,11 @@ export default function NewAppointmentDialog({
   services: Service[]
   doctors: Doctor[]
   branches: Branch[]
-  branchModeEnabled: boolean
-  defaultBranchId?: string | null
-  clinicStartTime?: string | null
-  clinicEndTime?: string | null
+  branchModeEnabled:  boolean
+  recurrenceEnabled?: boolean
+  defaultBranchId?:   string | null
+  clinicStartTime?:   string | null
+  clinicEndTime?:     string | null
 }) {
   const [open, setOpen] = useState(false)
 
@@ -49,8 +51,8 @@ export default function NewAppointmentDialog({
           New appointment
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto rounded-2xl border-[#E8E3DC] p-0">
-        <DialogHeader className="border-b border-[#E8E3DC] px-6 py-5">
+      <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto rounded-2xl border-border p-0">
+        <DialogHeader className="border-b border-border px-6 py-5">
           <DialogTitle className="text-lg font-bold text-foreground">New appointment</DialogTitle>
           <DialogDescription>
             Create an appointment from a phone or reception request.
@@ -62,6 +64,7 @@ export default function NewAppointmentDialog({
             doctors={doctors}
             branches={branches}
             branchModeEnabled={branchModeEnabled}
+            recurrenceEnabled={recurrenceEnabled}
             defaultBranchId={defaultBranchId}
             clinicStartTime={clinicStartTime}
             clinicEndTime={clinicEndTime}

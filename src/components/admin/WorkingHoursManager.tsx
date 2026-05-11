@@ -24,7 +24,7 @@ const DEFAULT_SCHEDULE: DaySchedule[] = DAYS.map((_, i) => ({
   isActive:  i >= 1 && i <= 5,
 }))
 
-const C = { primary: "#BF4646", border: "#E8DCCB", cream: "#FFF4EA" }
+const C = { primary: "var(--primary)", border: "var(--border)", cream: "var(--secondary)" }
 
 function initials(name: string) {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
@@ -82,10 +82,10 @@ export default function WorkingHoursManager({ doctors }: { doctors: Doctor[] }) 
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E8E3DC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
 
       {/* Header — doctor combobox lives here */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E3DC] px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div className="min-w-0">
           <p className="text-sm font-bold text-foreground">
             {selectedDoctor ? `${selectedDoctor.name}'s schedule` : "Weekly schedule"}
@@ -105,7 +105,7 @@ export default function WorkingHoursManager({ doctors }: { doctors: Doctor[] }) 
           {/* Combobox trigger */}
           <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch("") }}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 rounded-xl border border-[#E8D8C5] bg-secondary/30 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/60">
+              <button className="flex items-center gap-2 rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/60">
                 {selectedDoctor ? (
                   <>
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-primary text-[10px] font-bold text-white">
@@ -122,7 +122,7 @@ export default function WorkingHoursManager({ doctors }: { doctors: Doctor[] }) 
 
             <PopoverContent align="end" className="w-72 p-0">
               {/* Search input */}
-              <div className="border-b border-[#E8E3DC] px-3 py-2">
+              <div className="border-b border-border px-3 py-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -202,14 +202,14 @@ export default function WorkingHoursManager({ doctors }: { doctors: Doctor[] }) 
                       type="time"
                       value={day.startTime}
                       onChange={(e) => updateDay(day.dayOfWeek, "startTime", e.target.value)}
-                      className="rounded-lg border border-[#E8D8C5] px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
+                      className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
                     />
                     <span className="text-xs text-muted-foreground">to</span>
                     <input
                       type="time"
                       value={day.endTime}
                       onChange={(e) => updateDay(day.dayOfWeek, "endTime", e.target.value)}
-                      className="rounded-lg border border-[#E8D8C5] px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
+                      className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
                     />
                     <span className="text-xs text-muted-foreground">
                       {(() => {
@@ -229,7 +229,7 @@ export default function WorkingHoursManager({ doctors }: { doctors: Doctor[] }) 
             ))}
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#E8E3DC] bg-secondary/20 px-5 py-4">
+          <div className="flex items-center justify-between border-t border-border bg-secondary/20 px-5 py-4">
             <p className="text-xs text-muted-foreground">
               Changes take effect immediately for new appointment assignments.
             </p>

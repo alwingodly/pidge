@@ -5,6 +5,7 @@ import { getScopeFromSession } from "@/lib/tenant"
 import { z } from "zod"
 
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
+const optionalText = (max: number) => z.string().max(max).or(z.literal("")).optional()
 
 const patchSchema = z.object({
   clinicStartTime:     z.string().regex(timeRegex, "Must be HH:MM").optional(),
@@ -16,6 +17,13 @@ const patchSchema = z.object({
   assignmentEmailEnabled: z.boolean().optional(),
   rescheduleEmailEnabled: z.boolean().optional(),
   notificationEmail:      z.string().email("Must be a valid email").or(z.literal("")).optional(),
+  landingHeadline:       optionalText(80),
+  landingSubheadline:    optionalText(220),
+  landingPrimaryCta:     optionalText(32),
+  landingSecondaryCta:   optionalText(32),
+  landingTrustBadges:    optionalText(180),
+  landingBottomHeadline: optionalText(80),
+  landingBottomText:     optionalText(180),
 })
 
 export async function GET() {
@@ -49,13 +57,31 @@ export async function PATCH(req: NextRequest) {
     return Response.json({ error: "Opening time must be before closing time" }, { status: 400 })
   }
 
-  const { reviewLink, notificationEmail, ...rest } = parsed.data
+  const {
+    reviewLink,
+    notificationEmail,
+    landingHeadline,
+    landingSubheadline,
+    landingPrimaryCta,
+    landingSecondaryCta,
+    landingTrustBadges,
+    landingBottomHeadline,
+    landingBottomText,
+    ...rest
+  } = parsed.data
   const tenant = await prisma.tenant.update({
     where:  { id: tenantId },
     data:   {
       ...rest,
       ...(reviewLink        !== undefined ? { reviewLink:        reviewLink        || null } : {}),
       ...(notificationEmail !== undefined ? { notificationEmail: notificationEmail || null } : {}),
+      ...(landingHeadline       !== undefined ? { landingHeadline:       landingHeadline.trim()       || null } : {}),
+      ...(landingSubheadline    !== undefined ? { landingSubheadline:    landingSubheadline.trim()    || null } : {}),
+      ...(landingPrimaryCta     !== undefined ? { landingPrimaryCta:     landingPrimaryCta.trim()     || null } : {}),
+      ...(landingSecondaryCta   !== undefined ? { landingSecondaryCta:   landingSecondaryCta.trim()   || null } : {}),
+      ...(landingTrustBadges    !== undefined ? { landingTrustBadges:    landingTrustBadges.trim()    || null } : {}),
+      ...(landingBottomHeadline !== undefined ? { landingBottomHeadline: landingBottomHeadline.trim() || null } : {}),
+      ...(landingBottomText     !== undefined ? { landingBottomText:     landingBottomText.trim()     || null } : {}),
     },
     select: {
       clinicStartTime:        true,
@@ -67,6 +93,13 @@ export async function PATCH(req: NextRequest) {
       assignmentEmailEnabled: true,
       rescheduleEmailEnabled: true,
       notificationEmail:      true,
+      landingHeadline:        true,
+      landingSubheadline:     true,
+      landingPrimaryCta:      true,
+      landingSecondaryCta:    true,
+      landingTrustBadges:     true,
+      landingBottomHeadline:  true,
+      landingBottomText:      true,
     },
   })
   return Response.json({ data: tenant })

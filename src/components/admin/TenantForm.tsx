@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { BadgeDollarSign, Building2, Palette, Save, Settings2, ShieldCheck, UserCog } from "lucide-react"
 import type { ComponentType } from "react"
+import { tenantThemeStyle } from "@/lib/theme"
 
 // ── Currency catalogue ─────────────────────────────────────────────────────────
 const CURRENCIES = [
@@ -20,6 +21,36 @@ const CURRENCIES = [
   { code: "SGD", symbol: "S$",  label: "Singapore Dollar"  },
   { code: "CAD", symbol: "CA$", label: "Canadian Dollar"   },
   { code: "AUD", symbol: "A$",  label: "Australian Dollar" },
+]
+
+const THEME_PRESETS = [
+  // Blues — trust, clarity
+  { name: "Outrift",    color: "#4996D7" },
+  { name: "Sapphire",   color: "#2A6EAA" },
+  { name: "Ocean",      color: "#1B6888" },
+  // Teals & Greens — healing, calm
+  { name: "Teal",       color: "#14787E" },
+  { name: "Forest",     color: "#2C6A4F" },
+  { name: "Sage",       color: "#4B7356" },
+  // Warm naturals — Ayurveda, wellness
+  { name: "Olive",      color: "#6A7A3C" },
+  { name: "Amber",      color: "#B87A20" },
+  { name: "Terracotta", color: "#A04A30" },
+  // Browns — earthy, grounded
+  { name: "Walnut",     color: "#7A5035" },
+  { name: "Copper",     color: "#8A5A35" },
+  // Reds & Roses — specialty, dental
+  { name: "Coral",      color: "#B85252" },
+  { name: "Rose",       color: "#A04262" },
+  { name: "Berry",      color: "#8A3558" },
+  // Purples — premium, wellness
+  { name: "Plum",       color: "#6B3D80" },
+  { name: "Iris",       color: "#5A4D90" },
+  // Darks — professional, corporate
+  { name: "Navy",       color: "#2B3D6B" },
+  { name: "Midnight",   color: "#1E3055" },
+  { name: "Charcoal",   color: "#3F4D5C" },
+  { name: "Slate",      color: "#596A7A" },
 ]
 
 type Tenant = {
@@ -37,6 +68,8 @@ type Tenant = {
   isActive:            boolean
   showDoctorSelection: boolean
   manualBookingEnabled: boolean
+  recurrenceEnabled:    boolean
+  gdprEnabled:          boolean
   patientHistoryEnabled: boolean
   walkInEnabled: boolean
   branchModeEnabled: boolean
@@ -54,7 +87,7 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
   const [timezone,     setTimezone]     = useState(tenant?.timezone     ?? "Europe/London")
   const [currency,     setCurrency]     = useState(tenant?.currency     ?? "GBP")
   const [plan,         setPlan]         = useState(tenant?.plan         ?? "FREE")
-  const [primaryColor, setPrimaryColor] = useState(tenant?.primaryColor ?? "#436850")
+  const [primaryColor, setPrimaryColor] = useState(tenant?.primaryColor ?? "#4996D7")
   const [logoUrl,      setLogoUrl]      = useState(tenant?.logoUrl?.startsWith("data:") ? "" : tenant?.logoUrl ?? "")
   const [isActive,     setIsActive]     = useState(tenant?.isActive     ?? true)
 
@@ -64,6 +97,8 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
 
   const [showDoctorSelection, setShowDoctorSelection] = useState(tenant?.showDoctorSelection ?? false)
   const [manualBookingEnabled, setManualBookingEnabled] = useState(tenant?.manualBookingEnabled ?? false)
+  const [recurrenceEnabled,    setRecurrenceEnabled]    = useState(tenant?.recurrenceEnabled    ?? false)
+  const [gdprEnabled,          setGdprEnabled]          = useState(tenant?.gdprEnabled          ?? false)
   const [patientHistoryEnabled, setPatientHistoryEnabled] = useState(tenant?.patientHistoryEnabled ?? true)
   const [walkInEnabled, setWalkInEnabled] = useState(tenant?.walkInEnabled ?? true)
   const [branchModeEnabled, setBranchModeEnabled] = useState(tenant?.branchModeEnabled ?? false)
@@ -98,6 +133,8 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
         isActive,
         showDoctorSelection,
         manualBookingEnabled,
+        recurrenceEnabled,
+        gdprEnabled,
         patientHistoryEnabled,
         walkInEnabled,
         branchModeEnabled,
@@ -208,30 +245,92 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
       <Separator />
 
       {/* ── Branding ───────────────────────────────────────────────────────── */}
-      <div className="space-y-4 p-5">
-        <SectionTitle icon={Palette} title="Branding" description="Clinic color and logo shown on public booking pages." />
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-4 p-5" style={tenantThemeStyle(primaryColor)}>
+        <SectionTitle icon={Palette} title="Theme" description="Super admins choose the full tenant palette used across booking and admin screens." />
+
+        <div className="space-y-2">
+          <Label>Theme preset</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            {THEME_PRESETS.map((theme) => {
+              const selected = primaryColor.toLowerCase() === theme.color.toLowerCase()
+              return (
+                <button
+                  key={theme.name}
+                  type="button"
+                  onClick={() => setPrimaryColor(theme.color)}
+                  className={`flex items-center gap-2 rounded-lg border bg-white px-2.5 py-2 text-left text-xs font-semibold transition-colors ${
+                    selected ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40 hover:bg-secondary/30"
+                  }`}
+                >
+                  <span
+                    className="size-5 shrink-0 rounded-full border border-black/10 shadow-sm"
+                    style={{ background: theme.color }}
+                  />
+                  <span className="truncate text-foreground">{theme.name}</span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Choosing a preset creates a matching background, sidebar, border, accent, button, chart, and booking palette.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)]">
           <div className="space-y-1">
-            <Label>Primary colour</Label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={primaryColor}
-                onChange={e => setPrimaryColor(e.target.value)}
-                className="h-10 w-14 cursor-pointer rounded-md border border-input bg-white p-1"
-              />
-              <Input
-                value={primaryColor}
-                onChange={e => setPrimaryColor(e.target.value)}
-                placeholder="#436850"
-                className="font-mono text-sm"
-              />
+            <Label>Selected palette</Label>
+            <div className="grid grid-cols-5 overflow-hidden rounded-md border border-input">
+              {[
+                ["Primary", "var(--primary)"],
+                ["Accent", "var(--accent)"],
+                ["Soft", "var(--secondary)"],
+                ["Dark", "var(--foreground)"],
+                ["Border", "var(--border)"],
+              ].map(([label, color]) => (
+                <div key={label} className="min-w-0">
+                  <div className="h-9" style={{ background: color }} />
+                  <div className="truncate border-t border-border bg-card px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">
+                    {label}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="font-mono text-[11px] font-semibold text-muted-foreground">{primaryColor}</p>
+          </div>
+
+          <div className="space-y-1">
+            <Label>Theme preview</Label>
+            <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+              <div className="flex min-h-32">
+                <div className="w-16 shrink-0 space-y-2 p-3" style={{ background: "var(--sidebar-bg)" }}>
+                  <div className="size-7 rounded-md bg-accent" />
+                  <div className="h-2 rounded-full bg-white/55" />
+                  <div className="h-2 rounded-full bg-white/25" />
+                  <div className="h-2 rounded-full bg-white/25" />
+                </div>
+                <div className="flex-1 space-y-3 p-3" style={{ background: "var(--page-bg)" }}>
+                  <div
+                    className="h-3 w-24 rounded-full"
+                    style={{ background: "color-mix(in srgb, var(--foreground) 80%, transparent)" }}
+                  />
+                  <div className="rounded-md border border-border bg-card p-3">
+                    <div className="mb-2 h-2 w-28 rounded-full bg-muted-foreground/30" />
+                    <div className="h-7 w-24 rounded-md bg-primary" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="h-8 rounded-md bg-secondary" />
+                    <div className="h-8 rounded-md bg-accent" />
+                    <div className="h-8 rounded-md bg-primary/20" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
-            <Label>Logo URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
-            <Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} type="url" placeholder="https://…" />
-          </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label>Logo URL <span className="text-xs text-muted-foreground">(optional)</span></Label>
+          <Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} type="url" placeholder="https://…" />
         </div>
       </div>
 
@@ -259,6 +358,18 @@ export default function TenantForm({ tenant }: { tenant: Tenant | null }) {
           description="Allows clinic staff to create appointments from phone or reception requests."
           checked={manualBookingEnabled}
           onChange={() => setManualBookingEnabled(v => !v)}
+        />
+        <FeatureToggle
+          label="Recurring appointments"
+          description="Allows staff to schedule a series of repeating appointments (weekly, fortnightly, or monthly) when creating manual bookings."
+          checked={recurrenceEnabled}
+          onChange={() => setRecurrenceEnabled(v => !v)}
+        />
+        <FeatureToggle
+          label="UK GDPR mode"
+          description="Enables GDPR consent checkbox on booking, patient reminder opt-out, and the right to erasure on the confirmation page. Required for UK clients under UK GDPR / Data Protection Act 2018."
+          checked={gdprEnabled}
+          onChange={() => setGdprEnabled(v => !v)}
         />
         <FeatureToggle
           label="Patient history"

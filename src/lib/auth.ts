@@ -16,17 +16,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null
 
         const user = await prisma.adminUser.findUnique({
-          where: { email: credentials.email as string, isActive: true },
+          where:   { email: credentials.email as string, isActive: true },
           include: { tenant: { select: { slug: true } } },
         })
 
         if (!user) return null
 
+        // Lockout check — account locked after 5 failed attempts for 15 minutes
+        if (user.lockedUntil && user.lockedUntil > new Date()) {
+          return null
+        }
+
         const valid = await bcrypt.compare(
           credentials.password as string,
           user.password
         )
-        if (!valid) return null
+
+        if (!valid) {
+          const attempts = user.loginAttempts + 1
+          const lock     = attempts >= 5
+          await prisma.adminUser.update({
+            where: { id: user.id },
+            data: {
+              loginAttempts: attempts,
+              lockedUntil:   lock ? new Date(Date.now() + 15 * 60 * 1000) : null,
+            },
+          })
+          return null
+        }
+
+        // Success — reset counters
+        if (user.loginAttempts > 0 || user.lockedUntil) {
+          await prisma.adminUser.update({
+            where: { id: user.id },
+            data:  { loginAttempts: 0, lockedUntil: null },
+          })
+        }
 
         return {
           id:         user.id,

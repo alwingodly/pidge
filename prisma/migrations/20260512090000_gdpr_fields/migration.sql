@@ -1,0 +1,3 @@
+ALTER TABLE "Tenant" ADD COLUMN "gdprEnabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Appointment" ADD COLUMN "reminderOptOut" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Appointment" ADD COLUMN "consentGivenAt" TIMESTAMP(3);

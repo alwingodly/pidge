@@ -5,6 +5,8 @@ import { sendWelcomeEmail } from "@/lib/email"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 
+const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use a 6-digit hex colour, e.g. #4996D7")
+
 const createSchema = z.object({
   name:           z.string().min(1),
   slug:           z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
@@ -14,7 +16,7 @@ const createSchema = z.object({
   currency:       z.string().default("GBP"),
   currencySymbol: z.string().default("£"),
   plan:                z.enum(["FREE","BASIC","PRO"]).default("FREE"),
-  primaryColor:        z.string().default("#436850"),
+  primaryColor:        hexColor.default("#4996D7"),
   logoUrl:             z.url().optional(),
   isActive:            z.boolean().default(true),
   showDoctorSelection: z.boolean().default(false),

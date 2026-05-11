@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "crypto"
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from "crypto"
 
 const ALG = "aes-256-gcm"
 const ENC = "enc:"
@@ -63,8 +63,9 @@ export function verifyBookingToken(token: string, email: string): boolean {
     const key             = process.env.ENCRYPTION_KEY ?? process.env.AUTH_SECRET ?? ""
     const [payload, sig]  = token.split(".")
     if (!payload || !sig) return false
-    const expected = createHmac("sha256", key).update(payload).digest("hex")
-    if (expected !== sig) return false
+    const expected    = createHmac("sha256", key).update(payload).digest()
+    const sigBuf      = Buffer.from(sig, "hex")
+    if (expected.length !== sigBuf.length || !timingSafeEqual(expected, sigBuf)) return false
     const decoded  = Buffer.from(payload, "base64url").toString("utf8")
     const [tokenEmail, expiresAtStr] = decoded.split(":")
     if (tokenEmail !== email) return false

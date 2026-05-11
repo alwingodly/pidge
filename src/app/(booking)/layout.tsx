@@ -1,9 +1,13 @@
 import styles from "./BookingLanding.module.css"
 import Image from "next/image"
+import { getTenantFromHeaders } from "@/lib/tenant"
+import { tenantThemeStyle } from "@/lib/theme"
 
 export default async function BookingLayout({ children }: { children: React.ReactNode }) {
+  const { primaryColor } = await getTenantFromHeaders()
+
   return (
-    <div className={`${styles.shell} text-foreground`}>
+    <div className={`${styles.shell} text-foreground`} style={tenantThemeStyle(primaryColor)}>
       <main className={`${styles.main} mx-auto w-full max-w-6xl px-4 py-8 pb-20 sm:px-6 sm:py-10 sm:pb-24`}>
         {children}
       </main>

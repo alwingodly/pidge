@@ -51,10 +51,10 @@ export default function LogoUploadForm({
   }
 
   return (
-    <div className="rounded-xl border border-[#E8E3DC] bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#E8E3DC] bg-secondary">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary">
             {logoUrl ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -90,7 +90,7 @@ export default function LogoUploadForm({
           <Button
             type="button"
             variant="outline"
-            className="rounded-lg border-[#E8D8C5]"
+            className="rounded-lg border-border"
             disabled={busy}
             onClick={() => inputRef.current?.click()}
           >
@@ -101,7 +101,7 @@ export default function LogoUploadForm({
             <Button
               type="button"
               variant="outline"
-              className="rounded-lg border-[#E8D8C5] text-destructive hover:text-destructive"
+              className="rounded-lg border-border text-destructive hover:text-destructive"
               disabled={busy}
               onClick={() => void removeLogo()}
             >

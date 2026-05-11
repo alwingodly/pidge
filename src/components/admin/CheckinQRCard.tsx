@@ -35,7 +35,7 @@ export default function CheckinQRCard({ url, qrDataUrl, branchName }: Props) {
       <Button
         variant="outline"
         size="sm"
-        className="h-8 gap-2 rounded-xl border-[#E8D8C5] text-xs font-semibold"
+        className="h-8 gap-2 rounded-xl border-border text-xs font-semibold"
         onClick={() => setOpen(true)}
       >
         <QrCode className="size-3.5" />
@@ -81,7 +81,7 @@ export default function CheckinQRCard({ url, qrDataUrl, branchName }: Props) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 flex-1 rounded-xl border-[#E8D8C5] text-xs"
+                className="h-9 flex-1 rounded-xl border-border text-xs"
                 onClick={handleCopy}
               >
                 {copied
@@ -91,7 +91,7 @@ export default function CheckinQRCard({ url, qrDataUrl, branchName }: Props) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 flex-1 rounded-xl border-[#E8D8C5] text-xs"
+                className="h-9 flex-1 rounded-xl border-border text-xs"
                 onClick={handleDownload}
               >
                 <Download className="mr-1.5 size-3.5" />

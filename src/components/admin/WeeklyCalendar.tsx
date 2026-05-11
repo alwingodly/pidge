@@ -200,16 +200,16 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E8E3DC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
 
       {/* ── Navigation bar ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E3DC] px-5 py-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5">
 
         {/* Week picker */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOffset((o) => o - 1)}
-            className="flex size-8 items-center justify-center rounded-lg border border-[#E8E3DC] bg-white text-muted-foreground transition-colors hover:bg-secondary"
+            className="flex size-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-secondary"
           >
             <ChevronLeft className="size-4" />
           </button>
@@ -220,7 +220,7 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
 
           <button
             onClick={() => setOffset((o) => o + 1)}
-            className="flex size-8 items-center justify-center rounded-lg border border-[#E8E3DC] bg-white text-muted-foreground transition-colors hover:bg-secondary"
+            className="flex size-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-secondary"
           >
             <ChevronRight className="size-4" />
           </button>
@@ -252,7 +252,7 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
             <select
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
-              className="h-8 rounded-lg border border-[#E8E3DC] bg-white px-2.5 text-xs font-medium text-foreground outline-none focus:border-primary/40"
+              className="h-8 rounded-lg border border-border bg-white px-2.5 text-xs font-medium text-foreground outline-none focus:border-primary/40"
             >
               <option value="all">All branches</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -263,7 +263,7 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
 
       {/* ── Doctor legend / filter ───────────────────────────────────────────── */}
       {doctors.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#F3EAE0] bg-[#FDFBF8] px-5 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#F3EAE0] bg-secondary/30 px-5 py-2.5">
           <span className="mr-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">
             Doctors
           </span>
@@ -297,9 +297,9 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
           <div style={{ minWidth: 56 + WEEK_COLS.length * 148 }}>
 
             {/* ── Day header row (sticky top) ─────────────────────────────── */}
-            <div className="sticky top-0 z-20 flex border-b border-[#E8E3DC] bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
+            <div className="sticky top-0 z-20 flex border-b border-border bg-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)]">
               {/* Corner cell – also sticky left so it pins at the intersection */}
-              <div className="sticky left-0 z-30 w-14 shrink-0 border-r border-[#F0EBE5] bg-white" />
+              <div className="sticky left-0 z-30 w-14 shrink-0 border-r border-border bg-white" />
 
               {WEEK_COLS.map(({ dow, abbr }, i) => {
                 const d       = weekDates[i]
@@ -310,12 +310,12 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
                 return (
                   <div
                     key={dow}
-                    className="flex flex-1 flex-col items-center justify-center border-r border-[#F0EBE5] py-3 last:border-r-0"
+                    className="flex flex-1 flex-col items-center justify-center border-r border-border py-3 last:border-r-0"
                     style={{ minWidth: 148 }}
                   >
                     <span
                       className="text-[10px] font-bold uppercase tracking-widest"
-                      style={{ color: isToday ? "#BF4646" : "#9A8A7A" }}
+                      style={{ color: isToday ? "var(--primary)" : "var(--muted-foreground)" }}
                     >
                       {abbr}
                     </span>
@@ -323,8 +323,8 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
                     <div
                       className="mt-1 flex size-9 items-center justify-center rounded-full text-[17px] font-bold leading-none transition-colors"
                       style={isToday
-                        ? { background: "#BF4646", color: "#fff" }
-                        : { color: "#1C1007" }}
+                        ? { background: "var(--primary)", color: "var(--primary-foreground)" }
+                        : { color: "var(--foreground)" }}
                     >
                       {d.getUTCDate()}
                     </div>
@@ -334,8 +334,8 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
                         <span
                           className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
                           style={isToday
-                            ? { background: "#BF464615", color: "#BF4646" }
-                            : { background: "#F0EBE5", color: "#7A6A5A" }}
+                            ? { background: "color-mix(in srgb, var(--primary) 12%, #fff)", color: "var(--primary)" }
+                            : { background: "var(--secondary)", color: "var(--muted-foreground)" }}
                         >
                           {count}
                         </span>
@@ -351,7 +351,7 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
 
               {/* Sticky time-label column */}
               <div
-                className="sticky left-0 z-10 w-14 shrink-0 border-r border-[#F0EBE5] bg-white"
+                className="sticky left-0 z-10 w-14 shrink-0 border-r border-border bg-white"
               >
                 {HOUR_MARKS.map(({ h, label, top }) => (
                   <div
@@ -378,7 +378,7 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
                 return (
                   <div
                     key={dow}
-                    className="relative flex-1 border-r border-[#F0EBE5] last:border-r-0"
+                    className="relative flex-1 border-r border-border last:border-r-0"
                     style={{ minWidth: 148 }}
                   >
                     {/* Today column tint */}
@@ -390,7 +390,7 @@ export default function WeeklyCalendar({ isTenantAdmin }: { isTenantAdmin: boole
                     {HOUR_MARKS.map(({ h, top }) => (
                       <div
                         key={h}
-                        className="absolute left-0 right-0 border-t border-[#F0EBE5]"
+                        className="absolute left-0 right-0 border-t border-border"
                         style={{ top }}
                       />
                     ))}
@@ -494,12 +494,12 @@ function CalendarSkeleton() {
   return (
     <div className="animate-pulse select-none">
       {/* Day header skeleton */}
-      <div className="flex border-b border-[#F0EBE5]">
-        <div className="w-14 shrink-0 border-r border-[#F0EBE5]" />
+      <div className="flex border-b border-border">
+        <div className="w-14 shrink-0 border-r border-border" />
         {WEEK_COLS.map(({ dow }) => (
           <div
             key={dow}
-            className="flex flex-1 flex-col items-center gap-1.5 border-r border-[#F0EBE5] py-3 last:border-r-0"
+            className="flex flex-1 flex-col items-center gap-1.5 border-r border-border py-3 last:border-r-0"
             style={{ minWidth: 148 }}
           >
             <div className="h-2 w-7 rounded bg-[#EDE8E3]" />
@@ -511,11 +511,11 @@ function CalendarSkeleton() {
 
       {/* Grid skeleton */}
       <div className="flex overflow-hidden" style={{ height: 400 }}>
-        <div className="w-14 shrink-0 border-r border-[#F0EBE5] bg-[#FAFAF8]" />
+        <div className="w-14 shrink-0 border-r border-border bg-secondary/30" />
         {WEEK_COLS.map(({ dow }, i) => (
           <div
             key={dow}
-            className="relative flex-1 border-r border-[#F0EBE5] last:border-r-0 bg-white"
+            className="relative flex-1 border-r border-border last:border-r-0 bg-white"
             style={{ minWidth: 148 }}
           >
             {/* Fake appointments */}

@@ -61,7 +61,7 @@ export default function NotificationEmailForm({ initialEnabled, initialEmail, de
           <Label htmlFor="notif-email" className="text-xs font-semibold text-muted-foreground">
             Alert address <span className="font-normal">(optional override)</span>
           </Label>
-          <div className="flex h-10 items-center gap-2 rounded-xl border border-[#E8E3DC] bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20">
             <Mail className="size-4 shrink-0 text-muted-foreground" />
             <input
               id="notif-email"

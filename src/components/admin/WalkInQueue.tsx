@@ -78,7 +78,7 @@ export default function WalkInQueue({ initialQueue, doctors }: {
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-[#E8E3DC] bg-white py-16 text-center shadow-sm">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-16 text-center shadow-sm">
         <div className="flex size-12 items-center justify-center rounded-xl bg-secondary text-primary">
           <Users className="size-5" />
         </div>
@@ -94,7 +94,7 @@ export default function WalkInQueue({ initialQueue, doctors }: {
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
           <div className="flex items-center gap-2">

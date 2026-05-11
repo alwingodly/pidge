@@ -16,7 +16,7 @@ export default function AdminDashboardLoading() {
 
       {/* Top metric strip + next-up card */}
       <div className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
-        <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
           <div className="grid sm:grid-cols-4 divide-y sm:divide-x sm:divide-y-0 divide-[#F3EAE0]">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="p-4 space-y-3">
@@ -27,7 +27,7 @@ export default function AdminDashboardLoading() {
             ))}
           </div>
         </div>
-        <div className="rounded-xl border border-[#E8E3DC] bg-white p-4 shadow-sm space-y-3">
+        <div className="rounded-xl border border-border bg-white p-4 shadow-sm space-y-3">
           <Bone className="h-3 w-16" />
           <Bone className="h-8 w-24" />
           <Bone className="h-4 w-32" />
@@ -38,7 +38,7 @@ export default function AdminDashboardLoading() {
       {/* Today's schedule + needs attention */}
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         {[...Array(2)].map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+          <div key={i} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
               <Bone className="h-4 w-32" />
               <Bone className="h-5 w-12 rounded-full" />
@@ -61,7 +61,7 @@ export default function AdminDashboardLoading() {
 
       {/* Chart + quality signal */}
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
             <Bone className="h-4 w-36" />
             <Bone className="h-3 w-24" />
@@ -70,7 +70,7 @@ export default function AdminDashboardLoading() {
             <Bone className="h-40 w-full rounded-xl" />
           </div>
         </div>
-        <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
           <div className="border-b border-[#F3EAE0] px-4 py-3">
             <Bone className="h-4 w-28" />
           </div>
@@ -83,7 +83,7 @@ export default function AdminDashboardLoading() {
       {/* Bottom 3 panels */}
       <div className="grid gap-4 lg:grid-cols-3">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+          <div key={i} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
             <div className="border-b border-[#F3EAE0] px-4 py-3">
               <Bone className="h-4 w-28" />
             </div>

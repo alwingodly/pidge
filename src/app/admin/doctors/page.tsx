@@ -5,6 +5,7 @@ import Image from "next/image"
 import AddDoctorDialog from "@/components/admin/AddDoctorDialog"
 import EditDoctorDialog from "@/components/admin/EditDoctorDialog"
 import DoctorScheduleSheet from "@/components/admin/DoctorScheduleSheet"
+import BulkScheduleSheet from "@/components/admin/BulkScheduleSheet"
 import { PractitionerBadge } from "@/components/admin/DoctorForm"
 import { CalendarDays, Stethoscope, UserRound } from "lucide-react"
 
@@ -19,7 +20,7 @@ export default async function DoctorsPage() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { branchModeEnabled: true },
+    select: { branchModeEnabled: true, clinicStartTime: true, clinicEndTime: true },
   })
 
   const [doctors, branches, services] = await Promise.all([
@@ -48,16 +49,25 @@ export default async function DoctorsPage() {
             {doctors.length} total · {activeCount} active
           </p>
         </div>
-        <AddDoctorDialog
-          branches={branches}
-          services={services}
-          tenantId={tenantId}
-          defaultBranchId={branchId}
-          isBranchAdmin={session.user.role === "BRANCH_ADMIN"}
-        />
+        <div className="flex items-center gap-2">
+          {activeCount > 0 && (
+            <BulkScheduleSheet
+              isTenantAdmin={session.user.role === "TENANT_ADMIN"}
+              branches={branches}
+              doctorCount={activeCount}
+            />
+          )}
+          <AddDoctorDialog
+            branches={branches}
+            services={services}
+            tenantId={tenantId}
+            defaultBranchId={branchId}
+            isBranchAdmin={session.user.role === "BRANCH_ADMIN"}
+          />
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-lg bg-secondary text-primary">
@@ -100,10 +110,10 @@ export default async function DoctorsPage() {
                       alt={doctor.name}
                       width={40}
                       height={40}
-                      className="size-10 rounded-lg object-cover ring-1 ring-[#E8D8C5]"
+                      className="size-10 rounded-lg object-cover ring-1 ring-border"
                     />
                   ) : (
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-primary ring-1 ring-[#E8D8C5]">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-sm font-bold text-primary ring-1 ring-border">
                       {getInitials(doctor.name) || <UserRound className="size-4" />}
                     </div>
                   )}
@@ -134,6 +144,8 @@ export default async function DoctorsPage() {
                     doctorId={doctor.id}
                     doctorName={doctor.name}
                     speciality={doctor.speciality}
+                    clinicStartTime={tenant?.clinicStartTime ?? null}
+                    clinicEndTime={tenant?.clinicEndTime ?? null}
                   />
                   <EditDoctorDialog
                     doctor={doctor}

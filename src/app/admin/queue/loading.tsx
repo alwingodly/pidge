@@ -5,7 +5,7 @@ export default function QueueLoading() {
         <div className="h-7 w-44 animate-pulse rounded-lg bg-muted" />
         <div className="h-4 w-36 animate-pulse rounded-lg bg-muted" />
       </div>
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="border-b border-[#F3EAE0] px-4 py-3">
           <div className="h-4 w-24 animate-pulse rounded bg-muted" />
         </div>

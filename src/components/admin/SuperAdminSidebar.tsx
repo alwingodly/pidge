@@ -2,11 +2,10 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Building2, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Building2, LogOut, ChevronLeft, ChevronRight, MonitorCog } from "lucide-react"
 import {
   Dialog, DialogContent, DialogDescription, DialogTitle,
 } from "@/components/ui/dialog"
@@ -14,6 +13,7 @@ import {
 const NAV = [
   { href: "/superadmin",         label: "Dashboard", icon: LayoutDashboard },
   { href: "/superadmin/tenants", label: "Tenants",   icon: Building2 },
+  { href: "/superadmin/login-screen", label: "Login screen", icon: MonitorCog },
 ]
 
 export default function SuperAdminSidebar() {
@@ -34,7 +34,7 @@ export default function SuperAdminSidebar() {
     <>
     <aside
       className="sticky top-0 flex flex-col shrink-0 h-screen transition-all duration-300"
-      style={{ width: collapsed ? 56 : 200, background: "var(--primary)" }}
+      style={{ width: collapsed ? 56 : 196, background: "var(--brand-forest)" }}
     >
       {/* Logo */}
       <div
@@ -44,15 +44,15 @@ export default function SuperAdminSidebar() {
         {!collapsed && (
           <>
             <div
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-              style={{ background: "var(--accent)" }}
+              className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white"
             >
-              <Image src="/pikatym-white.svg" alt="Pikatym" width={16} height={22} className="h-5 w-auto object-contain" />
+              <span className="size-3.5 rounded-full border-[4px] border-primary" />
+              <span className="absolute bottom-1.5 left-2 h-0.5 w-3 rounded-full bg-[var(--brand-coral)]" />
             </div>
             <div className="ml-2 overflow-hidden">
-              <p className="font-bold text-sm leading-none whitespace-nowrap" style={{ color: "var(--sidebar-text-active)" }}>Pikatym</p>
+              <p className="font-bold text-sm leading-none whitespace-nowrap" style={{ color: "var(--sidebar-text-active)" }}>Outrift</p>
               <p className="text-xs mt-0.5 whitespace-nowrap" style={{ color: "var(--sidebar-text)", fontSize: 10 }}>
-                Super Admin
+                Platform
               </p>
             </div>
           </>
@@ -79,7 +79,7 @@ export default function SuperAdminSidebar() {
                 collapsed ? "justify-center p-2" : "gap-2.5 px-3 py-2",
               )}
               style={{
-                background: active ? "var(--sidebar-active-bg)" : "transparent",
+                background: active ? "rgba(73, 150, 215, 0.22)" : "transparent",
                 color:      active ? "var(--sidebar-text-active)" : "var(--sidebar-text)",
               }}
               onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--sidebar-hover-bg)" }}

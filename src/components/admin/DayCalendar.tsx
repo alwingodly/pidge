@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, type MouseEvent } from "react"
-import { CheckCircle2, ChevronLeft, ChevronRight, UserX } from "lucide-react"
+import { useState, useEffect, useRef, type MouseEvent } from "react"
+import { AlertCircle, CalendarOff, CheckCircle2, ChevronLeft, ChevronRight, UserX } from "lucide-react"
 import AppointmentDetailSheet from "@/components/admin/AppointmentDetailSheet"
 
 // ── Grid constants ─────────────────────────────────────────────────────────────
@@ -43,10 +43,11 @@ function dayLabel(d: Date) {
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-type Doc  = { id: string; name: string; speciality: string; branchId: string | null; colorIndex: number }
-type Appt = { id: string; bookingRef: string; patientName: string; doctorId: string; date: string; time: string; duration: number; service: string; status: string }
-type WH   = { doctorId: string; dayOfWeek: number; startTime: string; endTime: string }
-type Data = { doctors: Doc[]; appointments: Appt[]; workingHours: WH[]; branches: { id: string; name: string }[] }
+type Doc   = { id: string; name: string; speciality: string; branchId: string | null; colorIndex: number }
+type Appt  = { id: string; bookingRef: string; patientName: string; doctorId: string; date: string; time: string; duration: number; service: string; status: string }
+type WH    = { doctorId: string; dayOfWeek: number; startTime: string; endTime: string }
+type Leave = { doctorId: string; startDate: string; endDate: string; reason: string | null }
+type Data  = { doctors: Doc[]; appointments: Appt[]; workingHours: WH[]; leaves: Leave[]; branches: { id: string; name: string }[] }
 type SelectedAppt = Appt & {
   doctorName: string
   doctorColor: string
@@ -79,10 +80,12 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
   const [branch,  setBranch]  = useState("all")
   const [data,    setData]    = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchErr, setFetchErr] = useState(false)
   const [now,     setNow]     = useState(() => new Date())
   const [selectedAppt, setSelectedAppt] = useState<SelectedAppt | null>(null)
   const [expanded,     setExpanded]     = useState(false)
   const [detailId,     setDetailId]     = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   // Live clock
   useEffect(() => {
@@ -90,14 +93,23 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
     return () => clearInterval(t)
   }, [])
 
-  // Fetch on date change
+  // Fetch on date change — cancel stale requests
   useEffect(() => {
+    abortRef.current?.abort()
+    const abort = new AbortController()
+    abortRef.current = abort
+
+    setLoading(true)
+    setFetchErr(false)
+
     const ds = utcStr(date)
-    fetch(`/api/schedule?start=${ds}&end=${ds}`)
-      .then(r => r.json())
-      .then(setData)
-      .catch(() => null)
-      .finally(() => setLoading(false))
+    fetch(`/api/schedule?start=${ds}&end=${ds}`, { signal: abort.signal })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
+      .then(d => { setData(d); setFetchErr(false) })
+      .catch(err => { if (err?.name !== "AbortError") setFetchErr(true) })
+      .finally(() => { if (!abort.signal.aborted) setLoading(false) })
+
+    return () => abort.abort()
   }, [date])
 
   useEffect(() => {
@@ -119,7 +131,20 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
   const visIds   = new Set(visDocs.map(d => d.id))
   const appts    = (data?.appointments ?? []).filter(a => visIds.has(a.doctorId))
   const wh       = data?.workingHours ?? []
+  const leaves   = data?.leaves ?? []
   const branches = data?.branches ?? []
+
+  // Doctors on leave for the selected date
+  const ds = utcStr(date)
+  const onLeaveIds = new Set(
+    leaves
+      .filter(l => l.startDate <= ds && l.endDate >= ds)
+      .map(l => l.doctorId)
+  )
+  function leaveReason(docId: string) {
+    const l = leaves.find(l => l.doctorId === docId && l.startDate <= ds && l.endDate >= ds)
+    return l?.reason ?? null
+  }
 
   const totalAppts = appts.length
   const completedTotal = appts.filter((appt) => appt.status === "COMPLETED").length
@@ -171,16 +196,16 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="overflow-hidden rounded-lg border border-[#E8E3DC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
 
       {/* ── Navigation bar ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E8E3DC] bg-[#FFFCF8] px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-secondary/30 px-3 py-2">
 
         <div className="flex min-w-0 items-center gap-1">
           {/* Prev */}
           <button
             onClick={() => moveDate(-1)}
-            className="flex size-7 items-center justify-center rounded-md border border-[#E8E3DC] bg-white text-muted-foreground transition-colors hover:bg-secondary"
+            className="flex size-7 items-center justify-center rounded-md border border-border bg-white text-muted-foreground transition-colors hover:bg-secondary"
             title="Previous day"
           >
             <ChevronLeft className="size-3.5" />
@@ -194,7 +219,7 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
           {/* Next */}
           <button
             onClick={() => moveDate(1)}
-            className="flex size-7 items-center justify-center rounded-md border border-[#E8E3DC] bg-white text-muted-foreground transition-colors hover:bg-secondary"
+            className="flex size-7 items-center justify-center rounded-md border border-border bg-white text-muted-foreground transition-colors hover:bg-secondary"
             title="Next day"
           >
             <ChevronRight className="size-3.5" />
@@ -240,7 +265,7 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
             <select
               value={branch}
               onChange={e => setBranch(e.target.value)}
-              className="h-7 rounded-md border border-[#E8E3DC] bg-white px-2 text-[11px] font-medium text-foreground outline-none focus:border-primary/40"
+              className="h-7 rounded-md border border-border bg-white px-2 text-[11px] font-medium text-foreground outline-none focus:border-primary/40"
             >
               <option value="all">All branches</option>
               {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -250,7 +275,18 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
       </div>
 
       {/* ── Grid ────────────────────────────────────────────────────────────── */}
-      {loading ? <Skeleton /> : visDocs.length === 0 ? (
+      {loading ? <Skeleton /> : fetchErr ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+          <AlertCircle className="size-6 text-muted-foreground/50" />
+          <p className="text-sm font-medium text-foreground">Failed to load schedule</p>
+          <button
+            onClick={() => { setDate(d => addDay(d, 0)) }} // re-trigger effect
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      ) : visDocs.length === 0 ? (
         <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
           No active doctors for this day.
         </div>
@@ -260,12 +296,12 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
 
             {/* ── Time ruler (sticky top) ───────────────────────────────── */}
             <div
-              className="sticky top-0 z-20 flex border-b border-[#E8E3DC] bg-[#FDFBF8] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]"
+              className="sticky top-0 z-20 flex border-b border-border bg-secondary/30 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)]"
               style={{ height: 30 }}
             >
               {/* Corner — sticky both top and left */}
               <div
-                className="sticky left-0 z-30 shrink-0 border-r border-[#F0EBE5] bg-[#FDFBF8]"
+                className="sticky left-0 z-30 shrink-0 border-r border-border bg-secondary/30"
                 style={{ width: DOC_W }}
               />
 
@@ -323,7 +359,8 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                 const c        = color(doc.colorIndex)
                 const entry    = docWH(doc.id)
                 const docAppts = apptsByDoc.get(doc.id) ?? []
-                const isOff    = entry === null
+                const onLeave  = onLeaveIds.has(doc.id)
+                const isOff    = entry === null && !onLeave
                 const wStart   = entry ? toMins(entry.startTime) : null
                 const wEnd     = entry ? toMins(entry.endTime)   : null
 
@@ -332,7 +369,7 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
 
                     {/* ── Doctor cell (sticky left) ──────────────────────── */}
                     <div
-                      className="sticky left-0 z-10 flex shrink-0 items-center gap-2.5 border-r border-[#F0EBE5] bg-white px-3"
+                      className="sticky left-0 z-10 flex shrink-0 items-center gap-2.5 border-r border-border bg-white px-3"
                       style={{ width: DOC_W }}
                     >
                       {/* Avatar */}
@@ -347,7 +384,9 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-bold leading-tight text-foreground">{doc.name}</p>
                         <p className="truncate text-[10px] leading-tight text-muted-foreground">
-                          {isOff
+                          {onLeave
+                            ? <span className="flex items-center gap-1 text-rose-500 font-medium"><CalendarOff className="size-2.5" />{leaveReason(doc.id) ?? "On leave"}</span>
+                            : isOff
                             ? <span className="text-amber-500 font-medium">Off today</span>
                             : `${entry!.startTime}–${entry!.endTime}`}
                         </p>
@@ -367,9 +406,9 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                     {/* ── Timeline ──────────────────────────────────────── */}
                     <div className="relative flex-1 overflow-hidden">
 
-                      {/* Off-hours dimming */}
-                      {isOff ? (
-                        <div className="absolute inset-0 bg-[#F9F7F4]" />
+                      {/* Off-hours / on-leave dimming */}
+                      {(isOff || onLeave) ? (
+                        <div className={`absolute inset-0 ${onLeave ? "bg-rose-50/60" : "bg-[#F9F7F4]"}`} />
                       ) : (
                         <>
                           {wStart !== null && wStart > START_M && (
@@ -399,12 +438,13 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                         />
                       ))}
 
-                      {/* Day-off label */}
-                      {isOff && (
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                          <span className="text-[10px] font-semibold tracking-wider text-muted-foreground/30">
-                            Day off
-                          </span>
+                      {/* Day-off / on-leave label */}
+                      {(isOff || onLeave) && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5">
+                          {onLeave
+                            ? <><CalendarOff className="size-3 text-rose-400/50" /><span className="text-[10px] font-semibold tracking-wider text-rose-400/50">On leave</span></>
+                            : <span className="text-[10px] font-semibold tracking-wider text-muted-foreground/30">Day off</span>
+                          }
                         </div>
                       )}
 
@@ -421,7 +461,7 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                             key={appt.id}
                             onClick={(event) => openAppointment(appt, doc, c, end, event)}
                             title={`${appt.patientName}\n${appt.time}–${end} · ${appt.service}\n${appt.bookingRef}`}
-                            className="absolute z-[2] block cursor-pointer overflow-hidden rounded-none border border-black/10 text-left transition-[filter] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+                            className="absolute z-2 block cursor-pointer overflow-hidden rounded-none border border-black/10 text-left transition-[filter] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
                             style={{
                               left:      xPct(s),
                               width:     wPct(appt.duration),
@@ -456,7 +496,7 @@ export default function DayCalendar({ isTenantAdmin }: { isTenantAdmin: boolean 
                       {/* Current time line */}
                       {showNow && (
                         <div
-                          className="pointer-events-none absolute top-0 bottom-0 z-[3] w-px bg-red-500 opacity-40"
+                          className="pointer-events-none absolute top-0 bottom-0 z-3 w-px bg-red-500 opacity-40"
                           style={{ left: nowPct }}
                         />
                       )}
@@ -568,7 +608,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-3 text-sm">
       <span className="text-xs font-semibold text-white/60">{label}</span>
-      <span className="min-w-0 break-words font-semibold text-white">{value}</span>
+      <span className="min-w-0 wrap-break-word font-semibold text-white">{value}</span>
     </div>
   )
 }
@@ -577,13 +617,13 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function Skeleton() {
   return (
     <div className="animate-pulse">
-      <div className="flex border-b border-[#F0EBE5]" style={{ height: 30 }}>
-        <div style={{ width: DOC_W }} className="shrink-0 border-r border-[#F0EBE5] bg-[#FAFAF8]" />
-        <div className="flex-1 bg-[#FAFAF8]" />
+      <div className="flex border-b border-border" style={{ height: 30 }}>
+        <div style={{ width: DOC_W }} className="shrink-0 border-r border-border bg-secondary/30" />
+        <div className="flex-1 bg-secondary/30" />
       </div>
       {[1, 2, 3, 4].map(i => (
-        <div key={i} className="flex border-b border-[#F0EBE5]" style={{ height: ROW_H }}>
-          <div style={{ width: DOC_W }} className="flex shrink-0 items-center gap-2.5 border-r border-[#F0EBE5] px-3">
+        <div key={i} className="flex border-b border-border" style={{ height: ROW_H }}>
+          <div style={{ width: DOC_W }} className="flex shrink-0 items-center gap-2.5 border-r border-border px-3">
             <div className="size-7 rounded-[3px] bg-[#EDE8E3]" />
             <div className="flex-1 space-y-1.5">
               <div className="h-2.5 w-20 rounded bg-[#EDE8E3]" />

@@ -20,7 +20,10 @@ export async function GET(req: NextRequest) {
   if (!start || !end)
     return Response.json({ error: "Missing start/end" }, { status: 400 })
 
-  const [doctors, appointments, workingHours, branches] = await Promise.all([
+  const startDate = new Date(`${start}T00:00:00.000Z`)
+  const endDate   = new Date(`${end}T23:59:59.999Z`)
+
+  const [doctors, appointments, workingHours, branches, leaves] = await Promise.all([
     prisma.doctor.findMany({
       where:   { tenantId, branchId: branchId ?? undefined, isActive: true },
       include: { branch: { select: { id: true, name: true } } },
@@ -29,10 +32,7 @@ export async function GET(req: NextRequest) {
     prisma.appointment.findMany({
       where: {
         tenantId,
-        assignedDate: {
-          gte: new Date(`${start}T00:00:00.000Z`),
-          lte: new Date(`${end}T23:59:59.999Z`),
-        },
+        assignedDate: { gte: startDate, lte: endDate },
         assignedTime: { not: null },
         status:       { not: "CANCELLED" },
       },
@@ -46,6 +46,15 @@ export async function GET(req: NextRequest) {
       where:   { tenantId, isActive: true },
       select:  { id: true, name: true },
       orderBy: { name: "asc" },
+    }),
+    // Doctor leave periods that overlap the requested date range
+    prisma.doctorLeave.findMany({
+      where: {
+        tenantId,
+        startDate: { lte: endDate },
+        endDate:   { gte: startDate },
+      },
+      select: { doctorId: true, startDate: true, endDate: true, reason: true },
     }),
   ])
 
@@ -76,6 +85,12 @@ export async function GET(req: NextRequest) {
       dayOfWeek: w.dayOfWeek,
       startTime: w.startTime,
       endTime:   w.endTime,
+    })),
+    leaves: leaves.map((l) => ({
+      doctorId:  l.doctorId,
+      startDate: toDateStr(l.startDate),
+      endDate:   toDateStr(l.endDate),
+      reason:    l.reason ?? null,
     })),
     branches,
   })

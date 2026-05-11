@@ -11,7 +11,7 @@ export default function SettingsLoading() {
       </div>
 
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+        <div key={i} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
           <div className="border-b border-[#F3EAE0] px-4 py-3">
             <Bone className="h-4 w-36" />
           </div>

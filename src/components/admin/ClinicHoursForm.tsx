@@ -66,7 +66,7 @@ export default function ClinicHoursForm({ initialStart, initialEnd }: Props) {
   }
 
   const timeInput = (id: string, value: string, onChange: (v: string) => void) => (
-    <div className="flex h-10 items-center gap-2 rounded-xl border border-[#E8E3DC] bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20">
+    <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3 focus-within:ring-2 focus-within:ring-primary/20">
       <Clock className="size-4 shrink-0 text-muted-foreground" />
       <input
         id={id}

@@ -21,25 +21,20 @@ type Doctor = {
   branchId?: string | null
   doctorServices?: { serviceId: string }[]
 }
-type Branch = { id: string; name: string }
+type Branch  = { id: string; name: string }
 type Service = { id: string; name: string; durationMins: number }
 
 type Props = {
-  doctor: Doctor
-  branches: Branch[]
-  services: Service[]
-  tenantId: string
+  doctor:          Doctor
+  branches:        Branch[]
+  services:        Service[]
+  tenantId:        string
   defaultBranchId: string | null
-  isBranchAdmin: boolean
+  isBranchAdmin:   boolean
 }
 
 export default function EditDoctorDialog({
-  doctor,
-  branches,
-  services,
-  tenantId,
-  defaultBranchId,
-  isBranchAdmin,
+  doctor, branches, services, tenantId, defaultBranchId, isBranchAdmin,
 }: Props) {
   const [open, setOpen] = useState(false)
 
@@ -48,14 +43,14 @@ export default function EditDoctorDialog({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#E8E3DC] bg-white px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-secondary"
+          className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-secondary"
         >
           <Pencil className="size-3" />
           Edit
         </button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl border-[#E8E3DC] p-0">
-        <DialogHeader className="border-b border-[#E8E3DC] px-6 py-5">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl border-border p-0">
+        <DialogHeader className="border-b border-border px-6 py-5">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
               <UserRound className="size-5" />

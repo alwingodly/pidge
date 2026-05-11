@@ -74,6 +74,7 @@ export default function ManualAppointmentForm({
   doctors,
   branches,
   branchModeEnabled,
+  recurrenceEnabled,
   defaultBranchId,
   clinicStartTime,
   clinicEndTime,
@@ -83,10 +84,11 @@ export default function ManualAppointmentForm({
   services: Service[]
   doctors: Doctor[]
   branches: Branch[]
-  branchModeEnabled: boolean
-  defaultBranchId?: string | null
-  clinicStartTime?: string | null
-  clinicEndTime?: string | null
+  branchModeEnabled:  boolean
+  recurrenceEnabled?: boolean
+  defaultBranchId?:   string | null
+  clinicStartTime?:   string | null
+  clinicEndTime?:     string | null
   onCreated?: () => void
   className?: string
 }) {
@@ -107,13 +109,18 @@ export default function ManualAppointmentForm({
     patientGender: "",
     notes: "",
   })
-  const [slots, setSlots] = useState<Slot[]>([])
+  const [slots,       setSlots]       = useState<Slot[]>([])
   const [workingHours, setWorkingHours] = useState<WorkingH[]>([])
-  const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([])
+  const [bookedSlots,  setBookedSlots]  = useState<BookedSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [loadingBooked, setLoadingBooked] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState<string | null>(null)
+
+  // Recurrence state (recurrenceOn = whether the toggle is on, recurrenceEnabled = tenant feature flag from props)
+  const [recurrenceOn,        setRecurrenceOn]        = useState(false)
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY">("WEEKLY")
+  const [recurrenceSessions,  setRecurrenceSessions]  = useState(4)
 
   const visibleServices = useMemo(() => {
     if (!branchModeEnabled || !form.branchId) return services
@@ -240,9 +247,15 @@ export default function ManualAppointmentForm({
       setLoading(false)
       return
     }
-    const body = Object.fromEntries(
+    const body: Record<string, unknown> = Object.fromEntries(
       Object.entries(form).filter(([, value]) => value.trim() !== ""),
     )
+
+    // Attach recurrence if enabled and a full assignment is set
+    const isAssigned = !!(form.doctorId && form.assignedDate && form.assignedTime)
+    if (recurrenceOn && isAssigned && recurrenceSessions >= 2) {
+      body.recurrence = { frequency: recurrenceFrequency, sessions: recurrenceSessions }
+    }
 
     const res = await fetch("/api/admin/appointments", {
       method: "POST",
@@ -264,7 +277,7 @@ export default function ManualAppointmentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-5 rounded-xl border border-[#E8E3DC] bg-white p-5 shadow-sm", className)}>
+    <form onSubmit={handleSubmit} className={cn("space-y-5 rounded-xl border border-border bg-white p-5 shadow-sm", className)}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name" required>
           <Input value={form.patientName} onChange={(e) => update("patientName", e.target.value)} required />
@@ -383,7 +396,7 @@ export default function ManualAppointmentForm({
                         ? "border-[#E0E0E0] bg-[#F5F5F5] text-[#BDBDBD]"
                         : form.slotId === slot.id
                           ? "border-primary bg-primary text-primary-foreground"
-                          : "border-[#E8D8C5] text-foreground",
+                          : "border-border text-foreground",
                     )}
                   >
                     {slot.startTime}
@@ -403,7 +416,7 @@ export default function ManualAppointmentForm({
                     "rounded-md border px-2 py-1 text-xs font-medium transition-colors hover:border-primary",
                     form.assignedTime === time && !form.slotId
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-[#E8D8C5] text-foreground",
+                      : "border-border text-foreground",
                   )}
                 >
                   {time}
@@ -432,10 +445,74 @@ export default function ManualAppointmentForm({
         />
       </Field>
 
+      {/* ── Recurrence ── only shown when tenant has it enabled and a full assignment is set */}
+      {recurrenceEnabled && !!(form.doctorId && form.assignedDate && form.assignedTime) && (
+        <div className="rounded-xl border border-border bg-secondary/30 p-4 space-y-3">
+          <label className="flex cursor-pointer items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={recurrenceOn}
+              onClick={() => setRecurrenceOn(v => !v)}
+              className={`relative h-5 w-9 rounded-full transition-colors ${recurrenceOn ? "bg-primary" : "bg-muted-foreground/30"}`}
+            >
+              <span className={`absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow transition-transform ${recurrenceOn ? "translate-x-4" : "translate-x-0"}`} />
+            </button>
+            <span className="text-sm font-medium text-foreground">Repeat this appointment</span>
+          </label>
+
+          {recurrenceOn && (
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Frequency</Label>
+                <div className="flex gap-2">
+                  {(["WEEKLY", "FORTNIGHTLY", "MONTHLY"] as const).map(f => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setRecurrenceFrequency(f)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        recurrenceFrequency === f
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-white text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      {f === "WEEKLY" ? "Weekly" : f === "FORTNIGHTLY" ? "Every 2 weeks" : "Monthly"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total sessions</Label>
+                  <input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={recurrenceSessions}
+                    onChange={e => setRecurrenceSessions(Math.max(2, Math.min(52, Number(e.target.value))))}
+                    className="h-9 w-20 rounded-lg border border-border bg-white px-3 text-sm font-semibold text-foreground outline-none focus:border-primary"
+                  />
+                </div>
+                {form.assignedDate && (
+                  <p className="mt-5 text-xs text-muted-foreground">
+                    Creates <span className="font-semibold text-foreground">{recurrenceSessions} appointments</span>
+                    {" "}— first on {new Date(form.assignedDate + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       <div className="flex items-center gap-2">
-        <Button type="submit" disabled={loading}>{loading ? "Creating..." : "Create appointment"}</Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? "Creating..." : recurrenceOn ? `Create ${recurrenceSessions} appointments` : "Create appointment"}
+        </Button>
         <Link href="/admin/appointments" className="text-sm font-medium text-muted-foreground hover:text-foreground">
           Cancel
         </Link>

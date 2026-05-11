@@ -6,7 +6,7 @@ const EMPTY_TENANT = {
   tenantId:     "",
   tenantSlug:   "",
   tenantName:   "",
-  primaryColor: "#436850",
+  primaryColor: "#4996D7",
   logoUrl:      "",
   timezone:     "Europe/London",
   branchId:     null as string | null,

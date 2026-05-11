@@ -33,9 +33,10 @@ export async function GET(req: NextRequest) {
 
     const appointments = await prisma.appointment.findMany({
       where: {
-        tenantId:     { in: tenantIds },
-        status:       "APPROVED",
-        reminderSent: false,
+        tenantId:      { in: tenantIds },
+        status:        "APPROVED",
+        reminderSent:  false,
+        reminderOptOut: false,
         OR: [
           // Slot-based bookings
           { slot:         { date: { gte: target, lt: next } } },

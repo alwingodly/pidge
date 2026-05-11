@@ -6,6 +6,24 @@ datasource db {
   provider = "postgresql"
 }
 
+// ── Platform content ─────────────────────────────────────────────────────────
+model PlatformLoginContent {
+  id             String   @id @default("default")
+  eyebrow        String   @default("SaaS operating console")
+  headline       String   @default("Serious operations, surprisingly human.")
+  description    String   @default("A calm command center for tenant growth, clinic workflows, bookings, and access control.")
+  panelLabel     String   @default("Today")
+  statusLabel    String   @default("Healthy")
+  metricOneLabel String   @default("Tenants")
+  metricOneValue String   @default("28")
+  metricTwoLabel String   @default("Bookings")
+  metricTwoValue String   @default("846")
+  metricThreeLabel String @default("Pending")
+  metricThreeValue String @default("12")
+  footerNote     String   @default("Protected console access for super admins and clinic teams.")
+  updatedAt      DateTime @updatedAt
+}
+
 // ── Tenant ────────────────────────────────────────────────────────────────────
 model Tenant {
   id             String   @id @default(uuid())
@@ -18,7 +36,14 @@ model Tenant {
   currency       String   @default("GBP")
   currencySymbol String   @default("£")
   logoUrl        String?
-  primaryColor   String   @default("#436850")
+  primaryColor   String   @default("#4996D7")
+  landingHeadline      String? @db.Text
+  landingSubheadline   String? @db.Text
+  landingPrimaryCta    String?
+  landingSecondaryCta  String?
+  landingTrustBadges   String? @db.Text
+  landingBottomHeadline String? @db.Text
+  landingBottomText     String? @db.Text
   plan             String   @default("FREE")
   stripeAccountId  String?  // Stripe Connect acct_xxx — set after clinic connects their account
   stripeOnboarded  Boolean  @default(false) // true once clinic completes Stripe onboarding
@@ -31,7 +56,9 @@ model Tenant {
   assignmentEmailEnabled    Boolean  @default(true)  // send patient email when appointment is approved
   rescheduleEmailEnabled    Boolean  @default(true)  // send patient email when appointment is rescheduled
   notificationEmail    String?  // override recipient for booking alerts; defaults to tenant admin email
-  manualBookingEnabled Boolean @default(false)
+  manualBookingEnabled    Boolean @default(false)
+  recurrenceEnabled       Boolean @default(false)
+  gdprEnabled             Boolean @default(false) // UK GDPR mode: consent checkbox, opt-out, erasure
   patientHistoryEnabled Boolean @default(true)
   walkInEnabled Boolean @default(true)
   branchModeEnabled Boolean @default(false)
@@ -49,6 +76,7 @@ model Tenant {
   appointmentStatusHistory AppointmentStatusHistory[]
   auditLogs    AuditLog[]
   workingHours   WorkingHours[]
+  doctorLeaves   DoctorLeave[]
   serviceConfigs ServiceBranchConfig[]
 }
 
@@ -76,15 +104,17 @@ model Branch {
 
 // ── AdminUser ─────────────────────────────────────────────────────────────────
 model AdminUser {
-  id        String   @id @default(uuid())
-  tenantId  String
-  branchId  String?
-  name      String
-  email     String   @unique
-  password  String
-  role      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id            String    @id @default(uuid())
+  tenantId      String
+  branchId      String?
+  name          String
+  email         String    @unique
+  password      String
+  role          String
+  isActive      Boolean   @default(true)
+  loginAttempts Int       @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   branch Branch? @relation(fields: [branchId], references: [id])
@@ -109,6 +139,7 @@ model Doctor {
   appointments   Appointment[]
   doctorServices DoctorService[]
   workingHours   WorkingHours[]
+  leaves         DoctorLeave[]
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -203,9 +234,14 @@ model Appointment {
   appointmentType String    @default("ONLINE")    // "ONLINE" | "WALK_IN"
   checkedInAt     DateTime?                       // wall-clock arrival time for walk-ins
   cancelToken     String    @unique
-  reminderSent    Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  reminderSent      Boolean   @default(false)
+  reminderOptOut    Boolean   @default(false) // patient opted out of reminder emails
+  consentGivenAt    DateTime?               // GDPR: timestamp of explicit data processing consent
+  recurrenceGroupId String?   // shared UUID linking a recurring series
+  recurrenceIndex   Int?      // 1-based position in the series
+  recurrenceTotal   Int?      // total appointments in the series
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   tenant  Tenant   @relation(fields: [tenantId], references: [id])
   branch  Branch?  @relation(fields: [branchId], references: [id])
@@ -263,9 +299,11 @@ model BookingOTP {
   otpHash   String   // HMAC-SHA256 of the OTP — never store raw OTP
   attempts  Int      @default(0)
   expiresAt DateTime
+  ipAddress String?
   createdAt DateTime @default(now())
 
   @@index([email])
+  @@index([ipAddress])
 }
 
 // ── PasswordResetToken ────────────────────────────────────────────────────────
@@ -293,4 +331,22 @@ model WorkingHours {
   doctor Doctor  @relation(fields: [doctorId], references: [id])
 
   @@unique([doctorId, dayOfWeek])
+}
+
+// ── DoctorLeave — blocks a doctor's availability for a date range ─────────────
+model DoctorLeave {
+  id        String   @id @default(uuid())
+  tenantId  String
+  doctorId  String
+  startDate DateTime // inclusive
+  endDate   DateTime // inclusive
+  period    String   @default("FULL") // FULL | MORNING | AFTERNOON
+  reason    String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  doctor Doctor @relation(fields: [doctorId], references: [id])
+
+  @@index([doctorId, startDate])
+  @@index([tenantId, startDate])
 }

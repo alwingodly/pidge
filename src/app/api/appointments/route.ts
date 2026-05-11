@@ -55,10 +55,7 @@ export const GET = auth(async (req) => {
           tenantId,
           branchId: branchId ?? undefined,
           doctorId,
-          OR: [
-            { assignedDate: parsedDate.date },
-            { preferredDate: parsedDate.date },
-          ],
+          assignedDate: parsedDate.date,
         },
         select: {
           id: true,
@@ -112,6 +109,8 @@ const createSchema = z.object({
   notes:           z.string().max(500).optional(),
   attachmentData:  z.string().max(7_500_000).optional(),
   attachmentName:  z.string().max(255).optional(),
+  consentGiven:    z.boolean().optional(),
+  reminderOptOut:  z.boolean().optional(),
 })
 
 // Allowed MIME types for patient attachments (validated via base64 magic bytes)
@@ -143,6 +142,7 @@ export async function POST(req: NextRequest) {
     patientName, patientSurname, patientEmail, patientPhone,
     patientDOB, patientGender,
     notes, attachmentData, attachmentName,
+    consentGiven, reminderOptOut,
   } = parsed.data
 
   if (!verifyBookingToken(bookingToken, patientEmail)) {
@@ -211,27 +211,33 @@ export async function POST(req: NextRequest) {
     attachmentName:  attachmentName  ?? null,
     bookingRef,
     cancelToken,
-    status: "PENDING",
+    status:          "PENDING",
+    consentGivenAt:  consentGiven ? new Date() : null,
+    reminderOptOut:  reminderOptOut ?? false,
   }
 
-  const [appointment, tenantRow, service, branch, tenantAdmin] = await Promise.all([
+  // Enforce GDPR consent when tenant requires it
+  const tenantFlags = await prisma.tenant.findUniqueOrThrow({
+    where:  { id: tenantId },
+    select: { name: true, slug: true, notificationEmail: true, bookingAlertsEnabled: true, gdprEnabled: true },
+  })
+  if (tenantFlags.gdprEnabled && !consentGiven) {
+    return Response.json({ error: "Data processing consent is required to complete your booking." }, { status: 422 })
+  }
+
+  const [appointment, service, branch, tenantAdmin] = await Promise.all([
     prisma.appointment.create({ data: appointmentData }),
-    prisma.tenant.findUniqueOrThrow({
-      where:  { id: tenantId },
-      select: { name: true, slug: true, notificationEmail: true, bookingAlertsEnabled: true },
-    }),
     prisma.service.findUniqueOrThrow({ where: { id: serviceId, tenantId } }),
     branchId
       ? prisma.branch.findUnique({ where: { id: branchId } })
       : Promise.resolve(null),
-    // Resolve the tenant admin email as the default alert recipient
     prisma.adminUser.findFirst({
       where:  { tenantId, role: "TENANT_ADMIN" },
       select: { email: true },
     }),
   ])
 
-  const tenant = { ...tenantRow, adminEmail: tenantAdmin?.email ?? null }
+  const tenant = { ...tenantFlags, adminEmail: tenantAdmin?.email ?? null }
 
   // Build plaintext copy for emails — never pass encrypted values to email functions
   const apptForEmail = {

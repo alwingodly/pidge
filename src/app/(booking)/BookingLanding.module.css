@@ -4,9 +4,9 @@
   overflow-x: clip;
   background:
     radial-gradient(760px 500px at 14% 0%, rgba(255, 255, 255, 0.95), transparent 62%),
-    radial-gradient(780px 540px at 100% 8%, rgba(132, 177, 159, 0.42), transparent 60%),
-    radial-gradient(640px 460px at 72% 86%, rgba(236, 210, 167, 0.34), transparent 62%),
-    linear-gradient(145deg, #f9fbf6 0%, #eef4ed 46%, #f7f3ed 100%);
+    radial-gradient(780px 540px at 100% 8%, var(--theme-primary-glow, rgba(235, 203, 144, 0.46)), transparent 60%),
+    radial-gradient(640px 460px at 72% 86%, var(--glass-tint, rgba(201, 154, 77, 0.18)), transparent 62%),
+    linear-gradient(145deg, #fffdf8 0%, var(--theme-primary-soft, #fff8ec) 46%, #fffefb 100%);
 }
 
 .shell::before,
@@ -25,7 +25,7 @@
   width: 320px;
   height: 320px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(173, 188, 159, 0.18) 54%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8), var(--glass-tint, rgba(235, 203, 144, 0.22)) 54%, transparent 70%);
 }
 
 .shell::after {
@@ -34,7 +34,7 @@
   width: 340px;
   height: 340px;
   border-radius: 44% 56% 62% 38%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.72), rgba(67, 104, 80, 0.16) 58%, transparent 72%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.72), var(--glass-tint, rgba(201, 154, 77, 0.16)) 58%, transparent 72%);
 }
 
 .main {
@@ -47,7 +47,7 @@
   background: rgba(255, 255, 255, 0.48);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 18px 44px rgba(18, 55, 42, 0.12);
+    0 18px 44px var(--theme-primary-shadow, rgba(78, 50, 22, 0.12));
   backdrop-filter: blur(24px) saturate(1.55);
   -webkit-backdrop-filter: blur(24px) saturate(1.55);
 }
@@ -59,11 +59,11 @@
   border: 1px solid rgba(255, 255, 255, 0.78);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.38)),
-    linear-gradient(110deg, rgba(173, 188, 159, 0.24), rgba(255, 255, 255, 0.06));
+    linear-gradient(110deg, var(--glass-tint, rgba(235, 203, 144, 0.28)), rgba(255, 255, 255, 0.06));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.88),
     inset 0 -1px 0 rgba(255, 255, 255, 0.28),
-    0 34px 90px rgba(18, 55, 42, 0.16);
+    0 34px 90px var(--theme-primary-shadow, rgba(78, 50, 22, 0.16));
   backdrop-filter: blur(34px) saturate(1.55);
   -webkit-backdrop-filter: blur(34px) saturate(1.55);
 }
@@ -104,7 +104,7 @@
   width: 560px;
   height: 180px;
   rotate: -12deg;
-  background: rgba(67, 104, 80, 0.14);
+  background: var(--glass-tint, rgba(201, 154, 77, 0.16));
 }
 
 .glassCard,
@@ -115,7 +115,7 @@
     rgba(255, 255, 255, 0.28);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
-    0 16px 42px rgba(18, 55, 42, 0.1);
+    0 16px 42px var(--theme-primary-shadow, rgba(78, 50, 22, 0.1));
   backdrop-filter: blur(24px) saturate(1.45);
   -webkit-backdrop-filter: blur(24px) saturate(1.45);
 }
@@ -124,7 +124,7 @@
   background: rgba(255, 255, 255, 0.52);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 12px 30px rgba(18, 55, 42, 0.08);
+    0 12px 30px var(--theme-primary-shadow, rgba(78, 50, 22, 0.08));
 }
 
 .primaryButton {
@@ -133,7 +133,7 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.34),
     inset 0 -1px 0 rgba(0, 0, 0, 0.16),
-    0 18px 42px rgba(67, 104, 80, 0.3);
+    0 18px 42px var(--theme-primary-glow, rgba(201, 154, 77, 0.3));
 }
 
 .primaryButton::after {
@@ -151,7 +151,7 @@
 
 .heroAccent {
   color: transparent;
-  background: linear-gradient(135deg, var(--primary), #1f4f41 58%, #8a9e75);
+  background: linear-gradient(135deg, var(--primary), var(--theme-primary-mid) 58%, var(--theme-primary-dark));
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -159,14 +159,14 @@
 .previewCard {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    0 30px 80px rgba(18, 55, 42, 0.2);
+    0 30px 80px var(--theme-primary-shadow, rgba(78, 50, 22, 0.2));
 }
 
 .previewHeader {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(145deg, rgba(67, 104, 80, 0.96), rgba(18, 55, 42, 0.9)),
+    linear-gradient(145deg, var(--primary), var(--theme-primary-dark)),
     var(--primary);
 }
 
@@ -185,7 +185,7 @@
     linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.42));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -10px 18px rgba(67, 104, 80, 0.05);
+    inset 0 -10px 18px var(--glass-tint, rgba(201, 154, 77, 0.08));
 }
 
 .stepCard,
@@ -209,11 +209,11 @@
 .serviceCard:hover {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 24px 56px rgba(18, 55, 42, 0.14);
+    0 24px 56px var(--theme-primary-shadow, rgba(78, 50, 22, 0.14));
 }
 
 .bottomCta {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.42)),
-    radial-gradient(420px 220px at 50% 0%, rgba(173, 188, 159, 0.32), transparent 70%);
+    radial-gradient(420px 220px at 50% 0%, var(--theme-primary-glow, rgba(235, 203, 144, 0.36)), transparent 70%);
 }

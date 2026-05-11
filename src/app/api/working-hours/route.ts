@@ -11,11 +11,22 @@ export const GET = auth(async (req) => {
   const doctorId     = new URL(req.url).searchParams.get("doctorId")
   if (!doctorId) return Response.json({ error: "doctorId required" }, { status: 400 })
 
-  const hours = await prisma.workingHours.findMany({
-    where:   { tenantId, doctorId },
-    orderBy: { dayOfWeek: "asc" },
+  const [hours, tenant] = await Promise.all([
+    prisma.workingHours.findMany({
+      where:   { tenantId, doctorId },
+      orderBy: { dayOfWeek: "asc" },
+    }),
+    prisma.tenant.findUnique({
+      where:  { id: tenantId },
+      select: { clinicStartTime: true, clinicEndTime: true },
+    }),
+  ])
+
+  return Response.json({
+    data:           hours,
+    clinicStartTime: tenant?.clinicStartTime ?? null,
+    clinicEndTime:   tenant?.clinicEndTime   ?? null,
   })
-  return Response.json({ data: hours })
 })
 
 const upsertSchema = z.object({

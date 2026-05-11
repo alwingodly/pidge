@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Check, Loader2, X } from "lucide-react"
+import { Check, Info, Loader2, X } from "lucide-react"
 
 export type DaySchedule = {
   dayOfWeek: number
@@ -21,17 +21,24 @@ export const DEFAULT_SCHEDULE: DaySchedule[] = DAYS.map((_, i) => ({
   isActive:  i >= 1 && i <= 5,
 }))
 
-const C = { primary: "#BF4646", border: "#E8DCCB" }
+const C = { primary: "var(--primary)", border: "var(--border)" }
+
+function toMins(t: string) {
+  const [h, m] = t.split(":").map(Number)
+  return h * 60 + m
+}
 
 type Props = {
-  doctorId:  string
+  doctorId:         string
+  clinicStartTime?: string | null
+  clinicEndTime?:   string | null
   /** Called after a successful save */
   onSaved?:  () => void
   /** When true the save button reads "Save & finish" — used in the creation wizard */
   isWizard?: boolean
 }
 
-export default function WorkingHoursEditor({ doctorId, onSaved, isWizard }: Props) {
+export default function WorkingHoursEditor({ doctorId, clinicStartTime, clinicEndTime, onSaved, isWizard }: Props) {
   const router = useRouter()
   const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE)
   const [loading,  setLoading]  = useState(true)
@@ -81,59 +88,92 @@ export default function WorkingHoursEditor({ doctorId, onSaved, isWizard }: Prop
     )
   }
 
+  function effectiveWindow(day: DaySchedule): { start: string; end: string } | null {
+    if (!day.isActive) return null
+    const s = clinicStartTime && toMins(clinicStartTime) > toMins(day.startTime) ? clinicStartTime : day.startTime
+    const e = clinicEndTime   && toMins(clinicEndTime)   < toMins(day.endTime)   ? clinicEndTime   : day.endTime
+    return toMins(s) < toMins(e) ? { start: s, end: e } : null
+  }
+
+  function durationLabel(start: string, end: string) {
+    const mins = toMins(end) - toMins(start)
+    if (mins <= 0) return ""
+    const h = Math.floor(mins / 60), m = mins % 60
+    return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`
+  }
+
   return (
     <div>
+      {clinicStartTime && clinicEndTime && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2">
+          <Info className="size-3.5 shrink-0 text-muted-foreground" />
+          <p className="text-[11px] text-muted-foreground">
+            Clinic hours: <span className="font-semibold text-foreground">{clinicStartTime} – {clinicEndTime}</span>
+            <span className="ml-1">· Patient slots limited to this window</span>
+          </p>
+        </div>
+      )}
       <div className="divide-y divide-[#F3EAE0]">
-        {schedule.map((day) => (
-          <div key={day.dayOfWeek} className="flex items-center gap-3 px-1 py-3">
-            <button
-              type="button"
-              onClick={() => updateDay(day.dayOfWeek, "isActive", !day.isActive)}
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg border transition-all"
-              style={{
-                background:  day.isActive ? C.primary : "#fff",
-                borderColor: day.isActive ? C.primary : C.border,
-                color:       day.isActive ? "#fff"    : "#aaa",
-              }}
-            >
-              {day.isActive ? <Check className="size-4" strokeWidth={3} /> : <X className="size-3.5" />}
-            </button>
+        {schedule.map((day) => {
+          const eff        = effectiveWindow(day)
+          const isClipped  = eff && (eff.start !== day.startTime || eff.end !== day.endTime)
 
-            <p className={`w-24 shrink-0 text-sm font-semibold ${day.isActive ? "text-foreground" : "text-muted-foreground"}`}>
-              {DAYS[day.dayOfWeek]}
-            </p>
+          return (
+          <div key={day.dayOfWeek} className="px-1 py-3 space-y-1.5">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => updateDay(day.dayOfWeek, "isActive", !day.isActive)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg border transition-all"
+                style={{
+                  background:  day.isActive ? C.primary : "#fff",
+                  borderColor: day.isActive ? C.primary : C.border,
+                  color:       day.isActive ? "#fff"    : "#aaa",
+                }}
+              >
+                {day.isActive ? <Check className="size-4" strokeWidth={3} /> : <X className="size-3.5" />}
+              </button>
 
-            {day.isActive ? (
-              <div className="flex flex-1 flex-wrap items-center gap-2">
-                <input
-                  type="time"
-                  value={day.startTime}
-                  onChange={(e) => updateDay(day.dayOfWeek, "startTime", e.target.value)}
-                  className="rounded-lg border border-[#E8D8C5] px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
-                />
-                <span className="text-xs text-muted-foreground">to</span>
-                <input
-                  type="time"
-                  value={day.endTime}
-                  onChange={(e) => updateDay(day.dayOfWeek, "endTime", e.target.value)}
-                  className="rounded-lg border border-[#E8D8C5] px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
-                />
-                <span className="text-xs text-muted-foreground">
-                  {(() => {
-                    const [sh, sm] = day.startTime.split(":").map(Number)
-                    const [eh, em] = day.endTime.split(":").map(Number)
-                    const mins = (eh * 60 + em) - (sh * 60 + sm)
-                    if (mins <= 0) return ""
-                    const h = Math.floor(mins / 60), m = mins % 60
-                    return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`
-                  })()}
+              <p className={`w-24 shrink-0 text-sm font-semibold ${day.isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                {DAYS[day.dayOfWeek]}
+              </p>
+
+              {day.isActive ? (
+                <div className="flex flex-1 flex-wrap items-center gap-2">
+                  <input
+                    type="time"
+                    value={day.startTime}
+                    onChange={(e) => updateDay(day.dayOfWeek, "startTime", e.target.value)}
+                    className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
+                  />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <input
+                    type="time"
+                    value={day.endTime}
+                    onChange={(e) => updateDay(day.dayOfWeek, "endTime", e.target.value)}
+                    className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary/50"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {durationLabel(day.startTime, day.endTime)}
+                  </span>
+                </div>
+              ) : (
+                <p className="flex-1 text-sm text-muted-foreground">Day off</p>
+              )}
+            </div>
+
+            {/* Effective window — only shown when clinic hours clip this day */}
+            {isClipped && eff && (
+              <div className="ml-11 flex items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground">Effective for booking:</span>
+                <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                  {eff.start} – {eff.end} · {durationLabel(eff.start, eff.end)}
                 </span>
               </div>
-            ) : (
-              <p className="flex-1 text-sm text-muted-foreground">Day off</p>
             )}
           </div>
-        ))}
+        )})}
+
       </div>
 
       <div className="mt-4 flex items-center justify-between">

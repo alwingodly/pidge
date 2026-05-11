@@ -2,10 +2,21 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { sendBookingOTPEmail } from "@/lib/email"
 import { hmacOTP, signBookingToken } from "@/lib/encryption"
-import { randomInt } from "crypto"
+import { randomInt, timingSafeEqual } from "crypto"
 
-const OTP_TTL_MS   = 10 * 60 * 1000 // 10 minutes
-const MAX_ATTEMPTS = 5               // invalidate after 5 wrong guesses
+const OTP_TTL_MS        = 10 * 60 * 1000 // 10 minutes
+const MAX_ATTEMPTS      = 5               // invalidate after 5 wrong guesses
+const EMAIL_COOLDOWN_S  = 60             // seconds between requests per email
+const IP_WINDOW_MS      = 60 * 60 * 1000 // 1-hour window for IP limit
+const IP_MAX_PER_WINDOW = 10             // max OTP requests per IP per hour
+
+function getIp(req: NextRequest): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown"
+  )
+}
 
 export async function POST(req: NextRequest) {
   const { email, patientName } = await req.json()
@@ -17,14 +28,30 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Name is required." }, { status: 400 })
   }
 
-  // Rate limit: one OTP request per email per 60 seconds
+  const ip = getIp(req)
+
+  // IP rate limit: max 10 OTP requests per hour per IP
+  const ipCount = await prisma.bookingOTP.count({
+    where: {
+      ipAddress: ip,
+      createdAt: { gt: new Date(Date.now() - IP_WINDOW_MS) },
+    },
+  })
+  if (ipCount >= IP_MAX_PER_WINDOW) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
+    )
+  }
+
+  // Per-email cooldown: 60 seconds between requests
   const recent = await prisma.bookingOTP.findFirst({
     where:   { email },
     orderBy: { createdAt: "desc" },
   })
   if (recent) {
     const secondsSince = (Date.now() - recent.createdAt.getTime()) / 1000
-    if (secondsSince < 60) {
+    if (secondsSince < EMAIL_COOLDOWN_S) {
       return Response.json(
         { error: "Please wait before requesting another code." },
         { status: 429 },
@@ -39,7 +66,7 @@ export async function POST(req: NextRequest) {
   const otpHash = hmacOTP(otp)
   const expiresAt = new Date(Date.now() + OTP_TTL_MS)
 
-  await prisma.bookingOTP.create({ data: { email, otpHash, expiresAt } })
+  await prisma.bookingOTP.create({ data: { email, otpHash, expiresAt, ipAddress: ip } })
 
   if (process.env.NODE_ENV === "development") {
     console.log(`\n[OTP dev] ${email} → ${otp}\n`)
@@ -71,7 +98,9 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: "Too many attempts. Please request a new code." }, { status: 429 })
   }
 
-  const valid  = hmacOTP(otp.toString()) === record.otpHash
+  const computedHash = Buffer.from(hmacOTP(otp.toString()), "hex")
+  const storedHash   = Buffer.from(record.otpHash, "hex")
+  const valid = computedHash.length === storedHash.length && timingSafeEqual(computedHash, storedHash)
   if (!valid) {
     await prisma.bookingOTP.update({
       where: { id: record.id },

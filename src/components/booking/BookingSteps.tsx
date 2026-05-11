@@ -61,6 +61,8 @@ type State = {
   patientDOB:     string
   patientGender:  string
   notes:          string
+  consentGiven:   boolean
+  reminderOptOut: boolean
   clientSecret:   string | null
   bookingToken:   string | null
 }
@@ -71,12 +73,14 @@ export default function BookingSteps({
   defaultBranchId,
   showDoctorSelection,
   currencySymbol,
+  gdprEnabled,
 }: {
   services:             Service[]
   branches:             Branch[]
   defaultBranchId:      string | null
   showDoctorSelection:  boolean
   currencySymbol:       string
+  gdprEnabled:          boolean
 }) {
   const router = useRouter()
 
@@ -93,6 +97,8 @@ export default function BookingSteps({
     patientDOB:     "",
     patientGender:  "",
     notes:          "",
+    consentGiven:   false,
+    reminderOptOut: false,
     clientSecret:   null,
     bookingToken:   null,
   })
@@ -140,7 +146,9 @@ export default function BookingSteps({
     if (!showDoctorSelection || state.step !== doctorStep || !state.serviceId) return
     setLoadingDoctors(true)
     const qs = new URLSearchParams({ serviceId: state.serviceId })
-    if (state.branchId) qs.set("branchId", state.branchId)
+    // Only filter by branch when the patient explicitly chose one (multi-branch flow).
+    // When branchId is auto-set from a single branch, doctors may not have it assigned.
+    if (state.branchId && hasLocationStep) qs.set("branchId", state.branchId)
     fetch(`/api/doctors?${qs}`)
       .then((r) => r.json())
       .then((d) => setDoctors(d.data ?? []))
@@ -182,6 +190,10 @@ export default function BookingSteps({
           patientDOB:     state.patientDOB      || undefined,
           patientGender:  state.patientGender   || undefined,
           notes:          state.notes           || undefined,
+          ...(gdprEnabled ? {
+            consentGiven:   state.consentGiven,
+            reminderOptOut: state.reminderOptOut,
+          } : {}),
         }),
       })
       const data = await res.json().catch(() => null)
@@ -250,10 +262,10 @@ export default function BookingSteps({
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
 
       {/* ── Main panel ──────────────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-2xl border border-[#E8D8C5] bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
 
         {/* Step indicator */}
-        <div className="border-b border-[#E8D8C5] px-5 py-4">
+        <div className="border-b border-border px-5 py-4">
           <div className="flex items-center">
             {STEP_LABELS.map((label, i) => {
               const step   = i + 1
@@ -265,7 +277,7 @@ export default function BookingSteps({
                     <div className={`flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold transition-colors ${
                       active ? "border-primary bg-primary text-white"
                       : done  ? "border-primary/30 bg-primary/8 text-primary"
-                      :         "border-[#E8D8C5] bg-white text-muted-foreground"
+                      :         "border-border bg-white text-muted-foreground"
                     }`}>
                       {done ? <Check className="size-3" strokeWidth={3} /> : i + 1}
                     </div>
@@ -274,7 +286,7 @@ export default function BookingSteps({
                     </span>
                   </div>
                   {i < STEP_LABELS.length - 1 && (
-                    <div className={`mx-2 h-px flex-1 transition-colors ${done ? "bg-primary/30" : "bg-[#E8D8C5]"}`} />
+                    <div className={`mx-2 h-px flex-1 transition-colors ${done ? "bg-primary/30" : "bg-border"}`} />
                   )}
                 </div>
               )
@@ -299,7 +311,7 @@ export default function BookingSteps({
                     key={branch.id}
                     type="button"
                     onClick={() => { set("branchId", branch.id); set("step", serviceStep) }}
-                    className="group flex w-full items-center gap-3.5 rounded-xl border border-[#E8D8C5] bg-white px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-secondary/30"
+                    className="group flex w-full items-center gap-3.5 rounded-xl border border-border bg-white px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-secondary/30"
                   >
                     <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
                       <MapPin className="size-4" />
@@ -342,8 +354,8 @@ export default function BookingSteps({
                         onClick={() => { if (!unavailable) selectService(service.id) }}
                         className={`group flex w-full items-center gap-3.5 rounded-xl border px-4 py-3 text-left transition-all ${
                           unavailable
-                            ? "cursor-not-allowed border-[#E8D8C5] bg-[#FAFAF9] opacity-70"
-                            : "border-[#E8D8C5] bg-white hover:border-primary/40 hover:bg-secondary/30"
+                            ? "cursor-not-allowed border-border bg-muted opacity-70"
+                            : "border-border bg-white hover:border-primary/40 hover:bg-secondary/30"
                         }`}
                       >
                         <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${unavailable ? "bg-muted text-muted-foreground" : "bg-secondary text-primary"}`}>
@@ -408,7 +420,7 @@ export default function BookingSteps({
                       key={doctor.id}
                       type="button"
                       onClick={() => { set("doctorId", doctor.id); set("step", dateStep) }}
-                      className="group flex w-full items-center gap-3.5 rounded-xl border border-[#E8D8C5] bg-white px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-secondary/30"
+                      className="group flex w-full items-center gap-3.5 rounded-xl border border-border bg-white px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-secondary/30"
                     >
                       <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-sm font-bold text-primary">
                         {doctor.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
@@ -458,7 +470,7 @@ export default function BookingSteps({
               />
 
               {!showDoctorSelection && (
-                <div className="flex items-start gap-3 rounded-xl border border-[#E8D8C5] bg-secondary/30 px-4 py-3">
+                <div className="flex items-start gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-3">
                   <Clock className="mt-0.5 size-4 shrink-0 text-primary/60" />
                   <p className="text-sm text-muted-foreground">
                     You don&apos;t need to pick a time — our team will match you with the right clinician and send your confirmed appointment details by email.
@@ -504,6 +516,11 @@ export default function BookingSteps({
                 onSubmit={handleSendOTP}
                 loading={otpSending}
                 error={error}
+                gdprEnabled={gdprEnabled}
+                consentGiven={state.consentGiven}
+                reminderOptOut={state.reminderOptOut}
+                onConsentChange={v => set("consentGiven", v)}
+                onReminderOptOutChange={v => set("reminderOptOut", v)}
               />
               <Button variant="outline" size="sm" className="rounded-xl bg-white" onClick={() => set("step", dateStep)}>
                 <ArrowLeft className="size-4" /> Back
@@ -586,8 +603,8 @@ export default function BookingSteps({
 
       {/* ── Summary sidebar ─────────────────────────────────────────── */}
       <aside className="lg:sticky lg:top-24 lg:self-start">
-        <div className="overflow-hidden rounded-2xl border border-[#E8D8C5] bg-white shadow-sm">
-          <div className="border-b border-[#E8D8C5] bg-secondary/30 px-4 py-3">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+          <div className="border-b border-border bg-secondary/30 px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-widest text-primary">Summary</p>
           </div>
           <div className="px-4 py-3">
@@ -625,7 +642,7 @@ export default function BookingSteps({
                 ? new Date(state.preferredDate).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })
                 : null}
             />
-            <div className="mt-3 rounded-xl border border-[#E8D8C5] bg-secondary/30 px-3 py-2.5">
+            <div className="mt-3 rounded-xl border border-border bg-secondary/30 px-3 py-2.5">
               <p className="text-xs leading-relaxed text-muted-foreground">
                 {showDoctorSelection
                   ? "A confirmed appointment time will be sent to your email."
@@ -749,7 +766,7 @@ function SummaryRow({ icon, label, value, badge }: {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-[#E8D8C5] bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
+    <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
       {text}
     </div>
   )
@@ -792,7 +809,7 @@ function OTPInput({ value, onChange }: { value: string[]; onChange: (v: string[]
           onKeyDown={e => handleKeyDown(i, e)}
           onPaste={handlePaste}
           autoComplete="one-time-code"
-          className="size-11 rounded-xl border-2 border-[#E8D8C5] bg-white text-center text-xl font-bold text-foreground outline-none transition-colors focus:border-primary"
+          className="size-11 rounded-xl border-2 border-border bg-white text-center text-xl font-bold text-foreground outline-none transition-colors focus:border-primary"
         />
       ))}
     </div>

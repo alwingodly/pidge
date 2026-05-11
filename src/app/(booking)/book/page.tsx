@@ -20,7 +20,7 @@ export default async function BookPage() {
     }),
     prisma.tenant.findUnique({
       where:  { id: tenantId },
-      select: { showDoctorSelection: true, currencySymbol: true },
+      select: { showDoctorSelection: true, currencySymbol: true, gdprEnabled: true },
     }),
   ])
 
@@ -33,6 +33,7 @@ export default async function BookPage() {
       defaultBranchId={defaultBranchId}
       showDoctorSelection={tenant?.showDoctorSelection ?? false}
       currencySymbol={tenant?.currencySymbol ?? "£"}
+      gdprEnabled={tenant?.gdprEnabled ?? false}
     />
   )
 }

@@ -59,8 +59,8 @@ export default function ManageBranchDialog({
           Manage
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg rounded-2xl border-[#E8E3DC] p-0">
-        <DialogHeader className="border-b border-[#E8E3DC] px-5 py-4">
+      <DialogContent className="max-w-lg rounded-2xl border-border p-0">
+        <DialogHeader className="border-b border-border px-5 py-4">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
               <GitBranch className="size-4.5" />
@@ -113,12 +113,12 @@ export default function ManageBranchDialog({
               <div className="min-w-0 flex-1 space-y-2">
                 <p className="break-all font-mono text-[11px] text-muted-foreground">{checkinUrl}</p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="h-7 rounded-lg border-[#E8D8C5] text-xs" onClick={handleCopy}>
+                  <Button variant="outline" size="sm" className="h-7 rounded-lg border-border text-xs" onClick={handleCopy}>
                     {copied
                       ? <><Check className="mr-1 size-3 text-emerald-600" />Copied!</>
                       : <><Copy className="mr-1 size-3" />Copy</>}
                   </Button>
-                  <Button variant="outline" size="sm" className="h-7 rounded-lg border-[#E8D8C5] text-xs" onClick={handleDownload}>
+                  <Button variant="outline" size="sm" className="h-7 rounded-lg border-border text-xs" onClick={handleDownload}>
                     <Download className="mr-1 size-3" />Download
                   </Button>
                 </div>

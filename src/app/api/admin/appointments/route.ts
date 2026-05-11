@@ -24,7 +24,29 @@ const manualCreateSchema = z.object({
   patientDOB:     z.string().optional(),
   patientGender:  z.string().max(50).optional(),
   notes:          z.string().max(500).optional(),
+  recurrence:     z.object({
+    frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]),
+    sessions:  z.number().int().min(2).max(52),
+  }).optional(),
 })
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d
+}
+
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date)
+  d.setUTCMonth(d.getUTCMonth() + months)
+  return d
+}
+
+function nextDate(base: Date, frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY", index: number): Date {
+  if (frequency === "WEEKLY")      return addDays(base, 7 * index)
+  if (frequency === "FORTNIGHTLY") return addDays(base, 14 * index)
+  return addMonths(base, index)
+}
 
 function parseDateOnly(value: string | undefined, label: string) {
   if (!value) return { date: null }
@@ -106,6 +128,7 @@ export async function POST(req: NextRequest) {
     patientDOB,
     patientGender,
     notes,
+    recurrence,
   } = parsed.data
 
   let resolvedBranchId = scopedBranchId ?? null
@@ -378,6 +401,43 @@ export async function POST(req: NextRequest) {
     sendBookingAcknowledgement(apptForEmail),
     ...(tenant.bookingAlertsEnabled ? [sendAdminNewRequest(apptForEmail)] : []),
   ])
+
+  // ── Recurrence: create remaining sessions ──────────────────────────────────
+  if (recurrence && parsedAssignedDate && assignedTime && doctorId) {
+    const { frequency, sessions } = recurrence
+    const groupId = appointment.id // use first appointment id as group anchor
+
+    // Update first appointment with series metadata
+    await prisma.appointment.update({
+      where: { id: appointment.id },
+      data: { recurrenceGroupId: groupId, recurrenceIndex: 1, recurrenceTotal: sessions },
+    })
+
+    // Create sessions 2..N (index 1..N-1 offsets)
+    const seriesData: Prisma.AppointmentUncheckedCreateInput[] = []
+    for (let i = 1; i < sessions; i++) {
+      const seriesDate = nextDate(parsedAssignedDate, frequency, i)
+      seriesData.push({
+        ...appointmentData,
+        bookingRef:        generateBookingRef(),
+        cancelToken:       generateCancelToken(),
+        assignedDate:      seriesDate,
+        slotId:            null,          // no slot for future dates — admin manages slots
+        recurrenceGroupId: groupId,
+        recurrenceIndex:   i + 1,
+        recurrenceTotal:   sessions,
+      })
+    }
+
+    if (seriesData.length > 0) {
+      await prisma.appointment.createMany({ data: seriesData })
+    }
+
+    return Response.json({
+      data:     { id: appointment.id, bookingRef: appointment.bookingRef },
+      series:   { groupId, total: sessions, frequency },
+    }, { status: 201 })
+  }
 
   return Response.json({ data: { id: appointment.id, bookingRef: appointment.bookingRef } }, { status: 201 })
 }

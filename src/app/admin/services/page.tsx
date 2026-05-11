@@ -55,7 +55,7 @@ export default async function ServicesPage() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="flex size-7 items-center justify-center rounded-lg bg-secondary text-primary">

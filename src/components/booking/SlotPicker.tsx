@@ -64,7 +64,7 @@ export default function SlotPicker({ doctorId, serviceId, onSelect }: Props) {
 
       {/* Time slots */}
       {selectedDate && (
-        <div className="rounded-xl border border-[#E8D8C5] bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-border bg-white p-4 shadow-sm">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             Available times
             {selectedDate && (
@@ -93,7 +93,7 @@ export default function SlotPicker({ doctorId, serviceId, onSelect }: Props) {
                   className={`flex flex-col items-center rounded-xl border py-2.5 text-sm font-semibold transition-all duration-150 ${
                     selectedSlot === slot.id
                       ? "border-primary bg-primary text-white shadow-sm"
-                      : "border-[#E8D8C5] bg-white text-foreground hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm"
+                      : "border-border bg-white text-foreground hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-sm"
                   }`}
                 >
                   {formatTime(slot.startTime)}

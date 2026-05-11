@@ -40,7 +40,7 @@ export default async function NotificationsSettingsPage() {
     <div className="space-y-4">
 
       {/* Reminder emails */}
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-start gap-3 border-b border-[#F3EAE0] px-5 py-4">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
             <Bell className="size-4" />
@@ -61,7 +61,7 @@ export default async function NotificationsSettingsPage() {
       </div>
 
       {/* Patient email notifications */}
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-start gap-3 border-b border-[#F3EAE0] px-5 py-4">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
             <MessageSquare className="size-4" />
@@ -82,7 +82,7 @@ export default async function NotificationsSettingsPage() {
       </div>
 
       {/* Admin notification email */}
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-start gap-3 border-b border-[#F3EAE0] px-5 py-4">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
             <Mail className="size-4" />
@@ -104,7 +104,7 @@ export default async function NotificationsSettingsPage() {
       </div>
 
       {/* Review requests */}
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-start gap-3 border-b border-[#F3EAE0] px-5 py-4">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
             <Star className="size-4" />

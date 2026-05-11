@@ -13,7 +13,7 @@ export default function DoctorsLoading() {
         <Bone className="h-9 w-32 rounded-xl" />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#F3EAE0] px-4 py-3">
           <Bone className="h-4 w-24" />
           <Bone className="h-4 w-12" />

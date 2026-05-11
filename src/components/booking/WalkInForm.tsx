@@ -117,7 +117,7 @@ export default function WalkInForm({ services, branches, defaultBranchId, tenant
                   className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-all ${
                     branchId === b.id
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-[#E8D8C5] bg-white text-foreground hover:border-primary/40"
+                      : "border-border bg-white text-foreground hover:border-primary/40"
                   }`}
                 >
                   {b.name}
@@ -133,7 +133,7 @@ export default function WalkInForm({ services, branches, defaultBranchId, tenant
               key={s.id}
               type="button"
               onClick={() => { setServiceId(s.id); setStep("details") }}
-              className="group flex items-start gap-4 rounded-2xl border border-[#E8E3DC] bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              className="group flex items-start gap-4 rounded-2xl border border-border bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
             >
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                 <Stethoscope className="size-5" />
@@ -320,7 +320,7 @@ export default function WalkInForm({ services, branches, defaultBranchId, tenant
         </p>
       </div>
 
-      <div className="w-full max-w-xs overflow-hidden rounded-2xl border border-[#E8E3DC] bg-white shadow-sm">
+      <div className="w-full max-w-xs overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <div className="border-b border-[#F3EAE0] bg-secondary/30 px-5 py-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             Your check-in reference

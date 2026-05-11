@@ -18,17 +18,17 @@ export function BookingTrendChart({ data }: { data: TrendPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={160}>
       <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#EDDCC6" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
         <XAxis
           dataKey="day"
-          tick={{ fontSize: 10, fill: "#9A7A5A" }}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
           allowDecimals={false}
-          tick={{ fontSize: 10, fill: "#9A7A5A" }}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
           tickLine={false}
           axisLine={false}
           width={32}
@@ -36,22 +36,22 @@ export function BookingTrendChart({ data }: { data: TrendPoint[] }) {
         <Tooltip
           contentStyle={{
             background: "#fff",
-            border: "1px solid #EDDCC6",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             fontSize: 12,
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
-          itemStyle={{ color: "#BF4646" }}
-          labelStyle={{ color: "#1C1007", fontWeight: 600, marginBottom: 2 }}
+          itemStyle={{ color: "var(--primary)" }}
+          labelStyle={{ color: "var(--foreground)", fontWeight: 600, marginBottom: 2 }}
           formatter={(value) => [Number(value ?? 0), "Bookings"]}
         />
         <Line
           type="monotone"
           dataKey="bookings"
-          stroke="#BF4646"
+          stroke="var(--primary)"
           strokeWidth={2}
           dot={false}
-          activeDot={{ r: 4, fill: "#BF4646", strokeWidth: 0 }}
+          activeDot={{ r: 4, fill: "var(--primary)", strokeWidth: 0 }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -82,7 +82,7 @@ export function StatusDonut({ data }: { data: StatusSlice[] }) {
           <Tooltip
             contentStyle={{
               background: "#fff",
-              border: "1px solid #EDDCC6",
+              border: "1px solid var(--border)",
               borderRadius: 8,
               fontSize: 12,
               boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
@@ -122,7 +122,7 @@ export function TopDoctorsBarChart({ data }: { data: DoctorBar[] }) {
       >
         <XAxis
           type="number"
-          tick={{ fontSize: 10, fill: "#9A7A5A" }}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
@@ -131,23 +131,23 @@ export function TopDoctorsBarChart({ data }: { data: DoctorBar[] }) {
           type="category"
           dataKey="name"
           width={90}
-          tick={{ fontSize: 11, fill: "#1C1007" }}
+          tick={{ fontSize: 11, fill: "var(--foreground)" }}
           tickLine={false}
           axisLine={false}
         />
         <Tooltip
           contentStyle={{
             background: "#fff",
-            border: "1px solid #EDDCC6",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             fontSize: 12,
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
-          cursor={{ fill: "#FFF4EA" }}
+          cursor={{ fill: "var(--secondary)" }}
           formatter={(value) => [Number(value ?? 0), "Appointments"]}
         />
-        <Bar dataKey="count" fill="#BF4646" radius={[0, 3, 3, 0]} maxBarSize={18}>
-          <LabelList dataKey="count" position="right" style={{ fontSize: 11, fill: "#9A7A5A", fontWeight: 600 }} />
+        <Bar dataKey="count" fill="var(--primary)" radius={[0, 3, 3, 0]} maxBarSize={18}>
+          <LabelList dataKey="count" position="right" style={{ fontSize: 11, fill: "var(--muted-foreground)", fontWeight: 600 }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -166,7 +166,7 @@ export function TopServicesBarChart({ data }: { data: ServiceBar[] }) {
       >
         <XAxis
           type="number"
-          tick={{ fontSize: 10, fill: "#9A7A5A" }}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
@@ -175,23 +175,23 @@ export function TopServicesBarChart({ data }: { data: ServiceBar[] }) {
           type="category"
           dataKey="name"
           width={90}
-          tick={{ fontSize: 11, fill: "#1C1007" }}
+          tick={{ fontSize: 11, fill: "var(--foreground)" }}
           tickLine={false}
           axisLine={false}
         />
         <Tooltip
           contentStyle={{
             background: "#fff",
-            border: "1px solid #EDDCC6",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             fontSize: 12,
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
-          cursor={{ fill: "#FFF4EA" }}
+          cursor={{ fill: "var(--secondary)" }}
           formatter={(value) => [Number(value ?? 0), "Bookings"]}
         />
-        <Bar dataKey="count" fill="#7EACB5" radius={[0, 3, 3, 0]} maxBarSize={18}>
-          <LabelList dataKey="count" position="right" style={{ fontSize: 11, fill: "#9A7A5A", fontWeight: 600 }} />
+        <Bar dataKey="count" fill="var(--theme-primary-dark)" radius={[0, 3, 3, 0]} maxBarSize={18}>
+          <LabelList dataKey="count" position="right" style={{ fontSize: 11, fill: "var(--muted-foreground)", fontWeight: 600 }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>

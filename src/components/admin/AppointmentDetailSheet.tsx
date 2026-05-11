@@ -85,8 +85,8 @@ const ACTIONS: { status: Status; label: string; icon: React.ElementType; style: 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E8E3DC]">
-      <div className="border-b border-[#F3EAE0] bg-[#FDFBF8] px-4 py-2">
+    <div className="overflow-hidden rounded-xl border border-border">
+      <div className="border-b border-[#F3EAE0] bg-secondary/30 px-4 py-2">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">{title}</p>
       </div>
       <div className="divide-y divide-[#F3EAE0]">{children}</div>
@@ -212,7 +212,7 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
         className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
       >
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <SheetHeader className="shrink-0 border-b border-[#E8E3DC] px-6 py-5">
+        <SheetHeader className="shrink-0 border-b border-border px-6 py-5">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
               <CalendarDays className="size-5" />
@@ -242,7 +242,7 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
           {loading && (
             <div className="space-y-3">
               {[80, 56, 68, 48].map((h, i) => (
-                <div key={i} className="animate-pulse rounded-xl border border-[#E8E3DC]">
+                <div key={i} className="animate-pulse rounded-xl border border-border">
                   <div className="h-8 rounded-t-xl bg-[#F9F7F4]" />
                   <div className="p-4">
                     <div className="h-3 w-full rounded bg-[#EDE8E3]" style={{ maxWidth: h + "%" }} />
@@ -363,7 +363,7 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
 
         {/* ── Footer actions ───────────────────────────────────────────────── */}
         {!loading && appt && (
-          <div className="shrink-0 border-t border-[#E8E3DC] bg-[#FDFBF8] px-6 py-4 space-y-3">
+          <div className="shrink-0 border-t border-border bg-secondary/30 px-6 py-4 space-y-3">
             {/* Nudge when pending but not yet assigned */}
             {needsAssignment && (
               <p className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">

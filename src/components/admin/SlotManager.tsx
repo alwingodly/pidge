@@ -20,13 +20,12 @@ const PERIODS = [
 ]
 
 const C = {
-  primary:    "#BF4646",
-  primaryHov: "#A03A3A",
-  teal:       "#7EACB5",
-  tealLight:  "#EAF4F6",
-  beige:      "#EDDCC6",
-  cream:      "#FFF4EA",
-  border:     "#E8DCCB",
+  primary:   "var(--primary)",
+  teal:      "var(--theme-primary-dark)",
+  tealLight: "var(--secondary)",
+  beige:     "var(--accent)",
+  cream:     "var(--secondary)",
+  border:    "var(--border)",
 }
 
 function generateTimes(from: string, to: string, dur: number) {
@@ -80,7 +79,7 @@ function DoctorPicker({ doctors, value, onChange }: {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate" style={{ color: C.primary }}>{selected.name}</p>
-              <p className="text-xs truncate" style={{ color: "#9A7A5A" }}>{selected.speciality}</p>
+              <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{selected.speciality}</p>
             </div>
             <button type="button" onClick={() => { onChange(""); setSearch("") }}
               className="shrink-0 p-1 rounded hover:opacity-70 transition-opacity"
@@ -92,7 +91,7 @@ function DoctorPicker({ doctors, value, onChange }: {
           {/* Services this doctor can perform */}
           {selected.services.length > 0 ? (
             <div className="px-3 py-2.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#9A7A5A" }}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--muted-foreground)" }}>
                 Offers these services
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -100,14 +99,14 @@ function DoctorPicker({ doctors, value, onChange }: {
                   <span key={s.id} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
                     style={{ background: "#EAF3F5", color: "#3A8A97" }}>
                     {s.name}
-                    <span style={{ color: "#9A7A5A" }}>· {s.durationMins}m</span>
+                    <span style={{ color: "var(--muted-foreground)" }}>· {s.durationMins}m</span>
                   </span>
                 ))}
               </div>
             </div>
           ) : (
             <div className="px-3 py-2.5">
-              <p className="text-xs" style={{ color: "#BF4646" }}>
+              <p className="text-xs text-destructive">
                 ⚠ No services assigned. Go to <strong>Doctors → Edit</strong> to add services to this doctor.
               </p>
             </div>
@@ -120,7 +119,7 @@ function DoctorPicker({ doctors, value, onChange }: {
         <div className="space-y-1.5">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
-              style={{ color: "#9A7A5A" }} />
+              style={{ color: "var(--muted-foreground)" }} />
             <Input
               placeholder={`Search ${doctors.length} doctors…`}
               value={search}
@@ -132,7 +131,7 @@ function DoctorPicker({ doctors, value, onChange }: {
           <div className="rounded-lg border overflow-hidden" style={{ borderColor: C.border }}>
             <div className="max-h-52 overflow-y-auto divide-y" style={{ borderColor: C.border }}>
               {filtered.length === 0 ? (
-                <p className="p-3 text-sm text-center" style={{ color: "#9A7A5A" }}>No doctors match</p>
+                <p className="p-3 text-sm text-center" style={{ color: "var(--muted-foreground)" }}>No doctors match</p>
               ) : filtered.map((d) => (
                 <button
                   key={d.id}
@@ -152,7 +151,7 @@ function DoctorPicker({ doctors, value, onChange }: {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate text-foreground">{d.name}</p>
-                    <p className="text-xs truncate" style={{ color: "#9A7A5A" }}>{d.speciality}</p>
+                    <p className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{d.speciality}</p>
                   </div>
                   {value === d.id && <Check className="w-4 h-4 shrink-0" style={{ color: C.primary }} />}
                 </button>
@@ -317,7 +316,7 @@ function CreateTab({ doctors }: { doctors: Doctor[] }) {
         {/* Duration confirmation chip */}
         {service && (
           <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
-            style={{ background: C.cream, color: "#7A5A3A" }}>
+            style={{ background: C.cream, color: "var(--muted-foreground)" }}>
             <span className="font-semibold" style={{ color: C.primary }}>✓</span>
             Each slot will be <strong>{service.durationMins} minutes</strong> long
             — matching the <strong>{service.name}</strong> service duration.
@@ -333,7 +332,7 @@ function CreateTab({ doctors }: { doctors: Doctor[] }) {
             style={{ background: ready ? C.primary : "#ccc" }}>3</div>
           <p className="text-sm font-semibold text-foreground">Select Time Slots</p>
           {ready && (
-            <p className="text-xs ml-auto" style={{ color: "#9A7A5A" }}>
+            <p className="text-xs ml-auto" style={{ color: "var(--muted-foreground)" }}>
               {doctor?.name} · {date && format(date, "dd MMM")}
               {fetching && " · Loading…"}
             </p>
@@ -341,7 +340,7 @@ function CreateTab({ doctors }: { doctors: Doctor[] }) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 px-5 py-2 border-b text-xs" style={{ background: "#FAFAF8", borderColor: C.border }}>
+        <div className="flex items-center gap-4 px-5 py-2 border-b text-xs" style={{ background: "var(--secondary)", borderColor: C.border }}>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded" style={{ background: C.teal }} />
             Already saved
@@ -363,7 +362,7 @@ function CreateTab({ doctors }: { doctors: Doctor[] }) {
           const allOn = freePeriodSlots.length > 0 && freePeriodSlots.every((t) => selected.has(t))
           return (
             <div key={period.label} className="border-b last:border-0" style={{ borderColor: C.border }}>
-              <div className="flex items-center justify-between px-5 py-2.5" style={{ background: "#FAFAF8" }}>
+              <div className="flex items-center justify-between px-5 py-2.5" style={{ background: "var(--secondary)" }}>
                 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.primary }}>
                   {period.label}
                   <span className="ml-2 font-normal normal-case text-muted-foreground">{period.from}–{period.to}</span>
@@ -538,7 +537,7 @@ function ManageTab({ doctors }: { doctors: Doctor[] }) {
           ) : (
             <div className="divide-y" style={{ borderColor: C.border }}>
               {slots.map((slot) => (
-                <div key={slot.id} className="flex items-center justify-between px-5 py-3 hover:bg-[#FAFAF8] transition-colors">
+                <div key={slot.id} className="flex items-center justify-between px-5 py-3 hover:bg-secondary/30 transition-colors">
                   <div className="flex items-center gap-4">
                     <span className="font-mono text-sm font-semibold text-foreground">{slot.startTime}</span>
                     <span className="text-xs text-muted-foreground/50">→</span>

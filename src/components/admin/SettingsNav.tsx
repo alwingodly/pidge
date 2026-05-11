@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bell, Clock, CreditCard, Settings2, Users } from "lucide-react"
+import { Bell, Clock, CreditCard, FileText, Settings2, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV = [
   { href: "/admin/settings/general",       label: "General",       icon: Settings2,  },
+  { href: "/admin/settings/landing",       label: "Landing",       icon: FileText,   },
   { href: "/admin/settings/booking",       label: "Booking",       icon: Clock,      },
   { href: "/admin/settings/payments",      label: "Payments",      icon: CreditCard, },
   { href: "/admin/settings/notifications", label: "Notifications", icon: Bell,       },

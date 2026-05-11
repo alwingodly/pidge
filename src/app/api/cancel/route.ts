@@ -1,18 +1,20 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
+import { getTenantFromHeaders } from "@/lib/tenant"
 import { sendCancellationEmail } from "@/lib/email"
 import { formatDate, formatTime } from "@/lib/utils"
 import { recordAppointmentStatusChange } from "@/lib/audit"
 
 export async function GET(req: NextRequest) {
+  const { tenantId } = await getTenantFromHeaders()
   const { searchParams } = new URL(req.url)
   const token   = searchParams.get("token")
   const preview = searchParams.get("preview")
 
   if (!token) return Response.json({ error: "Invalid link" }, { status: 400 })
 
-  const appointment = await prisma.appointment.findUnique({
-    where:   { cancelToken: token },
+  const appointment = await prisma.appointment.findFirst({
+    where:   { cancelToken: token, ...(tenantId ? { tenantId } : {}) },
     include: { slot: true, service: true, doctor: true, tenant: true },
   })
 
@@ -43,12 +45,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const { tenantId } = await getTenantFromHeaders()
   const { searchParams } = new URL(req.url)
   const token = searchParams.get("token")
   if (!token) return Response.json({ error: "Invalid link" }, { status: 400 })
 
-  const appointment = await prisma.appointment.findUnique({
-    where:   { cancelToken: token },
+  const appointment = await prisma.appointment.findFirst({
+    where:   { cancelToken: token, ...(tenantId ? { tenantId } : {}) },
     include: { slot: true, service: true, doctor: true, tenant: true },
   })
 

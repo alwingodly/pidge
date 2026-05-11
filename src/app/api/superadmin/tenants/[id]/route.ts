@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 
+const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use a 6-digit hex colour, e.g. #4996D7")
+
 const updateSchema = z.object({
   name:           z.string().min(1).optional(),
   slug:           z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes").optional(),
@@ -13,11 +15,13 @@ const updateSchema = z.object({
   currency:       z.string().optional(),
   currencySymbol: z.string().optional(),
   plan:           z.enum(["FREE","BASIC","PRO"]).optional(),
-  primaryColor:   z.string().optional(),
+  primaryColor:   hexColor.optional(),
   logoUrl:        z.url().optional(),
   isActive:            z.boolean().optional(),
   showDoctorSelection: z.boolean().optional(),
   manualBookingEnabled: z.boolean().optional(),
+  recurrenceEnabled:    z.boolean().optional(),
+  gdprEnabled:          z.boolean().optional(),
   patientHistoryEnabled: z.boolean().optional(),
   walkInEnabled: z.boolean().optional(),
   branchModeEnabled: z.boolean().optional(),

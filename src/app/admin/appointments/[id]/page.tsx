@@ -103,7 +103,7 @@ export default async function AppointmentDetailPage({ params }: { params: Promis
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#E8E3DC] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
       <div className="border-b border-[#F3EAE0] bg-secondary/30 px-4 py-2.5">
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{title}</p>
       </div>

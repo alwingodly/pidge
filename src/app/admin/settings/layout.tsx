@@ -11,7 +11,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <div className="flex gap-6 pt-2">
         {/* Sub-nav */}
         <aside className="w-44 shrink-0">
-          <div className="sticky top-24 overflow-hidden rounded-xl border border-[#E8E3DC] bg-white p-2 shadow-sm">
+          <div className="sticky top-24 overflow-hidden rounded-xl border border-border bg-white p-2 shadow-sm">
             <SettingsNav />
           </div>
         </aside>

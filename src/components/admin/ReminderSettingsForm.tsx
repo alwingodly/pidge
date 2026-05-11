@@ -67,7 +67,7 @@ export default function ReminderSettingsForm({ initialEnabled, initialHoursBefor
           <select
             value={hours}
             onChange={(e) => { setHours(Number(e.target.value)); setSaved(false) }}
-            className="h-10 w-full rounded-xl border border-[#E8E3DC] bg-white px-3 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-10 w-full rounded-xl border border-border bg-white px-3 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary/20"
           >
             {HOUR_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>

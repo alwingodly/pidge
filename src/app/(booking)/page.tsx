@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { Fragment } from "react"
 import styles from "./BookingLanding.module.css"
+import { LANDING_COPY_DEFAULTS, trustBadgesFromCopy } from "@/lib/landing-copy"
 
 export default async function BookingHomePage() {
   const { tenantId, branchId, tenantName, tenantSlug, logoUrl } = await getTenantFromHeaders()
@@ -29,10 +30,33 @@ export default async function BookingHomePage() {
     )
   }
 
-  const services = await prisma.service.findMany({
-    where: { tenantId, isActive: true },
-    orderBy: { name: "asc" },
-  })
+  const [services, tenantCopy] = await Promise.all([
+    prisma.service.findMany({
+      where: { tenantId, isActive: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        landingHeadline:       true,
+        landingSubheadline:    true,
+        landingPrimaryCta:     true,
+        landingSecondaryCta:   true,
+        landingTrustBadges:    true,
+        landingBottomHeadline: true,
+        landingBottomText:     true,
+      },
+    }),
+  ])
+
+  const landingHeadline = tenantCopy?.landingHeadline || LANDING_COPY_DEFAULTS.headline
+  const landingSubheadline = tenantCopy?.landingSubheadline
+    || `Book an appointment at ${tenantName} in minutes - choose a service, pick a date, done.`
+  const primaryCta = tenantCopy?.landingPrimaryCta || LANDING_COPY_DEFAULTS.primaryCta
+  const secondaryCta = tenantCopy?.landingSecondaryCta || LANDING_COPY_DEFAULTS.secondaryCta
+  const bottomHeadline = tenantCopy?.landingBottomHeadline || LANDING_COPY_DEFAULTS.bottomHeadline
+  const bottomText = tenantCopy?.landingBottomText || LANDING_COPY_DEFAULTS.bottomText
+  const trustBadges = trustBadgesFromCopy(tenantCopy?.landingTrustBadges)
 
   void branchId
 
@@ -75,35 +99,35 @@ export default async function BookingHomePage() {
               <span className="hidden text-muted-foreground sm:inline">· Booking open now</span>
             </div>
 
-            {/* Headline — 3-line rhythm, 7xl on desktop */}
+            {/* Headline */}
             <h1 className={`${styles.heroTitle} text-5xl font-black leading-[1.02] tracking-tight text-foreground sm:text-6xl lg:text-7xl`}>
-              Healthcare
-              <br />
-              <span className={styles.heroAccent}>made simple</span>
-              <br />
-              for you.
+              <span className={styles.heroAccent}>{landingHeadline}</span>
             </h1>
 
             <p className="mt-5 max-w-[440px] text-[15px] leading-7 text-muted-foreground">
-              Book an appointment at{" "}
-              <span className="font-semibold text-foreground">{tenantName}</span>{" "}
-              in minutes — choose a service, pick a date, done.
+              {landingSubheadline}
             </p>
 
             {/* CTAs */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/book"
                 className={`${styles.primaryButton} group inline-flex items-center justify-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all duration-200 hover:-translate-y-px hover:opacity-95`}>
-                Book appointment
+                {primaryCta}
                 <span className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 transition-transform duration-200 group-hover:translate-x-0.5">
                   <ArrowRight className="size-3.5" />
                 </span>
               </Link>
               <a href="#services"
                 className={`${styles.glassChip} inline-flex items-center justify-center rounded-2xl px-6 py-4 text-sm font-semibold text-foreground transition-all duration-200 hover:-translate-y-px`}>
-                See all services
+                {secondaryCta}
               </a>
             </div>
+            <Link
+              href="/my-bookings"
+              className="mt-3 inline-block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Already booked? View your appointments →
+            </Link>
 
             {/* Stat chips — 3 across on all screens */}
             <div className="mt-10 grid grid-cols-3 gap-2">
@@ -235,12 +259,7 @@ export default async function BookingHomePage() {
       {/*  TRUST BAR                                                     */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <div className="flex flex-wrap items-center justify-center gap-2 px-2">
-        {[
-          "No account needed",
-          "Free to book",
-          "Instant email confirmation",
-          "Cancel any time",
-        ].map((t) => (
+        {trustBadges.map((t) => (
           <span key={t}
             className={`${styles.glassChip} inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium text-muted-foreground`}>
             <Check className="size-3 text-primary" strokeWidth={3} />
@@ -309,7 +328,7 @@ export default async function BookingHomePage() {
           </div>
           <Link href="/book"
             className="hidden items-center gap-1 text-xs font-semibold text-primary hover:underline sm:flex">
-            Book now <ArrowRight className="size-3" />
+            {primaryCta} <ArrowRight className="size-3" />
           </Link>
         </div>
 
@@ -346,7 +365,7 @@ export default async function BookingHomePage() {
                 )}
 
                 <div className="relative mt-auto flex items-center gap-1 pt-3 text-xs font-bold text-primary opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0.5">
-                  Book now <ArrowRight className="size-3" />
+                  {primaryCta} <ArrowRight className="size-3" />
                 </div>
               </Link>
             ))}
@@ -369,20 +388,20 @@ export default async function BookingHomePage() {
           </p>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl"
             style={{ color: "var(--foreground)" }}>
-            Let&apos;s get you booked.
+            {bottomHeadline}
           </h2>
           <p className="mx-auto mt-3 max-w-sm text-sm"
             style={{ color: "var(--muted-foreground)" }}>
-            No account needed. Takes under 3 minutes. Free to book.
+            {bottomText}
           </p>
           <Link href="/book"
             className={`${styles.primaryButton} mt-8 inline-flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground transition-all duration-200 hover:-translate-y-px`}>
-            Book appointment
+            {primaryCta}
             <ArrowRight className="size-4" />
           </Link>
           <p className="mt-4 text-[11px]"
             style={{ color: "var(--muted-foreground)" }}>
-            Free · No account · Cancel any time
+            {trustBadges.slice(0, 3).join(" · ")}
           </p>
         </div>
       </section>

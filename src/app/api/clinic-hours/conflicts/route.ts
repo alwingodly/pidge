@@ -24,7 +24,7 @@ export const GET = auth(async (req) => {
       assignedTime: { not: null },
       OR: [
         { assignedTime: { lt: startTime } },
-        { assignedTime: { gte: endTime  } },
+        { assignedTime: { gt: endTime } },
       ],
     },
     select: {
