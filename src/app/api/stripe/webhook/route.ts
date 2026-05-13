@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import Stripe from "stripe"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { prisma } from "@/lib/db"
 
 export async function POST(req: NextRequest) {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch {
     return Response.json({ error: "Webhook signature verification failed" }, { status: 400 })
   }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Patient payment confirmed ───────────────────────────────────────────────
-    // Appointment is created client-side after stripe.confirmPayment() returns.
+    // Appointment is created client-side after getStripe().confirmPayment() returns.
     // This webhook acts as a safety net: if the client fails after payment,
     // re-enable full appointment creation here using paymentIntent.metadata.
     case "payment_intent.succeeded": {

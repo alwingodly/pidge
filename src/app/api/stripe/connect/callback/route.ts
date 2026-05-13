@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { prisma } from "@/lib/db"
 import { getScopeFromSession } from "@/lib/tenant"
 import { redirect } from "next/navigation"
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   })
 
   if (tenant?.stripeAccountId) {
-    const account = await stripe.accounts.retrieve(tenant.stripeAccountId)
+    const account = await getStripe().accounts.retrieve(tenant.stripeAccountId)
     if (account.details_submitted) {
       await prisma.tenant.update({
         where: { id: tenantId },

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { prisma } from "@/lib/db"
 import { getTenantFromHeaders } from "@/lib/tenant"
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!tenant?.stripeAccountId || !tenant.stripeOnboarded)
     return Response.json({ error: "This clinic has not connected their payment account yet." }, { status: 400 })
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripe().paymentIntents.create({
     amount:   Math.round((service.price ?? 0) * 100),
     currency: tenant.currency.toLowerCase() ?? "gbp",
     metadata: { serviceId, tenantId },

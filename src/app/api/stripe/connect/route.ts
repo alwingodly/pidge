@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth"
-import { stripe } from "@/lib/stripe"
+import { getStripe } from "@/lib/stripe"
 import { prisma } from "@/lib/db"
 import { getScopeFromSession } from "@/lib/tenant"
 
@@ -18,7 +18,7 @@ export const POST = auth(async (req) => {
   // Reuse existing account or create a new Express account
   let accountId = tenant?.stripeAccountId
   if (!accountId) {
-    const account = await stripe.accounts.create({ type: "express" })
+    const account = await getStripe().accounts.create({ type: "express" })
     accountId = account.id
     await prisma.tenant.update({
       where: { id: tenantId },
@@ -28,7 +28,7 @@ export const POST = auth(async (req) => {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!
 
-  const accountLink = await stripe.accountLinks.create({
+  const accountLink = await getStripe().accountLinks.create({
     account:     accountId,
     refresh_url: `${appUrl}/admin/settings/payments?stripe=refresh`,
     return_url:  `${appUrl}/api/stripe/connect/callback`,
