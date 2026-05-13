@@ -122,12 +122,14 @@ export default async function BookingHomePage() {
                 {secondaryCta}
               </a>
             </div>
-            <Link
-              href="/my-bookings"
-              className="mt-3 inline-block text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            >
-              Already booked? View your appointments →
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <Link
+                href="/my-bookings"
+                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                Already booked? View your appointments →
+              </Link>
+            </div>
 
             {/* Stat chips — 3 across on all screens */}
             <div className="mt-10 grid grid-cols-3 gap-2">

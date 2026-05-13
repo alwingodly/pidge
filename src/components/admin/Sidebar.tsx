@@ -8,25 +8,26 @@ import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import {
   CalendarDays, Stethoscope, Briefcase, GitBranch,
-  LogOut, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Settings, Users,
+  LogOut, LayoutDashboard, Clock, ChevronLeft, ChevronRight, Settings, Users, UsersRound,
 } from "lucide-react"
 import {
   Dialog, DialogContent, DialogDescription, DialogTitle,
 } from "@/components/ui/dialog"
 
 const ALL_NAV = [
-  { href: "/admin",              label: "Dashboard",      icon: LayoutDashboard, roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/appointments", label: "Appointments",   icon: CalendarDays,    roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/queue",        label: "Walk-in Queue",  icon: Users,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/doctors",      label: "Doctors",        icon: Stethoscope,     roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/services",     label: "Services",       icon: Briefcase,       roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/schedule",     label: "Schedule",       icon: Clock,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
-  { href: "/admin/branches",     label: "Branches",       icon: GitBranch,       roles: ["TENANT_ADMIN"] },
-  { href: "/admin/settings",     label: "Settings",       icon: Settings,        roles: ["TENANT_ADMIN"] },
+  { href: "/admin",              label: "Dashboard",      icon: LayoutDashboard, roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
+  { href: "/admin/appointments", label: "Appointments",   icon: CalendarDays,    roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
+  { href: "/admin/queue",        label: "Walk-in Queue",  icon: Users,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: "walkInEnabled" },
+  { href: "/admin/doctors",      label: "Doctors",        icon: Stethoscope,     roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
+  { href: "/admin/services",     label: "Services",       icon: Briefcase,       roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
+  { href: "/admin/schedule",     label: "Schedule",       icon: Clock,           roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
+  { href: "/admin/patients",     label: "Patients",       icon: UsersRound,      roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
+  { href: "/admin/branches",     label: "Branches",       icon: GitBranch,       roles: ["TENANT_ADMIN"],                 feature: "branchModeEnabled" },
+  { href: "/admin/settings",     label: "Settings",       icon: Settings,        roles: ["TENANT_ADMIN", "BRANCH_ADMIN"], feature: null },
 ]
 
 type Features = {
-  walkInEnabled: boolean
+  walkInEnabled:     boolean
   branchModeEnabled: boolean
 }
 
@@ -44,8 +45,7 @@ export default function Sidebar({ role, features }: { role: string; features: Fe
 
   const nav = ALL_NAV.filter((item) => {
     if (!item.roles.includes(role)) return false
-    if (item.href === "/admin/queue" && !features.walkInEnabled) return false
-    if (item.href === "/admin/branches" && !features.branchModeEnabled) return false
+    if (item.feature && !features[item.feature as keyof Features]) return false
     return true
   })
 

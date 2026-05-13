@@ -5,28 +5,34 @@ import { z } from "zod"
 
 export const GET = auth(async (req) => {
   let tenantId: string
-  let branchId: string | null
+  let adminBranchId: string | null = null // strict scope for branch admins only
 
   if (req.auth) {
-    ;({ tenantId, branchId } = getScopeFromSession(req.auth))
+    ;({ tenantId, branchId: adminBranchId } = getScopeFromSession(req.auth))
   } else {
     const t = await getTenantFromHeaders()
     if (!t.tenantId) return Response.json({ error: "Tenant not found" }, { status: 404 })
     tenantId = t.tenantId
-    branchId = t.branchId
+    // t.branchId here is patient context from headers — NOT a strict admin scope
   }
 
-  const { searchParams }       = new URL(req.url)
-  const serviceId              = searchParams.get("serviceId")
-  const filterBranchId         = searchParams.get("branchId")
+  const { searchParams } = new URL(req.url)
+  const serviceId        = searchParams.get("serviceId")
+  const filterBranchId   = searchParams.get("branchId")
 
-  // Session branchId (branch admins) takes precedence over query param to prevent scope bypass
-  const effectiveBranchId = branchId ?? filterBranchId ?? undefined
+  // Branch admins: strict to their branch only.
+  // Patients (filterBranchId from query): include that branch + unassigned doctors (branchId = null).
+  // No branch filter: return all doctors for the tenant.
+  const branchFilter = adminBranchId
+    ? { branchId: adminBranchId }
+    : filterBranchId
+    ? { OR: [{ branchId: filterBranchId }, { branchId: null }] }
+    : {}
 
   const doctors = await prisma.doctor.findMany({
     where: {
       tenantId,
-      branchId: effectiveBranchId,
+      ...branchFilter,
       isActive: true,
       ...(serviceId ? { doctorServices: { some: { serviceId } } } : {}),
     },

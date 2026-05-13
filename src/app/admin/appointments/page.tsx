@@ -11,7 +11,7 @@ import { AlertTriangle } from "lucide-react"
 
 const PAGE_SIZE = 20
 
-type Tab = "requests" | "today" | "all"
+type Tab = "requests" | "today" | "all" | "conflicts"
 
 export default async function AppointmentsPage({
   searchParams,
@@ -25,7 +25,8 @@ export default async function AppointmentsPage({
     branchId?: string
     q?: string
     page?: string
-    conflict?: string
+    conflict?:      string
+    leaveConflict?: string
   }>
 }) {
   const session = await auth()
@@ -33,7 +34,7 @@ export default async function AppointmentsPage({
   const { tenantId, branchId } = getScopeFromSession(session)
   const sp = await searchParams
 
-  const tab: Tab = (sp.tab === "today" || sp.tab === "all") ? sp.tab : "requests"
+  const tab: Tab = (sp.tab === "today" || sp.tab === "all" || sp.tab === "conflicts") ? sp.tab : "requests"
 
   const statusFilter    = sp.status    ?? "ALL"
   const dateFilter      = sp.date      ?? "ALL"
@@ -42,7 +43,8 @@ export default async function AppointmentsPage({
   const branchIdFilter  = sp.branchId  ?? "ALL"
   const query           = (sp.q ?? "").trim()
   const page            = Math.max(1, parseInt(sp.page ?? "1", 10) || 1)
-  const conflictOnly    = sp.conflict === "true"
+  const conflictOnly      = sp.conflict      === "true"
+  const leaveConflictOnly = sp.leaveConflict === "true" || tab === "conflicts"
 
   const now        = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -67,13 +69,19 @@ export default async function AppointmentsPage({
       : branchId ?? undefined
 
   // ── Shared lookups ─────────────────────────────────────────────────────────
-  // Upcoming leave periods — to check if any approved appointments clash
+  // Upcoming leave periods with doctor name + reason for badge display
   const upcomingLeaves = await prisma.doctorLeave.findMany({
-    where: { tenantId, endDate: { gte: todayStart } },
-    select: { doctorId: true, startDate: true, endDate: true },
+    where:  { tenantId, endDate: { gte: todayStart } },
+    select: {
+      doctorId:  true,
+      startDate: true,
+      endDate:   true,
+      reason:    true,
+      doctor:    { select: { name: true } },
+    },
   })
 
-  // Count approved appointments that fall during a doctor's leave
+  // Count approved/pending appointments that fall during a doctor's leave
   let leaveConflictCount = 0
   if (upcomingLeaves.length > 0) {
     const checks = await Promise.all(
@@ -94,6 +102,29 @@ export default async function AppointmentsPage({
     )
     leaveConflictCount = checks.reduce((a, b) => a + b, 0)
   }
+
+  // Build a lookup: doctorId → list of leave periods (for row badges)
+  type LeavePeriod = { startDate: Date; endDate: Date; reason: string | null; doctorName: string }
+  const leaveByDoctor = new Map<string, LeavePeriod[]>()
+  for (const l of upcomingLeaves) {
+    const existing = leaveByDoctor.get(l.doctorId) ?? []
+    existing.push({ startDate: l.startDate, endDate: l.endDate, reason: l.reason, doctorName: l.doctor.name })
+    leaveByDoctor.set(l.doctorId, existing)
+  }
+
+  // Serialise for passing to client component
+  const leaveConflictMap: Record<string, { startDate: string; endDate: string; reason: string | null; doctorName: string }[]> =
+    Object.fromEntries(
+      Array.from(leaveByDoctor.entries()).map(([doctorId, periods]) => [
+        doctorId,
+        periods.map(p => ({
+          startDate:  p.startDate.toISOString().slice(0, 10),
+          endDate:    p.endDate.toISOString().slice(0, 10),
+          reason:     p.reason,
+          doctorName: p.doctorName,
+        })),
+      ])
+    )
 
   const [doctors, services, branches] = await Promise.all([
     prisma.doctor.findMany({
@@ -271,10 +302,24 @@ export default async function AppointmentsPage({
     andFilters.push({ assignedDate: { gte: todayStart }, assignedTime: { not: null } })
   }
 
+  if (leaveConflictOnly && upcomingLeaves.length > 0) {
+    andFilters.push({
+      OR: upcomingLeaves.map(l => ({
+        doctorId: l.doctorId,
+        OR: [
+          { assignedDate: { gte: l.startDate, lte: l.endDate } },
+          { slot: { date: { gte: l.startDate, lte: l.endDate } } },
+        ],
+      })),
+    })
+  } else if (leaveConflictOnly) {
+    andFilters.push({ id: "no-match" }) // no leaves → show nothing
+  }
+
   const statusWhere: Prisma.AppointmentWhereInput["status"] =
-    conflictOnly           ? "APPROVED"                             :
-    statusFilter === "ALL" ? undefined                              :
-    statusFilter === "PENDING" ? { in: ["PENDING", "CHECKED_IN"] } :
+    conflictOnly || leaveConflictOnly ? { in: ["PENDING", "APPROVED"] } :
+    statusFilter === "ALL"            ? undefined                        :
+    statusFilter === "PENDING"        ? { in: ["PENDING", "CHECKED_IN"] } :
     statusFilter
 
   const where: Prisma.AppointmentWhereInput = {
@@ -356,16 +401,28 @@ export default async function AppointmentsPage({
           </Link>
         </div>
       )}
+      {leaveConflictOnly && (
+        <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <AlertTriangle className="size-4 shrink-0 text-rose-600" />
+          <p className="text-sm font-semibold text-rose-800">
+            Showing {total} appointment{total !== 1 ? "s" : ""} clashing with doctor leave
+          </p>
+          <Link href="/admin/appointments?tab=all" className="ml-auto shrink-0 text-xs font-semibold text-rose-700 underline underline-offset-2">
+            Clear
+          </Link>
+        </div>
+      )}
       <AppointmentTable
         appointments={appointments}
         doctors={doctors}
         services={services}
         branches={branches}
-        filters={{ status: statusFilter, date: dateFilter, doctorId: doctorIdFilter, serviceId: serviceIdFilter, branchId: branchIdFilter, q: query, page: String(page) }}
+        filters={{ tab, status: statusFilter, date: dateFilter, doctorId: doctorIdFilter, serviceId: serviceIdFilter, branchId: branchIdFilter, q: query, page: String(page) }}
         total={total}
         pageSize={PAGE_SIZE}
         clinicStartTime={clinicStartTime ?? null}
         clinicEndTime={clinicEndTime ?? null}
+        leaveConflictMap={leaveConflictMap}
       />
     </PageShell>
   )
@@ -391,9 +448,10 @@ function PageShell({
   children:           React.ReactNode
 }) {
   const tabs = [
-    { key: "requests", label: "Requests", count: requestsCount, urgent: requestsCount > 0 },
-    { key: "today",    label: "Today",    count: todayCount,    urgent: false },
-    { key: "all",      label: "All",      count: null,          urgent: false },
+    { key: "requests",  label: "Requests",  count: requestsCount,      urgent: requestsCount > 0     },
+    { key: "today",     label: "Today",     count: todayCount,          urgent: false                 },
+    { key: "all",       label: "All",       count: null,                urgent: false                 },
+    { key: "conflicts", label: "Conflicts", count: leaveConflictCount,  urgent: leaveConflictCount > 0 },
   ] as const
 
   return (
@@ -419,7 +477,7 @@ function PageShell({
         {tabs.map(t => (
           <Link
             key={t.key}
-            href={`/admin/appointments?tab=${t.key}`}
+            href={`/admin/appointments?tab=${t.key}&page=1`}
             className={`relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
                 ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-primary"
@@ -427,9 +485,11 @@ function PageShell({
             }`}
           >
             {t.label}
-            {t.count !== null && (
+            {t.count !== null && t.count > 0 && (
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-                t.urgent
+                t.key === "conflicts"
+                  ? "bg-rose-100 text-rose-700"
+                  : t.urgent
                   ? "bg-amber-100 text-amber-700"
                   : "bg-secondary text-muted-foreground"
               }`}>
@@ -440,19 +500,6 @@ function PageShell({
         ))}
       </div>
 
-      {/* Leave conflict banner */}
-      {leaveConflictCount > 0 && (
-        <Link
-          href="/admin/doctors"
-          className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 transition-colors hover:bg-rose-100"
-        >
-          <AlertTriangle className="size-4 shrink-0 text-rose-600" />
-          <p className="text-sm text-rose-800">
-            <span className="font-semibold">{leaveConflictCount} appointment{leaveConflictCount !== 1 ? "s" : ""}</span>{" "}
-            clash with a doctor&apos;s scheduled leave — review and reassign.
-          </p>
-        </Link>
-      )}
 
       {children}
     </div>

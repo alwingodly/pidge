@@ -60,6 +60,7 @@ export default async function AdminDashboardPage() {
     trendRaw,
     conflictCount,
     doctorsOnLeaveToday,
+    leaveConflictCount,
   ] = await Promise.all([
     // Today: covers both assignedDate (new flow) and slot.date (legacy)
     prisma.appointment.count({ where: { ...scope, OR: [{ assignedDate: { gte: todayStart, lt: todayEnd } }, { slot: { date: { gte: todayStart, lt: todayEnd } } }] } }),
@@ -148,6 +149,28 @@ export default async function AdminDashboardPage() {
       where: { tenantId, startDate: { lte: todayEnd }, endDate: { gte: todayStart } },
       select: { doctor: { select: { id: true, name: true } }, period: true, reason: true },
     }),
+    // Leave conflict count for dashboard chip
+    (async () => {
+      const leaves = await prisma.doctorLeave.findMany({
+        where:  { tenantId, endDate: { gte: todayStart } },
+        select: { doctorId: true, startDate: true, endDate: true },
+      })
+      if (!leaves.length) return 0
+      const counts = await Promise.all(leaves.map(l =>
+        prisma.appointment.count({
+          where: {
+            ...scope,
+            doctorId: l.doctorId,
+            status:   { in: ["PENDING", "APPROVED"] },
+            OR: [
+              { assignedDate: { gte: l.startDate, lte: l.endDate } },
+              { slot: { date: { gte: l.startDate, lte: l.endDate } } },
+            ],
+          },
+        })
+      ))
+      return counts.reduce((a, b) => a + b, 0)
+    })(),
   ])
 
   const completionRate = allAppointments > 0 ? Math.round((completedTotal / allAppointments) * 100) : 0
@@ -214,7 +237,25 @@ export default async function AdminDashboardPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{dateLabel}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Clinic desk</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {conflictCount > 0 && (
+            <Link
+              href="/admin/appointments?tab=all&conflict=true"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+            >
+              <AlertTriangle className="size-3" />
+              {conflictCount} outside hours
+            </Link>
+          )}
+          {leaveConflictCount > 0 && (
+            <Link
+              href="/admin/appointments?tab=conflicts"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-100"
+            >
+              <AlertTriangle className="size-3" />
+              {leaveConflictCount} leave clash
+            </Link>
+          )}
           <LeavePopoverButton
             leaves={doctorsOnLeaveToday.map(l => ({
               doctor: l.doctor,
@@ -230,24 +271,6 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
       </header>
-
-      {conflictCount > 0 && (
-        <Link
-          href="/admin/appointments?conflict=true"
-          className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 transition-colors hover:bg-amber-100"
-        >
-          <AlertTriangle className="size-5 shrink-0 text-amber-600" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-800">
-              {conflictCount} appointment{conflictCount !== 1 ? "s" : ""} conflict with current clinic hours
-            </p>
-            <p className="text-xs text-amber-700">
-              Approved appointments scheduled outside your opening hours — click to review and reschedule.
-            </p>
-          </div>
-          <ArrowRight className="size-4 shrink-0 text-amber-600" />
-        </Link>
-      )}
 
       <section className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
         <div className="rounded-xl border border-border bg-card shadow-sm">

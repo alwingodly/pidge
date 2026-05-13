@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import {
   CalendarPlus, CheckCircle2, Clock, Mail,
-  MapPin, Phone, Stethoscope, UserRound, Inbox,
+  MapPin, Phone, Stethoscope, UserRound, Inbox, RefreshCw, X,
 } from "lucide-react"
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -90,10 +90,12 @@ export default async function ConfirmationPage({
         )
       : null
 
-  return (
-    <div className="mx-auto max-w-md space-y-6 py-4">
+  const rebookHref = `/book?serviceId=${appointment.serviceId}${appointment.doctor ? `&doctorId=${appointment.doctor.id}` : ""}`
 
-      {/* ── State badge + headline ───────────────────────────────────────── */}
+  return (
+    <div className="mx-auto max-w-md space-y-5 py-4">
+
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <div className="text-center">
         {isAssigned ? (
           <>
@@ -103,8 +105,8 @@ export default async function ConfirmationPage({
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               You&apos;re all set, {patientFirst}!
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your appointment is confirmed. Details below and in your email.
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Confirmed. Details below and in your email.
             </p>
           </>
         ) : (
@@ -115,60 +117,56 @@ export default async function ConfirmationPage({
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Request received, {patientFirst}!
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              We&apos;ll assign a clinician and confirm your time by email shortly.
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              We&apos;ll assign a clinician and confirm your slot by email shortly.
             </p>
           </>
         )}
       </div>
 
-      {/* ── Ticket card ─────────────────────────────────────────────────── */}
+      {/* ── Ticket card ──────────────────────────────────────────────────── */}
       <div className="overflow-visible rounded-2xl border border-border bg-white shadow-sm">
 
         {/* Reference strip */}
-        <div className="flex items-center justify-between bg-secondary/40 px-5 py-3.5">
+        <div className="flex items-center justify-between px-5 py-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Booking reference
+              Booking ref
             </p>
-            <p className="mt-0.5 font-mono text-lg font-bold tracking-wide text-foreground">
+            <p className="mt-0.5 font-mono text-base font-bold tracking-wide text-foreground">
               {appointment.bookingRef}
             </p>
           </div>
-          <div className={`flex size-10 items-center justify-center rounded-xl ${
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
             isAssigned
-              ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
-              : "bg-amber-50 text-amber-600 ring-1 ring-amber-200"
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+              : "bg-amber-50 text-amber-700 ring-amber-200"
           }`}>
             {isAssigned
-              ? <CheckCircle2 className="size-5" strokeWidth={2} />
-              : <Clock className="size-5" strokeWidth={2} />}
-          </div>
+              ? <><CheckCircle2 className="size-3.5" strokeWidth={2.5} /> Confirmed</>
+              : <><Clock className="size-3.5" strokeWidth={2} /> Pending review</>}
+          </span>
         </div>
 
-        {/* Tear line */}
-        <div className="relative flex items-center px-0">
-          <div className="-ml-3 size-6 rounded-full bg-[#F7F3EF]" />
+        {/* Divider */}
+        <div className="relative flex items-center">
+          <div className="-ml-3 size-5 rounded-full bg-background" />
           <div className="flex-1 border-t border-dashed border-border" />
-          <div className="-mr-3 size-6 rounded-full bg-[#F7F3EF]" />
+          <div className="-mr-3 size-5 rounded-full bg-background" />
         </div>
 
         {/* Detail rows */}
-        <div className="divide-y divide-[#F3EAE0] px-1">
+        <div className="divide-y divide-border/60">
           <DetailRow icon={<Stethoscope className="size-4" />} label="Service">
             <span className="font-semibold text-foreground">{appointment.service.name}</span>
-            <span className="ml-2 text-xs text-muted-foreground">
-              {appointment.service.durationMins} min
-            </span>
+            <span className="text-xs text-muted-foreground">{appointment.service.durationMins} min</span>
           </DetailRow>
 
           {appointment.doctor && (
             <DetailRow icon={<UserRound className="size-4" />} label="Clinician">
               <span className="font-semibold text-foreground">{appointment.doctor.name}</span>
               {appointment.doctor.speciality && (
-                <span className="ml-2 text-xs text-muted-foreground">
-                  {appointment.doctor.speciality}
-                </span>
+                <span className="text-xs text-muted-foreground">{appointment.doctor.speciality}</span>
               )}
             </DetailRow>
           )}
@@ -179,10 +177,8 @@ export default async function ConfirmationPage({
             </DetailRow>
           ) : appointment.preferredDate ? (
             <DetailRow icon={<CalendarPlus className="size-4" />} label="Preferred date">
-              <span className="font-semibold text-foreground">
-                {fmtDate(appointment.preferredDate)}
-              </span>
-              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+              <span className="font-semibold text-foreground">{fmtDate(appointment.preferredDate)}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
                 <Clock className="size-2.5" /> Pending
               </span>
             </DetailRow>
@@ -199,50 +195,52 @@ export default async function ConfirmationPage({
               <div>
                 <span className="font-semibold text-foreground">{appointment.branch.name}</span>
                 {appointment.branch.address && (
-                  <p className="text-xs text-muted-foreground">{appointment.branch.address}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{appointment.branch.address}</p>
                 )}
               </div>
             </DetailRow>
           )}
 
           <DetailRow icon={<Mail className="size-4" />} label="Confirmation sent to">
-            <span className="font-medium text-foreground">{appointment.patientEmail}</span>
+            <span className="font-medium text-foreground break-all">{appointment.patientEmail}</span>
           </DetailRow>
 
           {appointment.branch?.phone && (
             <DetailRow icon={<Phone className="size-4" />} label="Clinic phone">
-              <span className="font-medium text-foreground">{appointment.branch.phone}</span>
+              <a href={`tel:${appointment.branch.phone}`} className="font-medium text-foreground hover:text-primary">
+                {appointment.branch.phone}
+              </a>
             </DetailRow>
           )}
         </div>
       </div>
 
-      {/* ── Calendar button (confirmed only) ────────────────────────────── */}
+      {/* ── Calendar button (confirmed only) ─────────────────────────────── */}
       {calendarUrl && (
         <a
           href={calendarUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary/30"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:border-primary/40 hover:bg-secondary/30"
         >
           <CalendarPlus className="size-4 text-primary" />
           Add to Google Calendar
         </a>
       )}
 
-      {/* ── What happens next (pending only) ────────────────────────────── */}
+      {/* ── What happens next (pending only) ─────────────────────────────── */}
       {!isAssigned && (
         <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-          <div className="border-b border-[#F3EAE0] px-5 py-3">
+          <div className="border-b border-border/60 px-5 py-3">
             <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               What happens next
             </p>
           </div>
-          <div className="space-y-0 divide-y divide-[#F3EAE0]">
+          <div className="divide-y divide-border/60">
             {[
-              { n: 1, done: true,  label: "Request submitted",          sub: "We have your details"                       },
-              { n: 2, done: false, label: "Team reviews your request",   sub: "Usually within 1 business day"              },
-              { n: 3, done: false, label: "Confirmation email sent",     sub: "With your clinician, date and time"         },
+              { n: 1, done: true,  label: "Request submitted",        sub: "We have your details"                   },
+              { n: 2, done: false, label: "Team reviews your request", sub: "Usually within 1 business day"          },
+              { n: 3, done: false, label: "Confirmation email sent",   sub: "With your clinician, date and time"     },
             ].map(({ n, done, label, sub }) => (
               <div key={n} className="flex items-start gap-3.5 px-5 py-3.5">
                 <div className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -262,39 +260,83 @@ export default async function ConfirmationPage({
         </div>
       )}
 
-      {/* ── Footer actions ───────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-3 pb-4 text-center">
-        <Link href="/book" className="text-sm font-semibold text-primary hover:underline">
-          Book another appointment
-        </Link>
+      {/* ── Actions card ─────────────────────────────────────────────────── */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+
+        {/* Primary action */}
         <Link
-          href="/my-bookings"
-          className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          href={rebookHref}
+          className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-secondary/30"
         >
-          View all my appointments
-        </Link>
-        <Link
-          href={`/reschedule?token=${appointment.cancelToken}`}
-          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          Move to a different date
-        </Link>
-        <Link
-          href={cancelHref}
-          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          Cancel this {isAssigned ? "appointment" : "request"}
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <RefreshCw className="size-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">Book again</p>
+            <p className="text-xs text-muted-foreground">Same service and clinician</p>
+          </div>
         </Link>
 
-        {appointment.tenant.gdprEnabled && (
+        <div className="border-t border-border/60" />
+
+        {/* Secondary actions */}
+        <Link
+          href="/book"
+          className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-secondary/30"
+        >
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+            <Stethoscope className="size-4" />
+          </div>
+          <p className="text-sm font-medium text-foreground">Book a different service</p>
+        </Link>
+
+        <Link
+          href="/my-bookings"
+          className="flex items-center gap-3 border-t border-border/60 px-5 py-3.5 transition-colors hover:bg-secondary/30"
+        >
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+            <CalendarPlus className="size-4" />
+          </div>
+          <p className="text-sm font-medium text-foreground">View all my appointments</p>
+        </Link>
+
+        <div className="border-t border-border/60" />
+
+        {/* Manage */}
+        <Link
+          href={`/reschedule?token=${appointment.cancelToken}`}
+          className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-secondary/30"
+        >
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+            <Clock className="size-4" />
+          </div>
+          <p className="text-sm font-medium text-foreground">Move to a different date</p>
+        </Link>
+
+        <Link
+          href={cancelHref}
+          className="flex items-center gap-3 border-t border-border/60 px-5 py-3.5 transition-colors hover:bg-red-50"
+        >
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-destructive">
+            <X className="size-4" />
+          </div>
+          <p className="text-sm font-medium text-destructive">
+            Cancel this {isAssigned ? "appointment" : "request"}
+          </p>
+        </Link>
+      </div>
+
+      {/* ── GDPR erasure — very subtle, legal-only ───────────────────────── */}
+      {appointment.tenant.gdprEnabled && (
+        <p className="pb-2 text-center text-[11px] text-muted-foreground/50">
           <Link
             href={`/erase?token=${appointment.cancelToken}&email=${encodeURIComponent(appointment.patientEmail)}`}
-            className="text-[11px] text-muted-foreground/60 underline-offset-2 hover:text-muted-foreground hover:underline"
+            className="underline underline-offset-2 hover:text-muted-foreground"
           >
             Request deletion of my personal data
           </Link>
-        )}
-      </div>
+        </p>
+      )}
 
     </div>
   )
@@ -316,7 +358,7 @@ function DetailRow({
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
-        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           {children}
         </div>
       </div>

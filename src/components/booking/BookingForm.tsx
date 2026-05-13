@@ -51,15 +51,10 @@ export default function BookingForm({
   gdprEnabled, consentGiven, reminderOptOut,
   onConsentChange, onReminderOptOutChange,
 }: Props) {
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    onSubmit()
-  }
-
   const blockSubmit = gdprEnabled && !consentGiven
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit() }} className="space-y-6">
 
       {/* ── Personal details ──────────────────────────────────────── */}
       <FormSection label="Personal details">
@@ -100,11 +95,12 @@ export default function BookingForm({
             />
           </Field>
 
-          <Field label="Gender identity" htmlFor="gender" icon={<UserRound className="size-4" />}>
+          <Field label="Gender identity" htmlFor="gender" icon={<UserRound className="size-4" />} required>
             <select
               id="gender"
               value={data.patientGender}
               onChange={(e) => onChange("patientGender", e.target.value)}
+              required
               className="h-10 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm text-foreground outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {GENDER_OPTIONS.map((o) => (
@@ -175,7 +171,7 @@ export default function BookingForm({
               required
             />
             <span className="text-xs text-foreground leading-relaxed">
-              I consent to my personal data (name, contact details, date of birth) being stored and processed by this clinic solely for the purpose of managing my appointment.{" "}
+              I consent to my personal data (name, contact details, date of birth, and gender identity) being stored and processed by this clinic solely for the purpose of managing my appointment.{" "}
               <span className="text-muted-foreground">
                 Your data is held securely and will not be shared with third parties without your consent.
               </span>

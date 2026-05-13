@@ -40,13 +40,14 @@ type Doctor  = { id: string; name: string }
 type Service = { id: string; name: string }
 type Branch = { id: string; name: string }
 type Filters = {
-  status: string
-  date: string
+  tab:      string
+  status:   string
+  date:     string
   doctorId: string
   serviceId: string
   branchId: string
-  q: string
-  page: string
+  q:        string
+  page:     string
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -79,16 +80,19 @@ function apptTimeStr(appt: Appointment): string | null {
   return null
 }
 
-export default function AppointmentTable({ appointments, doctors, services, branches, filters, total, pageSize, clinicStartTime, clinicEndTime }: {
-  appointments:    Appointment[]
-  doctors:         Doctor[]
-  services:        Service[]
-  branches:        Branch[]
-  filters:         Filters
-  total:           number
-  pageSize:        number
+type LeaveConflictPeriod = { startDate: string; endDate: string; reason: string | null; doctorName: string }
+
+export default function AppointmentTable({ appointments, doctors, services, branches, filters, total, pageSize, clinicStartTime, clinicEndTime, leaveConflictMap }: {
+  appointments:     Appointment[]
+  doctors:          Doctor[]
+  services:         Service[]
+  branches:         Branch[]
+  filters:          Filters
+  total:            number
+  pageSize:         number
   clinicStartTime?: string | null
   clinicEndTime?:   string | null
+  leaveConflictMap?: Record<string, LeaveConflictPeriod[]>
 }) {
   const router = useRouter()
 
@@ -122,6 +126,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
     const newPage = key === "page" ? value : "1"
     const params  = new URLSearchParams({ ...filters, [key]: value, page: newPage })
     for (const [paramKey, paramValue] of Array.from(params.entries())) {
+      if (paramKey === "tab") continue  // always preserve tab
       if (!paramValue || paramValue === "ALL" || (paramKey === "page" && paramValue === "1")) {
         params.delete(paramKey)
       }
@@ -286,6 +291,16 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                   : null
                   : null
 
+                // Find matching leave period for this appointment
+                const apptDate = appt.assignedDate
+                  ? new Date(appt.assignedDate).toISOString().slice(0, 10)
+                  : null
+                const leaveMatch = apptDate && appt.doctor?.id
+                  ? (leaveConflictMap?.[appt.doctor.id] ?? []).find(
+                      l => apptDate >= l.startDate && apptDate <= l.endDate
+                    ) ?? null
+                  : null
+
                 return (
                   <div
                     key={appt.id}
@@ -314,6 +329,11 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                         {conflictTag && (
                           <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
                             ⚠ {conflictTag}
+                          </span>
+                        )}
+                        {leaveMatch && (
+                          <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 ring-1 ring-rose-200">
+                            🏥 {leaveMatch.doctorName} on leave{leaveMatch.reason ? ` · ${leaveMatch.reason}` : ""} · {leaveMatch.startDate === leaveMatch.endDate ? leaveMatch.startDate : `${leaveMatch.startDate} – ${leaveMatch.endDate}`}
                           </span>
                         )}
                       </div>

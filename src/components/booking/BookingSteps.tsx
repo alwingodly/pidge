@@ -47,6 +47,7 @@ type Service      = {
   branchConfigs: BranchConfig[]
 }
 type Doctor = { id: string; name: string; speciality: string; photoUrl?: string | null }
+type PatientOverride = { name: string; surname: string; phone: string } | null
 
 type State = {
   step:           number
@@ -74,13 +75,19 @@ export default function BookingSteps({
   showDoctorSelection,
   currencySymbol,
   gdprEnabled,
+  onlinePaymentsEnabled,
+  preServiceId,
+  preDoctorId,
 }: {
-  services:             Service[]
-  branches:             Branch[]
-  defaultBranchId:      string | null
-  showDoctorSelection:  boolean
-  currencySymbol:       string
-  gdprEnabled:          boolean
+  services:               Service[]
+  branches:               Branch[]
+  defaultBranchId:        string | null
+  showDoctorSelection:    boolean
+  currencySymbol:         string
+  gdprEnabled:            boolean
+  onlinePaymentsEnabled:  boolean
+  preServiceId?:          string | null
+  preDoctorId?:           string | null
 }) {
   const router = useRouter()
 
@@ -103,6 +110,8 @@ export default function BookingSteps({
     bookingToken:   null,
   })
 
+  const hasAdvanced = useRef(false)
+
   const [submitting,   setSubmitting]   = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [otpDigits,    setOtpDigits]    = useState(emptyOtpDigits)
@@ -116,7 +125,7 @@ export default function BookingSteps({
   // ── Derived values (after hooks) ──────────────────────────────────────────────
   const hasLocationStep = branches.length > 1
   const selectedService = services.find((s) => s.id === state.serviceId)
-  const hasPaidService  = (selectedService?.price ?? 0) > 0
+  const hasPaidService  = onlinePaymentsEnabled && (selectedService?.price ?? 0) > 0
 
   const STEP_LABELS: string[] = []
   if (hasLocationStep)     STEP_LABELS.push("Location")
@@ -140,6 +149,18 @@ export default function BookingSteps({
   function set<K extends keyof State>(key: K, value: State[K]) {
     setState((p) => ({ ...p, [key]: value }))
   }
+
+  // Auto-advance when serviceId/doctorId are pre-filled (rebook flow)
+  useEffect(() => {
+    if (hasAdvanced.current || !preServiceId) return
+    hasAdvanced.current = true
+    setState(p => ({
+      ...p,
+      serviceId: preServiceId,
+      doctorId:  preDoctorId ?? null,
+      step:      preDoctorId ? dateStep : (showDoctorSelection ? doctorStep : dateStep),
+    }))
+  }, [preServiceId, preDoctorId, dateStep, doctorStep, showDoctorSelection])
 
   // Load doctors when entering the doctor step
   useEffect(() => {
@@ -171,22 +192,23 @@ export default function BookingSteps({
     set("step", showDoctorSelection ? doctorStep : dateStep)
   }
 
-  async function createAppointment() {
+  async function createAppointment(bookingToken?: string | null, patient?: PatientOverride) {
     setSubmitting(true)
+    const token = bookingToken ?? state.bookingToken
     try {
       const res = await fetch("/api/appointments", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingToken:   state.bookingToken,
+          bookingToken:   token,
           branchId:       state.branchId       || undefined,
           serviceId:      state.serviceId,
           doctorId:       state.doctorId        || undefined,
           preferredDate:  state.preferredDate,
-          patientName:    state.patientName,
-          patientSurname: state.patientSurname  || undefined,
+          patientName:    patient?.name    ?? state.patientName,
+          patientSurname: (patient?.surname ?? state.patientSurname) || undefined,
           patientEmail:   state.patientEmail,
-          patientPhone:   state.patientPhone,
+          patientPhone:   patient?.phone   ?? state.patientPhone,
           patientDOB:     state.patientDOB      || undefined,
           patientGender:  state.patientGender   || undefined,
           notes:          state.notes           || undefined,
@@ -197,7 +219,11 @@ export default function BookingSteps({
         }),
       })
       const data = await res.json().catch(() => null)
-      if (!res.ok) { setOtpError(data?.error ?? "Something went wrong."); return }
+      if (!res.ok) {
+        const msg = typeof data?.error === "string" ? data.error : "Something went wrong. Please try again."
+        setOtpError(msg)
+        return
+      }
       router.push(`/confirmation/${data.bookingRef}`)
     } finally {
       setSubmitting(false)
@@ -213,9 +239,15 @@ export default function BookingSteps({
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ email: state.patientEmail, patientName: state.patientName }),
       })
-      if (!res.ok) { setError("Failed to send verification code. Please try again."); return }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error ?? "Failed to send verification code. Please try again.")
+        return
+      }
       setOtpDigits(emptyOtpDigits())
       set("step", otpStep)
+    } catch {
+      setError("Network error — please check your connection and try again.")
     } finally {
       setOtpSending(false)
     }
@@ -238,10 +270,21 @@ export default function BookingSteps({
         setOtpError(verifyData?.error ?? "Incorrect code. Please try again.")
         return
       }
-      setState(p => ({ ...p, bookingToken: verifyData?.bookingToken ?? null }))
+      const bookingToken    = verifyData?.bookingToken ?? null
+      const existingPatient = verifyData?.existingPatient ?? null
+
+      // Keep state in sync for display (e.g. confirmation summary)
+      setState(p => ({
+        ...p,
+        bookingToken,
+        ...(existingPatient ? {
+          patientName:    existingPatient.name,
+          patientSurname: existingPatient.surname || p.patientSurname,
+          patientPhone:   existingPatient.phone   || p.patientPhone,
+        } : {}),
+      }))
 
       if (hasPaidService && paymentStep > 0) {
-        // Create PaymentIntent then move to payment step
         const piRes = await fetch("/api/create-payment-intent", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
@@ -251,7 +294,8 @@ export default function BookingSteps({
         if (!piRes.ok) { setOtpError(piData?.error ?? "Failed to initiate payment."); return }
         setState((p) => ({ ...p, clientSecret: piData.clientSecret, step: paymentStep }))
       } else {
-        await createAppointment()
+        // Pass resolved values directly — don't rely on setState having committed yet
+        await createAppointment(bookingToken, existingPatient)
       }
     } finally {
       setOtpVerifying(false)
@@ -491,6 +535,7 @@ export default function BookingSteps({
                   </Button>
                 )}
               </div>
+
             </div>
           )}
 
@@ -591,7 +636,7 @@ export default function BookingSteps({
               >
                 <PaymentStepForm
                   onBack={() => set("step", otpStep)}
-                  onSuccess={createAppointment}
+                  onSuccess={() => createAppointment()}
                   submitting={submitting}
                 />
               </Elements>

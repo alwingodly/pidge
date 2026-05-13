@@ -59,7 +59,9 @@ model Tenant {
   manualBookingEnabled    Boolean @default(false)
   recurrenceEnabled       Boolean @default(false)
   gdprEnabled             Boolean @default(false) // UK GDPR mode: consent checkbox, opt-out, erasure
+  waitlistEnabled         Boolean @default(false) // allow patients to join a waitlist
   patientHistoryEnabled Boolean @default(true)
+  onlinePaymentsEnabled Boolean @default(false) // when false, Stripe step is skipped — offline/cash only
   walkInEnabled Boolean @default(true)
   branchModeEnabled Boolean @default(false)
   isActive            Boolean  @default(true)
@@ -78,6 +80,7 @@ model Tenant {
   workingHours   WorkingHours[]
   doctorLeaves   DoctorLeave[]
   serviceConfigs ServiceBranchConfig[]
+  waitlist       Waitlist[]
 }
 
 // ── Branch ────────────────────────────────────────────────────────────────────
@@ -98,6 +101,7 @@ model Branch {
   slots        Slot[]
   appointments   Appointment[]
   serviceConfigs ServiceBranchConfig[]
+  waitlist       Waitlist[]
 
   @@unique([tenantId, slug])
 }
@@ -158,6 +162,7 @@ model Service {
   slots          Slot[]
   doctorServices DoctorService[]
   branchConfigs  ServiceBranchConfig[]
+  waitlist       Waitlist[]
 }
 
 // ── ServiceBranchConfig — per-branch availability of a service ───────────────
@@ -349,4 +354,25 @@ model DoctorLeave {
 
   @@index([doctorId, startDate])
   @@index([tenantId, startDate])
+}
+
+// ── Waitlist — patients waiting for a slot to open for a service ─────────────
+model Waitlist {
+  id           String    @id @default(uuid())
+  tenantId     String
+  serviceId    String
+  branchId     String?
+  patientName  String
+  patientEmail String
+  patientPhone String
+  preferredDate DateTime?
+  leaveToken   String    @unique // sent to patient so they can remove themselves
+  notifiedAt   DateTime? // set when we email them that a slot opened up
+  createdAt    DateTime  @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  service Service  @relation(fields: [serviceId], references: [id])
+  branch  Branch?  @relation(fields: [branchId],  references: [id])
+
+  @@index([tenantId, serviceId, notifiedAt, createdAt])
 }

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { getTenantFromHeaders } from "@/lib/tenant"
 import { encryptField } from "@/lib/encryption"
+import { recordAppointmentStatusChange } from "@/lib/audit"
 
 // POST /api/patient/erase  { cancelToken, email }
 // Anonymises PII on all appointments for this patient at this tenant.
@@ -35,7 +36,55 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid request." }, { status: 404 })
   }
 
-  // Anonymise all appointments for this email at this tenant
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+
+  // Step 1: Cancel future active appointments — no operational purpose for an anonymous patient.
+  // UK GDPR Art.17(3): completed/historical records are kept for legitimate audit purposes.
+  const activeAppointments = await prisma.appointment.findMany({
+    where: {
+      tenantId,
+      patientEmail: email,
+      status: { in: ["PENDING", "APPROVED"] },
+      OR: [
+        { assignedDate:  { gte: todayStart } },
+        { preferredDate: { gte: todayStart } },
+        { assignedDate: null, preferredDate: null }, // unscheduled pending
+      ],
+    },
+    select: { id: true, status: true, slotId: true },
+  })
+
+  if (activeAppointments.length > 0) {
+    const ids = activeAppointments.map(a => a.id)
+
+    await prisma.appointment.updateMany({
+      where: { id: { in: ids } },
+      data:  { status: "CANCELLED" },
+    })
+
+    // Free any reserved slots
+    const slotIds = activeAppointments.map(a => a.slotId).filter(Boolean) as string[]
+    if (slotIds.length > 0) {
+      await prisma.slot.updateMany({
+        where: { id: { in: slotIds } },
+        data:  { isBooked: false },
+      })
+    }
+
+    // Audit trail — record each cancellation
+    await Promise.all(activeAppointments.map(a =>
+      recordAppointmentStatusChange({
+        tenantId,
+        appointmentId: a.id,
+        fromStatus:    a.status,
+        toStatus:      "CANCELLED",
+        note:          "Cancelled automatically — patient exercised right to erasure (UK GDPR Art.17)",
+      })
+    ))
+  }
+
+  // Step 2: Anonymise PII on ALL appointments (past and future)
   const DELETED = "[deleted]"
   await prisma.appointment.updateMany({
     where: { tenantId, patientEmail: email },
@@ -52,5 +101,5 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return Response.json({ ok: true })
+  return Response.json({ ok: true, cancelledAppointments: activeAppointments.length })
 }

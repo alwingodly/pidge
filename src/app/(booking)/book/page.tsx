@@ -3,9 +3,16 @@ import { getTenantFromHeaders } from "@/lib/tenant"
 import BookingSteps from "@/components/booking/BookingSteps"
 import { notFound } from "next/navigation"
 
-export default async function BookPage() {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ serviceId?: string; doctorId?: string }>
+}) {
   const { tenantId, branchId } = await getTenantFromHeaders()
   if (!tenantId) notFound()
+  const sp = await searchParams
+  const preServiceId = sp.serviceId ?? null
+  const preDoctorId  = sp.doctorId  ?? null
 
   const [services, branches, tenant] = await Promise.all([
     prisma.service.findMany({
@@ -20,7 +27,7 @@ export default async function BookPage() {
     }),
     prisma.tenant.findUnique({
       where:  { id: tenantId },
-      select: { showDoctorSelection: true, currencySymbol: true, gdprEnabled: true },
+      select: { showDoctorSelection: true, currencySymbol: true, gdprEnabled: true, onlinePaymentsEnabled: true },
     }),
   ])
 
@@ -34,6 +41,9 @@ export default async function BookPage() {
       showDoctorSelection={tenant?.showDoctorSelection ?? false}
       currencySymbol={tenant?.currencySymbol ?? "£"}
       gdprEnabled={tenant?.gdprEnabled ?? false}
+      onlinePaymentsEnabled={tenant?.onlinePaymentsEnabled ?? false}
+      preServiceId={preServiceId}
+      preDoctorId={preDoctorId}
     />
   )
 }

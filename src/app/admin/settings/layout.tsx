@@ -1,6 +1,10 @@
+import { auth } from "@/lib/auth"
 import SettingsNav from "@/components/admin/SettingsNav"
 
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth()
+  const role    = session?.user.role ?? "TENANT_ADMIN"
+
   return (
     <div className="space-y-1">
       <div>
@@ -12,7 +16,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         {/* Sub-nav */}
         <aside className="w-44 shrink-0">
           <div className="sticky top-24 overflow-hidden rounded-xl border border-border bg-white p-2 shadow-sm">
-            <SettingsNav />
+            <SettingsNav role={role} />
           </div>
         </aside>
 

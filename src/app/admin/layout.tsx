@@ -67,8 +67,8 @@ async function prismaTenantSettings(tenantId: string) {
     },
   })
   return {
-    primaryColor: tenant?.primaryColor ?? null,
-    walkInEnabled: tenant?.walkInEnabled ?? true,
+    primaryColor:      tenant?.primaryColor      ?? null,
+    walkInEnabled:     tenant?.walkInEnabled     ?? true,
     branchModeEnabled: tenant?.branchModeEnabled ?? false,
   }
 }

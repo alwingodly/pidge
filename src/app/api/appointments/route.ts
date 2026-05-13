@@ -105,7 +105,7 @@ const createSchema = z.object({
   patientEmail:    z.string().email(),
   patientPhone:    z.string().min(1).max(30),
   patientDOB:      z.string().optional(),
-  patientGender:   z.string().max(50).optional(),
+  patientGender:   z.string().min(1).max(50),
   notes:           z.string().max(500).optional(),
   attachmentData:  z.string().max(7_500_000).optional(),
   attachmentName:  z.string().max(255).optional(),
@@ -189,6 +189,25 @@ export async function POST(req: NextRequest) {
     if (!doctorExists) return Response.json({ error: "Invalid clinician selected." }, { status: 400 })
   }
 
+  // Enforce patient identity consistency — same email must always use the same name + phone
+  const priorRecord = await prisma.appointment.findFirst({
+    where:   { tenantId, patientEmail, patientName: { not: "[deleted]" } },
+    orderBy: { createdAt: "desc" },
+    select:  { patientName: true, patientSurname: true, patientPhone: true },
+  })
+  if (priorRecord) {
+    const submitted = patientName.trim().toLowerCase()
+    const stored    = priorRecord.patientName.trim().toLowerCase()
+    if (submitted !== stored) {
+      return Response.json(
+        { error: `The name you entered doesn't match your previous booking. Please use: ${priorRecord.patientName}${priorRecord.patientSurname ? " " + priorRecord.patientSurname : ""}` },
+        { status: 400 },
+      )
+    }
+  }
+
+  const storedPhone = priorRecord?.patientPhone ?? encryptField(patientPhone)!
+
   const bookingRef  = generateBookingRef()
   const cancelToken = generateCancelToken()
 
@@ -200,10 +219,10 @@ export async function POST(req: NextRequest) {
     slotId:          null,
     doctorId:        doctorId ?? null,
     preferredDate:   prefDate,
-    patientName,
-    patientSurname:  patientSurname  ?? null,
+    patientName:     priorRecord?.patientName    ?? patientName,
+    patientSurname:  priorRecord?.patientSurname ?? patientSurname ?? null,
     patientEmail,
-    patientPhone:    encryptField(patientPhone)!,
+    patientPhone:    storedPhone,
     patientDOB:      dobIso ? encryptField(dobIso) : null,
     patientGender:   encryptField(patientGender),
     notes:           encryptField(notes),

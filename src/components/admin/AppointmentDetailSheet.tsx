@@ -77,7 +77,6 @@ type Props = {
 // ── Action config ──────────────────────────────────────────────────────────────
 type Status = "APPROVED" | "CANCELLED" | "COMPLETED" | "NO_SHOW"
 const ACTIONS: { status: Status; label: string; icon: React.ElementType; style: string; allowed: string[] }[] = [
-  { status: "APPROVED",  label: "Approve",        icon: Check,  style: "bg-emerald-600 hover:bg-emerald-700 text-white",                         allowed: ["PENDING"]            },
   { status: "COMPLETED", label: "Mark completed",  icon: Check,  style: "bg-[#7EACB5] hover:bg-[#6a9aa3] text-white",                            allowed: ["APPROVED"]           },
   { status: "NO_SHOW",   label: "No show",         icon: UserX,  style: "bg-orange-500 hover:bg-orange-600 text-white",                           allowed: ["APPROVED"]           },
   { status: "CANCELLED", label: "Cancel",          icon: X,      style: "border border-red-200 bg-white text-red-600 hover:bg-red-50",            allowed: ["PENDING","APPROVED"] },
@@ -194,18 +193,9 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
   const fullName = appt
     ? [appt.patientName, appt.patientSurname].filter(Boolean).join(" ")
     : ""
-  const isAssigned = !!(appt?.doctor && appt?.assignedTime)
-
   const availableActions = appt
-    ? ACTIONS.filter(a => {
-        if (!a.allowed.includes(appt.status)) return false
-        // Approve requires a doctor and time to already be assigned
-        if (a.status === "APPROVED" && !isAssigned) return false
-        return true
-      })
+    ? ACTIONS.filter(a => a.allowed.includes(appt.status))
     : []
-
-  const needsAssignment = appt?.status === "PENDING" && !isAssigned
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -368,13 +358,6 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
         {/* ── Footer actions ───────────────────────────────────────────────── */}
         {!loading && appt && (
           <div className="shrink-0 border-t border-border bg-secondary/30 px-6 py-4 space-y-3">
-            {/* Nudge when pending but not yet assigned */}
-            {needsAssignment && (
-              <p className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-                <Stethoscope className="size-3.5 shrink-0" />
-                Use the <strong>Assign</strong> button in the appointments list to assign a clinician and time before approving.
-              </p>
-            )}
             {availableActions.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {availableActions.map(({ status, label, icon: Icon, style }) => {
