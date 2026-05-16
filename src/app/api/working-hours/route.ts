@@ -11,21 +11,35 @@ export const GET = auth(async (req) => {
   const doctorId     = new URL(req.url).searchParams.get("doctorId")
   if (!doctorId) return Response.json({ error: "doctorId required" }, { status: 400 })
 
-  const [hours, tenant] = await Promise.all([
+  const { branchId } = getScopeFromSession(req.auth)
+
+  const [hours, tenant, branch] = await Promise.all([
     prisma.workingHours.findMany({
       where:   { tenantId, doctorId },
       orderBy: { dayOfWeek: "asc" },
     }),
     prisma.tenant.findUnique({
       where:  { id: tenantId },
-      select: { clinicStartTime: true, clinicEndTime: true },
+      select: { clinicStartTime: true, clinicEndTime: true, slotIntervalMins: true, lunchBreakStart: true, lunchBreakEnd: true },
     }),
+    branchId ? prisma.branch.findUnique({
+      where:  { id: branchId, tenantId },
+      select: { slotIntervalMins: true, lunchBreakStart: true, lunchBreakEnd: true },
+    }) : Promise.resolve(null),
   ])
 
+  // Branch overrides take precedence over tenant defaults
+  const slotIntervalMins = branch?.slotIntervalMins ?? tenant?.slotIntervalMins ?? 30
+  const lunchBreakStart  = branch?.lunchBreakStart  ?? tenant?.lunchBreakStart  ?? null
+  const lunchBreakEnd    = branch?.lunchBreakEnd    ?? tenant?.lunchBreakEnd    ?? null
+
   return Response.json({
-    data:           hours,
+    data:            hours,
     clinicStartTime: tenant?.clinicStartTime ?? null,
     clinicEndTime:   tenant?.clinicEndTime   ?? null,
+    slotIntervalMins,
+    lunchBreakStart,
+    lunchBreakEnd,
   })
 })
 

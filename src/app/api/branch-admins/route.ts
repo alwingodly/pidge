@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs"
 export async function GET(req: Request) {
   const session = await auth()
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  // Branch admins can only see their own branch's admins
+  if (session.user.role !== "TENANT_ADMIN")
+    return Response.json({ error: "Unauthorized" }, { status: 403 })
 
   const { tenantId } = getScopeFromSession(session)
   const branchId = new URL(req.url).searchParams.get("branchId")

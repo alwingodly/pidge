@@ -25,7 +25,7 @@ const manualCreateSchema = z.object({
   patientGender:  z.string().max(50).optional(),
   notes:          z.string().max(500).optional(),
   recurrence:     z.object({
-    frequency: z.enum(["WEEKLY", "FORTNIGHTLY", "MONTHLY"]),
+    frequency: z.enum(["DAILY", "WEEKLY", "FORTNIGHTLY", "MONTHLY"]),
     sessions:  z.number().int().min(2).max(52),
   }).optional(),
 })
@@ -42,7 +42,8 @@ function addMonths(date: Date, months: number): Date {
   return d
 }
 
-function nextDate(base: Date, frequency: "WEEKLY" | "FORTNIGHTLY" | "MONTHLY", index: number): Date {
+function nextDate(base: Date, frequency: "DAILY" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY", index: number): Date {
+  if (frequency === "DAILY")       return addDays(base, 1 * index)
   if (frequency === "WEEKLY")      return addDays(base, 7 * index)
   if (frequency === "FORTNIGHTLY") return addDays(base, 14 * index)
   return addMonths(base, index)
@@ -413,18 +414,53 @@ export async function POST(req: NextRequest) {
       data: { recurrenceGroupId: groupId, recurrenceIndex: 1, recurrenceTotal: sessions },
     })
 
-    // Create sessions 2..N (index 1..N-1 offsets)
+    // Calculate all series dates upfront
+    const seriesDates = Array.from({ length: sessions - 1 }, (_, i) =>
+      nextDate(parsedAssignedDate, frequency, i + 1)
+    )
+    const firstDate = seriesDates[0]
+    const lastDate  = seriesDates[seriesDates.length - 1]
+
+    // Fetch existing appointments for this doctor across the entire series window
+    const existingInWindow = await prisma.appointment.findMany({
+      where: {
+        doctorId,
+        tenantId,
+        status:       { in: ["PENDING", "APPROVED"] },
+        assignedDate: { gte: firstDate, lte: lastDate },
+        assignedTime: { not: null },
+      },
+      select: { assignedDate: true, assignedTime: true, service: { select: { durationMins: true } } },
+    })
+
+    // Create sessions 2..N — skip any that conflict
     const seriesData: Prisma.AppointmentUncheckedCreateInput[] = []
-    for (let i = 1; i < sessions; i++) {
-      const seriesDate = nextDate(parsedAssignedDate, frequency, i)
+    const skipped: string[] = []
+    const duration = service.durationMins
+
+    for (let i = 0; i < seriesDates.length; i++) {
+      const seriesDate    = seriesDates[i]
+      const dateStr       = seriesDate.toISOString().slice(0, 10)
+      const sameDayAppts  = existingInWindow.filter(
+        (a) => a.assignedDate?.toISOString().slice(0, 10) === dateStr
+      )
+      const hasConflict   = sameDayAppts.some(
+        (a) => a.assignedTime && overlaps(assignedTime, duration, a.assignedTime, a.service?.durationMins ?? duration)
+      )
+
+      if (hasConflict) {
+        skipped.push(dateStr)
+        continue
+      }
+
       seriesData.push({
         ...appointmentData,
         bookingRef:        generateBookingRef(),
         cancelToken:       generateCancelToken(),
         assignedDate:      seriesDate,
-        slotId:            null,          // no slot for future dates — admin manages slots
+        slotId:            null,
         recurrenceGroupId: groupId,
-        recurrenceIndex:   i + 1,
+        recurrenceIndex:   i + 2,
         recurrenceTotal:   sessions,
       })
     }
@@ -434,8 +470,9 @@ export async function POST(req: NextRequest) {
     }
 
     return Response.json({
-      data:     { id: appointment.id, bookingRef: appointment.bookingRef },
-      series:   { groupId, total: sessions, frequency },
+      data:    { id: appointment.id, bookingRef: appointment.bookingRef },
+      series:  { groupId, total: sessions, frequency, skipped },
+      ...(skipped.length > 0 ? { warning: `${skipped.length} session(s) skipped due to conflicts: ${skipped.join(", ")}` } : {}),
     }, { status: 201 })
   }
 

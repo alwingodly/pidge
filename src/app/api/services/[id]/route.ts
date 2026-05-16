@@ -8,13 +8,16 @@ const updateSchema = z.object({
   name:         z.string().min(1).optional(),
   description:  z.string().optional(),
   durationMins: z.number().int().positive().optional(),
-  price:        z.number().min(0).optional(),
-  isActive:     z.boolean().optional(),
+  price:               z.number().min(0).optional(),
+  priceOnConsultation: z.boolean().optional(),
+  isProgramme:         z.boolean().optional(),
+  isActive:            z.boolean().optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session || session.user.role !== "TENANT_ADMIN")
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
   const { tenantId } = getScopeFromSession(session)
   const { id } = await params
 

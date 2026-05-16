@@ -16,15 +16,18 @@ export async function GET(req: NextRequest) {
 }
 
 const createSchema = z.object({
-  name:         z.string().min(1),
-  description:  z.string().optional(),
-  durationMins: z.number().int().positive().default(30),
-  price:        z.number().min(0).default(0),
+  name:                z.string().min(1),
+  description:         z.string().optional(),
+  durationMins:        z.number().int().positive().default(30),
+  price:               z.number().min(0).default(0),
+  priceOnConsultation: z.boolean().default(false),
+  isProgramme:         z.boolean().default(false),
 })
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session || session.user.role !== "TENANT_ADMIN")
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
   const { tenantId } = getScopeFromSession(session)
 
   const body = await req.json()

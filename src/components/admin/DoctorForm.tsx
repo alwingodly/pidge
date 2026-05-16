@@ -67,25 +67,27 @@ type Doctor = {
   bio?: string | null
   photoUrl?: string | null
   branchId?: string | null
+  showInBooking?: boolean | null
   doctorServices?: { serviceId: string }[]
 }
 type Branch  = { id: string; name: string }
 type Service = { id: string; name: string; durationMins: number; price?: number }
 
 type Props = {
-  doctor:          Doctor | null
-  branches:        Branch[]
-  services:        Service[]
-  tenantId:        string
-  defaultBranchId: string | null
-  isBranchAdmin:   boolean
-  onSaved?:        (doctorId: string) => void
-  className?:      string
+  doctor:               Doctor | null
+  branches:             Branch[]
+  services:             Service[]
+  tenantId:             string
+  defaultBranchId:      string | null
+  isBranchAdmin:        boolean
+  showDoctorSelection?: boolean  // tenant flag — show "accepts bookings" toggle only when true
+  onSaved?:             (doctorId: string) => void
+  className?:           string
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function DoctorForm({
-  doctor, branches, services, defaultBranchId, isBranchAdmin, onSaved, className,
+  doctor, branches, services, defaultBranchId, isBranchAdmin, showDoctorSelection, onSaved, className,
 }: Props) {
   const router = useRouter()
 
@@ -103,6 +105,7 @@ export default function DoctorForm({
   const [serviceIds, setServiceIds] = useState<Set<string>>(
     new Set(doctor?.doctorServices?.map(ds => ds.serviceId) ?? [])
   )
+  const [showInBooking, setShowInBooking] = useState(doctor?.showInBooking ?? true)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
 
@@ -118,7 +121,6 @@ export default function DoctorForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (serviceIds.size === 0) { setError("Select at least one service."); return }
     if (!isBranchAdmin && branches.length > 1 && !branchId) { setError("Select a branch."); return }
     setLoading(true); setError(null)
 
@@ -131,10 +133,11 @@ export default function DoctorForm({
       body: JSON.stringify({
         name, practitionerType,
         speciality,
-        bio:        bio      || undefined,
-        photoUrl:   photoUrl || undefined,
-        branchId:   branchId || undefined,
-        serviceIds: Array.from(serviceIds),
+        bio:           bio      || undefined,
+        photoUrl:      photoUrl || undefined,
+        branchId:      branchId || undefined,
+        serviceIds:    Array.from(serviceIds),
+        showInBooking,
       }),
     })
     const data = await res.json()
@@ -220,7 +223,7 @@ export default function DoctorForm({
 
       {/* ── Services ──────────────────────────────────────────────────────── */}
       <div className="space-y-2">
-        <Label>Services offered <span className="text-primary">*</span></Label>
+        <Label>Services offered <span className="text-xs font-normal text-muted-foreground">(optional for consultants)</span></Label>
         {services.length === 0 ? (
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-600">
             Add services first.{" "}
@@ -255,6 +258,11 @@ export default function DoctorForm({
             })}
           </div>
         )}
+        {services.length > 0 && serviceIds.size === 0 && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            No services selected — this practitioner won&apos;t appear during booking. Add services later if they&apos;re a consultant or new to the clinic.
+          </p>
+        )}
       </div>
 
       {/* ── Optional fields ───────────────────────────────────────────────── */}
@@ -280,11 +288,39 @@ export default function DoctorForm({
         </div>
       </div>
 
+      {/* Booking visibility — only shown when the clinic has doctor selection turned on */}
+      {showDoctorSelection && (
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
+          <div
+            role="switch"
+            aria-checked={showInBooking}
+            onClick={() => setShowInBooking(v => !v)}
+            className={cn(
+              "relative mt-0.5 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+              showInBooking ? "bg-primary" : "bg-muted"
+            )}
+          >
+            <span className={cn(
+              "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform",
+              showInBooking ? "translate-x-4" : "translate-x-0"
+            )} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Accepts patient appointments</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {showInBooking
+                ? "Patients can choose this person when booking. Turn off for support staff who work behind the scenes."
+                : "Internal use only — admin assigns work to them directly. Patients won't see this person during booking."}
+            </p>
+          </div>
+        </label>
+      )}
+
       {error && (
         <p className="rounded-lg bg-secondary px-3 py-2 text-sm text-primary">{error}</p>
       )}
 
-      <Button type="submit" disabled={loading || services.length === 0} size="sm">
+      <Button type="submit" disabled={loading} size="sm">
         {loading ? "Saving…" : doctor ? "Save changes" : `Add ${selectedType.label}`}
       </Button>
     </form>

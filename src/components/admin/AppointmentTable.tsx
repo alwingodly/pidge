@@ -134,7 +134,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
     router.push(`?${params.toString()}`)
   }
 
-  function submitSearch(e: React.FormEvent) {
+  function submitSearch(e: { preventDefault(): void }) {
     e.preventDefault()
     updateFilter("q", search.trim())
   }
@@ -321,9 +321,9 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                             Walk-in
                           </span>
                         )}
-                        {appt.recurrenceGroupId && appt.recurrenceIndex && appt.recurrenceTotal && (
+                        {appt.recurrenceGroupId && appt.recurrenceTotal && (
                           <span className="shrink-0 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-600 ring-1 ring-violet-200">
-                            {appt.recurrenceIndex} of {appt.recurrenceTotal}
+                            ↺ {appt.recurrenceTotal} sessions
                           </span>
                         )}
                         {conflictTag && (
@@ -380,7 +380,7 @@ export default function AppointmentTable({ appointments, doctors, services, bran
                           className="h-7 rounded-lg px-2.5 text-xs"
                           onClick={() => setAssignTarget(appt)}
                         >
-                          Assign
+                          Assign & approve
                         </Button>
                       )}
                       {appt.status === "APPROVED" && (

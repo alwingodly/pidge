@@ -29,10 +29,17 @@ export const GET = auth(async (req) => {
     ? { OR: [{ branchId: filterBranchId }, { branchId: null }] }
     : {}
 
+  // Patient-facing booking flow: only return doctors set as visible in booking.
+  // Applies when unauthenticated OR when the booking page explicitly passes ?booking=1
+  // (covers the case where an admin tests the booking flow while still logged in).
+  const isBookingContext = !req.auth || searchParams.get("booking") === "1"
+  const bookingFilter = isBookingContext ? { showInBooking: true } : {}
+
   const doctors = await prisma.doctor.findMany({
     where: {
       tenantId,
       ...branchFilter,
+      ...bookingFilter,
       isActive: true,
       ...(serviceId ? { doctorServices: { some: { serviceId } } } : {}),
     },
@@ -53,6 +60,7 @@ const createSchema = z.object({
   photoUrl:         z.url().optional(),
   branchId:         z.uuid().optional(),
   serviceIds:       z.array(z.uuid()).default([]),
+  showInBooking:    z.boolean().default(true),
 })
 
 export const POST = auth(async (req) => {
@@ -64,7 +72,7 @@ export const POST = auth(async (req) => {
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.issues }, { status: 400 })
 
-  const { serviceIds, branchId: bodyBranchId, ...rest } = parsed.data
+  const { serviceIds, branchId: bodyBranchId, showInBooking, ...rest } = parsed.data
 
   // Branch admins must use their own branch; tenant admins validate submitted branchId
   let resolvedBranchId: string | undefined = bodyBranchId
@@ -81,7 +89,7 @@ export const POST = auth(async (req) => {
     if (count !== serviceIds.length) return Response.json({ error: "Invalid service selection." }, { status: 400 })
   }
 
-  const doctorData = { ...rest, branchId: resolvedBranchId }
+  const doctorData = { ...rest, branchId: resolvedBranchId, showInBooking }
 
   const doctor = await prisma.$transaction(async (tx) => {
     const doc = await tx.doctor.create({ data: { tenantId, ...doctorData } })

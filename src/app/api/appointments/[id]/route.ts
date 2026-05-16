@@ -107,9 +107,10 @@ const patchSchema = z.object({
   slotId:           z.string().uuid().optional(),
   assignedDate:     z.string().optional(),
   assignedTime:     z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  reschedule:       z.boolean().optional(), // true when rescheduling an already-confirmed appointment
-  previousDate:     z.string().optional(),  // previous assignedDate for reschedule email
-  previousTime:     z.string().optional(),  // previous assignedTime for reschedule email
+  finalPrice:       z.number().min(0).optional(),
+  reschedule:       z.boolean().optional(),
+  previousDate:     z.string().optional(),
+  previousTime:     z.string().optional(),
 })
 
 export const PATCH = auth(async (req) => {
@@ -121,7 +122,7 @@ export const PATCH = auth(async (req) => {
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 })
 
-  const { status, doctorId, slotId, assignedDate, assignedTime, reschedule, previousDate, previousTime } = parsed.data
+  const { status, doctorId, slotId, assignedDate, assignedTime, finalPrice, reschedule, previousDate, previousTime } = parsed.data
 
   // Validate assignedDate is a real date
   let parsedAssignedDate: Date | undefined
@@ -238,6 +239,7 @@ export const PATCH = auth(async (req) => {
         where: { id, tenantId, ...(branchId ? { branchId } : {}) },
         data:  {
           status,
+          ...(finalPrice !== undefined ? { finalPrice } : {}),
           ...(reservedSlot ? {
             slotId: reservedSlot.id,
             doctorId: reservedSlot.doctorId,
@@ -310,8 +312,8 @@ export const PATCH = auth(async (req) => {
       if (appointment.tenant.assignmentEmailEnabled)
         await sendAssignmentConfirmation(decrypted)
     }
-    if (status === "CANCELLED") await sendCancellationEmail(decrypted)
-    if (status === "COMPLETED" && appointment.tenant.reviewLink)
+    if (status === "CANCELLED" && appointment.tenant.cancellationEmailEnabled) await sendCancellationEmail(decrypted)
+    if (status === "COMPLETED" && appointment.tenant.reviewEmailEnabled && appointment.tenant.reviewLink)
       await sendReviewRequestEmail(decrypted, appointment.tenant.reviewLink)
 
     return Response.json({ data: decrypted })

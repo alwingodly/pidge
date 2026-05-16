@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { prisma } from "@/lib/db"
 import { getTenantFromHeaders } from "@/lib/tenant"
-import { sendCancellationEmail } from "@/lib/email"
+import { sendCancellationEmail, sendCancellationAlert } from "@/lib/email"
 import { formatDate, formatTime } from "@/lib/utils"
 import { recordAppointmentStatusChange } from "@/lib/audit"
 
@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
 
   if (!appointment) return Response.json({ error: "Booking not found" }, { status: 404 })
   if (appointment.status === "CANCELLED") return Response.json({ error: "Already cancelled" }, { status: 400 })
+  if (!appointment.tenant.patientCancelEnabled)
+    return Response.json({ error: "Online cancellation is not available. Please contact the clinic directly." }, { status: 403 })
 
   if (preview) {
     const dateStr = appointment.assignedDate
@@ -57,6 +59,8 @@ export async function DELETE(req: NextRequest) {
 
   if (!appointment) return Response.json({ error: "Booking not found" }, { status: 404 })
   if (appointment.status === "CANCELLED") return Response.json({ error: "Already cancelled" }, { status: 400 })
+  if (!appointment.tenant.patientCancelEnabled)
+    return Response.json({ error: "Online cancellation is not available. Please contact the clinic directly." }, { status: 403 })
 
   // Update appointment status; free the slot only if one exists (legacy flow)
   await prisma.appointment.update({ where: { id: appointment.id }, data: { status: "CANCELLED" } })
@@ -72,6 +76,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } }).catch(() => null)
   }
 
-  await sendCancellationEmail(appointment)
+  if (appointment.tenant.cancellationEmailEnabled) await sendCancellationEmail(appointment)
+  if (appointment.tenant.bookingAlertsEnabled) await sendCancellationAlert(appointment)
   return Response.json({ success: true, bookingRef: appointment.bookingRef })
 }

@@ -7,6 +7,8 @@ import { generateBookingRef, generateCancelToken } from "@/lib/booking-ref"
 import { sendBookingAcknowledgement, sendAdminNewRequest } from "@/lib/email"
 import { encryptField, decryptField, verifyBookingToken } from "@/lib/encryption"
 import { recordAppointmentStatusChange } from "@/lib/audit"
+import { getStripe } from "@/lib/stripe"
+import Stripe from "stripe"
 import { z } from "zod"
 
 // Fields that are stored encrypted: patientPhone, patientDOB, patientGender, notes, attachmentData
@@ -109,8 +111,9 @@ const createSchema = z.object({
   notes:           z.string().max(500).optional(),
   attachmentData:  z.string().max(7_500_000).optional(),
   attachmentName:  z.string().max(255).optional(),
-  consentGiven:    z.boolean().optional(),
-  reminderOptOut:  z.boolean().optional(),
+  consentGiven:      z.boolean().optional(),
+  reminderOptOut:    z.boolean().optional(),
+  paymentIntentId:   z.string().optional(),
 })
 
 // Allowed MIME types for patient attachments (validated via base64 magic bytes)
@@ -166,6 +169,51 @@ export async function POST(req: NextRequest) {
     resolvedBranchId = branch.id
   }
 
+  // Validate service: must be active and bookable at this branch
+  const svcCheck = await prisma.service.findUnique({
+    where:  { id: serviceId, tenantId, isActive: true },
+    select: { id: true, priceOnConsultation: true, price: true,
+      ...(resolvedBranchId
+        ? { branchConfigs: { where: { branchId: resolvedBranchId }, select: { isOffered: true, isAvailable: true } } }
+        : {}),
+    },
+  })
+  if (!svcCheck) return Response.json({ error: "Service not available." }, { status: 400 })
+
+  // Block if explicitly hidden/unavailable at this branch
+  if (resolvedBranchId) {
+    const cfg = (svcCheck as { branchConfigs?: { isOffered: boolean; isAvailable: boolean }[] }).branchConfigs?.[0]
+    if (cfg && (!cfg.isOffered || !cfg.isAvailable))
+      return Response.json({ error: "Service not available at this location." }, { status: 400 })
+  }
+
+  // Server-side payment verification when online payments are enabled
+  const tenantPayments = await prisma.tenant.findUnique({
+    where:  { id: tenantId },
+    select: { onlinePaymentsEnabled: true },
+  })
+  const requiresPayment = tenantPayments?.onlinePaymentsEnabled && !svcCheck.priceOnConsultation && svcCheck.price > 0
+  if (requiresPayment) {
+    const piId = parsed.data.paymentIntentId
+    if (!piId) return Response.json({ error: "Payment is required to complete this booking." }, { status: 402 })
+
+    let pi: Stripe.PaymentIntent
+    try {
+      pi = await getStripe().paymentIntents.retrieve(piId)
+    } catch {
+      return Response.json({ error: "Payment verification failed." }, { status: 402 })
+    }
+
+    if (pi.status !== "succeeded")
+      return Response.json({ error: "Payment has not been completed." }, { status: 402 })
+    if (pi.metadata?.tenantId !== tenantId || pi.metadata?.serviceId !== serviceId)
+      return Response.json({ error: "Payment does not match this booking." }, { status: 402 })
+    if (pi.metadata?.used === "true")
+      return Response.json({ error: "This payment has already been used." }, { status: 402 })
+    if (pi.amount < Math.round(svcCheck.price * 100))
+      return Response.json({ error: "Payment amount does not match the service price." }, { status: 402 })
+  }
+
   // Validate preferredDate is a real date
   const prefDate = new Date(preferredDate)
   if (isNaN(prefDate.getTime()))
@@ -180,13 +228,15 @@ export async function POST(req: NextRequest) {
     dobIso = dob.toISOString()
   }
 
-  // If patient selected a doctor, verify they belong to this tenant and branch
+  // If patient selected a doctor, verify they belong to this tenant/branch AND offer this service
   if (doctorId) {
     const doctorExists = await prisma.doctor.findUnique({
       where: { id: doctorId, tenantId, ...(resolvedBranchId ? { branchId: resolvedBranchId } : {}) },
-      select: { id: true },
+      select: { id: true, doctorServices: { where: { serviceId }, select: { serviceId: true } } },
     })
     if (!doctorExists) return Response.json({ error: "Invalid clinician selected." }, { status: 400 })
+    if (doctorExists.doctorServices.length === 0)
+      return Response.json({ error: "This clinician does not offer the selected service." }, { status: 400 })
   }
 
   // Enforce patient identity consistency — same email must always use the same name + phone
@@ -245,7 +295,15 @@ export async function POST(req: NextRequest) {
   }
 
   const [appointment, service, branch, tenantAdmin] = await Promise.all([
-    prisma.appointment.create({ data: appointmentData }),
+    prisma.appointment.create({ data: appointmentData }).then(async (appt) => {
+      // Mark the PaymentIntent as used immediately after appointment is persisted (fire-and-forget)
+      if (requiresPayment && parsed.data.paymentIntentId) {
+        getStripe().paymentIntents.update(parsed.data.paymentIntentId, {
+          metadata: { used: "true", appointmentId: appt.id }
+        }).catch(() => {/* non-fatal — appointment is already created */})
+      }
+      return appt
+    }),
     prisma.service.findUniqueOrThrow({ where: { id: serviceId, tenantId } }),
     branchId
       ? prisma.branch.findUnique({ where: { id: branchId } })
@@ -281,5 +339,6 @@ export async function POST(req: NextRequest) {
     ...(tenant.bookingAlertsEnabled ? [sendAdminNewRequest(apptForEmail)] : []),
   ])
 
-  return Response.json({ bookingRef: appointment.bookingRef }, { status: 201 })
+  // Return cancelToken so client can build a cryptographically-gated confirmation URL
+  return Response.json({ bookingRef: appointment.bookingRef, cancelToken: appointment.cancelToken }, { status: 201 })
 }

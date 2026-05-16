@@ -3,8 +3,10 @@ import { prisma } from "@/lib/db"
 import { sendReminderEmail } from "@/lib/email"
 
 export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return Response.json({ error: "Cron not configured" }, { status: 503 })
   const authHeader = req.headers.get("authorization")
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${secret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 

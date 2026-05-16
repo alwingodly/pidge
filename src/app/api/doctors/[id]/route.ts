@@ -14,6 +14,7 @@ const updateSchema = z.object({
   photoUrl:         z.string().optional(),
   branchId:         z.string().nullable().optional(),
   isActive:         z.boolean().optional(),
+  showInBooking:    z.boolean().optional(),
   serviceIds:       z.array(z.string()).optional(),
 })
 
@@ -49,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const doctorData = bodyBranchId !== undefined ? { ...rest, branchId: resolvedBranchId } : rest
 
   const doctor = await prisma.$transaction(async (tx) => {
-    await tx.doctor.update({ where: { id, tenantId }, data: doctorData })
+    await tx.doctor.update({ where: { id, tenantId, ...(branchId ? { branchId } : {}) }, data: doctorData })
 
     if (serviceIds !== undefined) {
       // Replace all services atomically

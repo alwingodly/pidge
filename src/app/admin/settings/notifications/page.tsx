@@ -20,11 +20,13 @@ export default async function NotificationsSettingsPage() {
       where:  { id: tenantId },
       select: {
         reviewLink:             true,
+        reviewEmailEnabled:     true,
         reminderEnabled:        true,
         reminderHoursBefore:    true,
         bookingAlertsEnabled:   true,
-        assignmentEmailEnabled: true,
-        rescheduleEmailEnabled: true,
+        assignmentEmailEnabled:   true,
+        rescheduleEmailEnabled:   true,
+        cancellationEmailEnabled: true,
         notificationEmail:      true,
       },
     }),
@@ -75,8 +77,9 @@ export default async function NotificationsSettingsPage() {
         </div>
         <div className="px-5 py-4">
           <PatientNotificationsForm
-            initialAssignment={tenant?.assignmentEmailEnabled ?? true}
-            initialReschedule={tenant?.rescheduleEmailEnabled ?? true}
+            initialAssignment={tenant?.assignmentEmailEnabled   ?? true}
+            initialReschedule={tenant?.rescheduleEmailEnabled   ?? true}
+            initialCancellation={tenant?.cancellationEmailEnabled ?? true}
           />
         </div>
       </div>
@@ -117,7 +120,10 @@ export default async function NotificationsSettingsPage() {
           </div>
         </div>
         <div className="px-5 py-4">
-          <ReviewLinkForm initialLink={tenant?.reviewLink ?? null} />
+          <ReviewLinkForm
+            initialLink={tenant?.reviewLink ?? null}
+            initialEnabled={tenant?.reviewEmailEnabled ?? false}
+          />
         </div>
       </div>
 

@@ -207,6 +207,34 @@ export async function sendCancellationEmail(appt: FullAppointment) {
   )
 }
 
+export async function sendCancellationAlert(appt: FullAppointment) {
+  const adminEmail = appt.tenant.notificationEmail ?? appt.tenant.adminEmail
+  if (!adminEmail) return
+  const { patientName, patientSurname, patientEmail, bookingRef, service, doctor, assignedDate, assignedTime, slot } = appt
+  const fullName = [patientName, patientSurname].filter(Boolean).join(" ")
+  const dateStr  = assignedDate
+    ? new Date(assignedDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    : slot?.date
+      ? new Date(slot.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+      : "Unconfirmed"
+  const timeStr = assignedTime ?? slot?.startTime ?? "—"
+  return send(
+    adminEmail,
+    `Appointment cancelled — ${fullName} — ${bookingRef}`,
+    `<p style="font-family:sans-serif;color:#1C1007">A patient has cancelled their appointment.</p>
+     ${table(
+       row("Patient",  fullName),
+       row("Email",    patientEmail),
+       row("Service",  service.name),
+       row("Ref",      bookingRef),
+       row("Date",     dateStr),
+       row("Time",     timeStr),
+       ...(doctor ? [row("Clinician", doctor.name)] : []),
+     )}
+     <p style="font-family:sans-serif;color:#9A7A5A;font-size:13px">This slot is now free.</p>`
+  )
+}
+
 export async function sendReminderEmail(appt: FullAppointment) {
   const { patientEmail, patientName, cancelToken, service, doctor, tenant, branch, assignedDate, assignedTime, slot } = appt
   const time = assignedTime ?? slot?.startTime ?? ""
@@ -406,6 +434,55 @@ export async function sendReviewRequestEmail(appt: FullAppointment, reviewLink: 
         <p style="color:#9A7A5A;font-size:12px;margin:20px 0 0">Thank you — it means a lot to us.</p>
       </div>
       <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">${tenant.name} · Powered by Pikatym</p>
+    </div>`
+  )
+}
+
+// ── Patient receives when a programme is confirmed ────────────────────────────
+export async function sendProgrammeConfirmation(
+  email:       string,
+  patientName: string,
+  serviceName: string,
+  clinicName:  string,
+  doctorName:  string,
+  sessions:    { date: string; time: string }[],
+) {
+  const scheduleRows = sessions
+    .map((s, i) => {
+      const d = new Date(s.date + "T00:00:00.000Z")
+      const dateStr = d.toLocaleDateString("en-GB", {
+        weekday: "short", day: "numeric", month: "short", year: "numeric",
+      })
+      return `<tr>
+        <td style="padding:4px 14px 4px 0;color:#9A7A5A;font-size:13px;white-space:nowrap">Day ${i + 1}</td>
+        <td style="padding:4px 0;font-size:13px;font-weight:600">${dateStr} · ${s.time}</td>
+      </tr>`
+    })
+    .join("")
+
+  return send(
+    email,
+    `Programme confirmed — ${serviceName}`,
+    `<div style="font-family:sans-serif;max-width:540px;margin:0 auto">
+      <div style="background:#BF4646;border-radius:12px 12px 0 0;padding:24px 28px">
+        <p style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin:0 0 6px">Programme confirmed</p>
+        <h1 style="color:#fff;font-size:20px;font-weight:800;margin:0">${h(serviceName)}</h1>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E3DC;border-top:none;border-radius:0 0 12px 12px;padding:24px 28px">
+        <p style="color:#1C1007;font-size:14px;margin:0 0 16px">
+          Hi ${h(patientName)}, your <strong>${h(serviceName)}</strong> programme has been confirmed
+          at <strong>${h(clinicName)}</strong> with <strong>${h(doctorName)}</strong>.
+        </p>
+        <p style="color:#1C1007;font-size:13px;font-weight:700;margin:0 0 10px">
+          Your schedule — ${sessions.length} session${sessions.length !== 1 ? "s" : ""}
+        </p>
+        <table style="border-collapse:collapse;margin:0 0 20px">${scheduleRows}</table>
+        <p style="color:#9A7A5A;font-size:12px;margin:0">
+          Please bring comfortable clothing and arrive a few minutes early for your first session.
+          Contact the clinic if you need to make any changes.
+        </p>
+      </div>
+      <p style="color:#C8C0B8;font-size:11px;text-align:center;margin:16px 0 0">${h(clinicName)} · Powered by Pikatym</p>
     </div>`
   )
 }

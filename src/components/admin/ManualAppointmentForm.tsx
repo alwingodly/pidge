@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { DatePickerButton } from "@/components/ui/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import RecurringPreviewModal from "@/components/admin/RecurringPreviewModal"
 
 type Service = {
   id: string
@@ -119,8 +120,9 @@ export default function ManualAppointmentForm({
 
   // Recurrence state (recurrenceOn = whether the toggle is on, recurrenceEnabled = tenant feature flag from props)
   const [recurrenceOn,        setRecurrenceOn]        = useState(false)
-  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"WEEKLY" | "FORTNIGHTLY" | "MONTHLY">("WEEKLY")
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"DAILY" | "WEEKLY" | "FORTNIGHTLY" | "MONTHLY">("WEEKLY")
   const [recurrenceSessions,  setRecurrenceSessions]  = useState(4)
+  const [showPreview,         setShowPreview]         = useState(false)
 
   const visibleServices = useMemo(() => {
     if (!branchModeEnabled || !form.branchId) return services
@@ -240,8 +242,17 @@ export default function ManualAppointmentForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError(null)
+
+    const isAssigned = !!(form.doctorId && form.assignedDate && form.assignedTime)
+
+    // Recurring + fully assigned → open preview modal instead of submitting
+    if (recurrenceOn && isAssigned && recurrenceSessions >= 2) {
+      setShowPreview(true)
+      return
+    }
+
+    setLoading(true)
     if ((form.doctorId || form.assignedDate || form.assignedTime || form.slotId) && (!form.doctorId || !form.assignedDate || !form.assignedTime)) {
       setError("Choose a clinician, confirmed date, and available time together, or leave them empty to create a pending request.")
       setLoading(false)
@@ -250,12 +261,6 @@ export default function ManualAppointmentForm({
     const body: Record<string, unknown> = Object.fromEntries(
       Object.entries(form).filter(([, value]) => value.trim() !== ""),
     )
-
-    // Attach recurrence if enabled and a full assignment is set
-    const isAssigned = !!(form.doctorId && form.assignedDate && form.assignedTime)
-    if (recurrenceOn && isAssigned && recurrenceSessions >= 2) {
-      body.recurrence = { frequency: recurrenceFrequency, sessions: recurrenceSessions }
-    }
 
     const res = await fetch("/api/admin/appointments", {
       method: "POST",
@@ -268,6 +273,9 @@ export default function ManualAppointmentForm({
       setLoading(false)
       return
     }
+    if (data?.warning) {
+      setError(`Appointment created. Note: ${data.warning}`)
+    }
     if (onCreated) {
       onCreated()
     } else {
@@ -277,6 +285,7 @@ export default function ManualAppointmentForm({
   }
 
   return (
+    <>
     <form onSubmit={handleSubmit} className={cn("space-y-5 rounded-xl border border-border bg-white p-5 shadow-sm", className)}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name" required>
@@ -466,7 +475,7 @@ export default function ManualAppointmentForm({
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Frequency</Label>
                 <div className="flex gap-2">
-                  {(["WEEKLY", "FORTNIGHTLY", "MONTHLY"] as const).map(f => (
+                  {(["DAILY", "WEEKLY", "FORTNIGHTLY", "MONTHLY"] as const).map(f => (
                     <button
                       key={f}
                       type="button"
@@ -477,7 +486,7 @@ export default function ManualAppointmentForm({
                           : "border-border bg-white text-muted-foreground hover:border-primary/40"
                       }`}
                     >
-                      {f === "WEEKLY" ? "Weekly" : f === "FORTNIGHTLY" ? "Every 2 weeks" : "Monthly"}
+                      {f === "DAILY" ? "Daily" : f === "WEEKLY" ? "Weekly" : f === "FORTNIGHTLY" ? "Every 2 weeks" : "Monthly"}
                     </button>
                   ))}
                 </div>
@@ -511,13 +520,34 @@ export default function ManualAppointmentForm({
 
       <div className="flex items-center gap-2">
         <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : recurrenceOn ? `Create ${recurrenceSessions} appointments` : "Create appointment"}
+          {loading
+            ? "Creating…"
+            : recurrenceOn && !!(form.doctorId && form.assignedDate && form.assignedTime)
+              ? `Preview ${recurrenceSessions} sessions →`
+              : recurrenceOn
+                ? `Create ${recurrenceSessions} appointments`
+                : "Create appointment"}
         </Button>
         <Link href="/admin/appointments" className="text-sm font-medium text-muted-foreground hover:text-foreground">
           Cancel
         </Link>
       </div>
     </form>
+
+    {/* Recurring preview modal — only shown when recurrence + full assignment */}
+    <RecurringPreviewModal
+      open={showPreview}
+      onClose={() => setShowPreview(false)}
+      onCreated={() => {
+        setShowPreview(false)
+        if (onCreated) onCreated()
+        else router.push("/admin/appointments")
+      }}
+      form={form}
+      frequency={recurrenceFrequency}
+      sessions={recurrenceSessions}
+    />
+    </>
   )
 }
 

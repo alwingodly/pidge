@@ -6,28 +6,35 @@ import { Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Props = {
-  initialAssignment: boolean
-  initialReschedule: boolean
+  initialAssignment:   boolean
+  initialReschedule:   boolean
+  initialCancellation: boolean
 }
 
 const TOGGLES = [
   {
-    key:     "assignmentEmailEnabled" as const,
-    label:   "Assignment confirmation",
-    desc:    "Email patient when their appointment is approved and a clinician is assigned.",
+    key:   "assignmentEmailEnabled" as const,
+    label: "Assignment confirmation",
+    desc:  "Email patient when their appointment is approved and a clinician is assigned.",
   },
   {
-    key:     "rescheduleEmailEnabled" as const,
-    desc:    "Email patient when their confirmed appointment is rescheduled.",
-    label:   "Reschedule notification",
+    key:   "rescheduleEmailEnabled" as const,
+    label: "Reschedule notification",
+    desc:  "Email patient when their confirmed appointment is rescheduled.",
+  },
+  {
+    key:   "cancellationEmailEnabled" as const,
+    label: "Cancellation confirmation",
+    desc:  "Email patient when their appointment is cancelled (by them or by the clinic).",
   },
 ]
 
-export default function PatientNotificationsForm({ initialAssignment, initialReschedule }: Props) {
+export default function PatientNotificationsForm({ initialAssignment, initialReschedule, initialCancellation }: Props) {
   const router = useRouter()
   const [values,  setValues]  = useState({
-    assignmentEmailEnabled: initialAssignment,
-    rescheduleEmailEnabled: initialReschedule,
+    assignmentEmailEnabled:   initialAssignment,
+    rescheduleEmailEnabled:   initialReschedule,
+    cancellationEmailEnabled: initialCancellation,
   })
   const [loading, setLoading] = useState(false)
   const [saved,   setSaved]   = useState(false)

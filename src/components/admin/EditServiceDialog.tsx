@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Briefcase, Check, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,13 +22,15 @@ type BranchConfig = {
 type Branch = { id: string; name: string }
 
 type Service = {
-  id:            string
-  name:          string
-  description:   string | null
-  durationMins:  number
-  price:         number
-  isActive:      boolean
-  branchConfigs: BranchConfig[]
+  id:                   string
+  name:                 string
+  description:          string | null
+  durationMins:         number
+  price:                number
+  priceOnConsultation:  boolean
+  isProgramme:          boolean
+  isActive:             boolean
+  branchConfigs:        BranchConfig[]
 }
 
 type Props = {
@@ -46,8 +49,10 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
   const [name,         setName]         = useState(service.name)
   const [description,  setDescription]  = useState(service.description ?? "")
   const [durationMins, setDurationMins] = useState(String(service.durationMins))
-  const [price,        setPrice]        = useState(String(service.price ?? 0))
-  const [isActive,     setIsActive]     = useState(service.isActive)
+  const [price,               setPrice]               = useState(String(service.price ?? 0))
+  const [priceOnConsultation, setPriceOnConsultation] = useState(service.priceOnConsultation ?? false)
+  const [isProgramme,         setIsProgramme]         = useState(service.isProgramme ?? false)
+  const [isActive,            setIsActive]            = useState(service.isActive)
   const [saving,       setSaving]       = useState(false)
   const [savedInfo,    setSavedInfo]    = useState(false)
   const [infoError,    setInfoError]    = useState<string | null>(null)
@@ -68,7 +73,7 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
     const res = await fetch(`/api/services/${service.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ name, description: description || undefined, durationMins: parseInt(durationMins), price: parseFloat(price) || 0, isActive }),
+      body:    JSON.stringify({ name, description: description || undefined, durationMins: parseInt(durationMins), price: parseFloat(price) || 0, priceOnConsultation, isProgramme, isActive }),
     })
     const data = await res.json()
     setSaving(false)
@@ -140,17 +145,39 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Price</Label>
-                  <div className="flex h-10 overflow-hidden rounded-xl border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <div className={cn(
+                    "flex h-10 overflow-hidden rounded-xl border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-opacity",
+                    priceOnConsultation && "pointer-events-none opacity-40"
+                  )}>
                     <span className="flex items-center border-r border-input bg-secondary px-2.5 text-xs font-semibold text-muted-foreground">
                       {currencySymbol}
                     </span>
                     <input
                       type="number" min="0" step="0.01"
-                      value={price}
+                      value={priceOnConsultation ? "" : price}
                       onChange={e => setPrice(e.target.value)}
+                      disabled={priceOnConsultation}
+                      placeholder={priceOnConsultation ? "—" : "0.00"}
                       className="flex-1 bg-background px-2.5 text-sm text-foreground outline-none"
                     />
                   </div>
+                  <label className="flex cursor-pointer items-center gap-2 pt-0.5">
+                    <div
+                      role="switch"
+                      aria-checked={priceOnConsultation}
+                      onClick={() => setPriceOnConsultation(v => !v)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                        priceOnConsultation ? "bg-primary" : "bg-muted"
+                      )}
+                    >
+                      <span className={cn(
+                        "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform",
+                        priceOnConsultation ? "translate-x-4" : "translate-x-0"
+                      )} />
+                    </div>
+                    <span className="text-xs text-muted-foreground">Price on consultation</span>
+                  </label>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Status</Label>
@@ -164,6 +191,34 @@ export default function EditServiceDialog({ service, branches, isTenantAdmin, my
                   </select>
                 </div>
               </div>
+
+              {priceOnConsultation && (
+                <p className="rounded-xl bg-primary/5 px-3 py-2 text-xs text-primary">
+                  Patients will see <strong>"Price on consultation"</strong> — no amount shown during booking.
+                </p>
+              )}
+
+              {/* Programme toggle */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-white px-3 py-2.5">
+                <div
+                  role="switch"
+                  aria-checked={isProgramme}
+                  onClick={() => setIsProgramme(v => !v)}
+                  className={cn(
+                    "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
+                    isProgramme ? "bg-primary" : "bg-muted"
+                  )}
+                >
+                  <span className={cn(
+                    "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform",
+                    isProgramme ? "translate-x-4" : "translate-x-0"
+                  )} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Programme service</p>
+                  <p className="text-[11px] text-muted-foreground">Multi-day treatment — admin sets duration on approval.</p>
+                </div>
+              </label>
 
               {infoError && <p className="text-sm text-destructive">{infoError}</p>}
 

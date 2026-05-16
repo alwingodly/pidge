@@ -43,6 +43,7 @@ type Service      = {
   name: string
   durationMins: number
   price: number
+  priceOnConsultation: boolean
   description?: string | null
   branchConfigs: BranchConfig[]
 }
@@ -125,7 +126,7 @@ export default function BookingSteps({
   // ── Derived values (after hooks) ──────────────────────────────────────────────
   const hasLocationStep = branches.length > 1
   const selectedService = services.find((s) => s.id === state.serviceId)
-  const hasPaidService  = onlinePaymentsEnabled && (selectedService?.price ?? 0) > 0
+  const hasPaidService  = onlinePaymentsEnabled && (selectedService?.price ?? 0) > 0 && !selectedService?.priceOnConsultation
 
   const STEP_LABELS: string[] = []
   if (hasLocationStep)     STEP_LABELS.push("Location")
@@ -166,7 +167,7 @@ export default function BookingSteps({
   useEffect(() => {
     if (!showDoctorSelection || state.step !== doctorStep || !state.serviceId) return
     setLoadingDoctors(true)
-    const qs = new URLSearchParams({ serviceId: state.serviceId })
+    const qs = new URLSearchParams({ serviceId: state.serviceId, booking: "1" })
     // Only filter by branch when the patient explicitly chose one (multi-branch flow).
     // When branchId is auto-set from a single branch, doctors may not have it assigned.
     if (state.branchId && hasLocationStep) qs.set("branchId", state.branchId)
@@ -192,7 +193,7 @@ export default function BookingSteps({
     set("step", showDoctorSelection ? doctorStep : dateStep)
   }
 
-  async function createAppointment(bookingToken?: string | null, patient?: PatientOverride) {
+  async function createAppointment(bookingToken?: string | null, patient?: PatientOverride, paymentIntentId?: string) {
     setSubmitting(true)
     const token = bookingToken ?? state.bookingToken
     try {
@@ -200,18 +201,19 @@ export default function BookingSteps({
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingToken:   token,
-          branchId:       state.branchId       || undefined,
-          serviceId:      state.serviceId,
-          doctorId:       state.doctorId        || undefined,
-          preferredDate:  state.preferredDate,
-          patientName:    patient?.name    ?? state.patientName,
-          patientSurname: (patient?.surname ?? state.patientSurname) || undefined,
-          patientEmail:   state.patientEmail,
-          patientPhone:   patient?.phone   ?? state.patientPhone,
-          patientDOB:     state.patientDOB      || undefined,
-          patientGender:  state.patientGender   || undefined,
-          notes:          state.notes           || undefined,
+          bookingToken:     token,
+          branchId:         state.branchId       || undefined,
+          serviceId:        state.serviceId,
+          doctorId:         state.doctorId        || undefined,
+          preferredDate:    state.preferredDate,
+          patientName:      patient?.name    ?? state.patientName,
+          patientSurname:   (patient?.surname ?? state.patientSurname) || undefined,
+          patientEmail:     state.patientEmail,
+          patientPhone:     patient?.phone   ?? state.patientPhone,
+          patientDOB:       state.patientDOB      || undefined,
+          patientGender:    state.patientGender   || undefined,
+          notes:            state.notes           || undefined,
+          paymentIntentId:  paymentIntentId       || undefined,
           ...(gdprEnabled ? {
             consentGiven:   state.consentGiven,
             reminderOptOut: state.reminderOptOut,
@@ -224,7 +226,7 @@ export default function BookingSteps({
         setOtpError(msg)
         return
       }
-      router.push(`/confirmation/${data.bookingRef}`)
+      router.push(`/confirmation/${data.bookingRef}?ct=${encodeURIComponent(data.cancelToken)}`)
     } finally {
       setSubmitting(false)
     }
@@ -421,11 +423,13 @@ export default function BookingSteps({
                           )}
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          {service.price > 0 && (
+                          {service.priceOnConsultation ? (
+                            <span className="text-xs font-medium text-muted-foreground italic">On consultation</span>
+                          ) : service.price > 0 ? (
                             <span className="text-xs font-semibold text-foreground">
                               {currencySymbol}{service.price.toFixed(2)}
                             </span>
-                          )}
+                          ) : null}
                           <span className="text-xs font-medium text-muted-foreground">{service.durationMins} min</span>
                           {!unavailable && <ChevronRight className="size-4 text-muted-foreground/50" />}
                         </div>
@@ -636,7 +640,7 @@ export default function BookingSteps({
               >
                 <PaymentStepForm
                   onBack={() => set("step", otpStep)}
-                  onSuccess={() => createAppointment()}
+                  onSuccess={(piId) => createAppointment(undefined, undefined, piId)}
                   submitting={submitting}
                 />
               </Elements>
@@ -666,11 +670,11 @@ export default function BookingSteps({
               value={selectedService?.name ?? null}
               badge={selectedService ? `${selectedService.durationMins} min` : null}
             />
-            {selectedService && selectedService.price > 0 && (
+            {selectedService && (selectedService.price > 0 || selectedService.priceOnConsultation) && (
               <SummaryRow
                 icon={<CreditCard className="size-3.5" />}
                 label="Price"
-                value={`${currencySymbol}${selectedService.price.toFixed(2)}`}
+                value={selectedService.priceOnConsultation ? "On consultation" : `${currencySymbol}${selectedService.price.toFixed(2)}`}
               />
             )}
             {showDoctorSelection && (
@@ -710,7 +714,7 @@ function PaymentStepForm({
   submitting,
 }: {
   onBack:     () => void
-  onSuccess:  () => Promise<void>
+  onSuccess:  (paymentIntentId: string) => Promise<void>
   submitting: boolean
 }) {
   const stripe   = useStripe()
@@ -723,7 +727,7 @@ function PaymentStepForm({
     setPaying(true)
     setPayError(null)
     try {
-      const { error } = await stripe.confirmPayment({
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect:      "if_required",
         confirmParams: { return_url: window.location.href },
@@ -732,7 +736,11 @@ function PaymentStepForm({
         setPayError(error.message ?? "Payment failed. Please try again.")
         return
       }
-      await onSuccess()
+      if (!paymentIntent?.id) {
+        setPayError("Payment completed but could not be confirmed. Please contact support.")
+        return
+      }
+      await onSuccess(paymentIntent.id)
     } finally {
       setPaying(false)
     }

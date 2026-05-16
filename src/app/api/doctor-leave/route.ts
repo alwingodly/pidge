@@ -13,9 +13,16 @@ function parseDateOnly(value: string) {
 // GET /api/doctor-leave?doctorId=xxx — list leave for a doctor
 export const GET = auth(async (req) => {
   if (!req.auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  const { tenantId } = getScopeFromSession(req.auth)
+  const { tenantId, branchId } = getScopeFromSession(req.auth)
   const doctorId = new URL(req.url).searchParams.get("doctorId")
   if (!doctorId) return Response.json({ error: "doctorId required" }, { status: 400 })
+
+  // Branch admins may only read leave for doctors in their own branch
+  const doctorCheck = await prisma.doctor.findUnique({
+    where:  { id: doctorId, tenantId, ...(branchId ? { branchId } : {}) },
+    select: { id: true },
+  })
+  if (!doctorCheck) return Response.json({ error: "Doctor not found" }, { status: 404 })
 
   const leaves = await prisma.doctorLeave.findMany({
     where:   { tenantId, doctorId },
@@ -28,7 +35,7 @@ export const GET = auth(async (req) => {
 // POST /api/doctor-leave — create a leave period
 export const POST = auth(async (req) => {
   if (!req.auth) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  const { tenantId } = getScopeFromSession(req.auth)
+  const { tenantId, branchId } = getScopeFromSession(req.auth)
 
   const body = await req.json().catch(() => null)
   if (!body) return Response.json({ error: "Invalid request" }, { status: 400 })
@@ -46,8 +53,11 @@ export const POST = auth(async (req) => {
   if ("error" in end)   return Response.json({ error: end.error },   { status: 400 })
   if (end.date < start.date) return Response.json({ error: "End date must be on or after start date" }, { status: 400 })
 
-  // Verify doctor belongs to this tenant
-  const doctor = await prisma.doctor.findUnique({ where: { id: doctorId, tenantId }, select: { id: true, name: true } })
+  // Verify doctor belongs to this tenant and branch (branch admins can only manage their own branch)
+  const doctor = await prisma.doctor.findUnique({
+    where: { id: doctorId, tenantId, ...(branchId ? { branchId } : {}) },
+    select: { id: true, name: true },
+  })
   if (!doctor) return Response.json({ error: "Doctor not found" }, { status: 404 })
 
   const leave = await prisma.doctorLeave.create({

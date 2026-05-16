@@ -6,6 +6,7 @@ import { formatDate, formatTime } from "@/lib/utils"
 import { Clock, Stethoscope, UserRound, CalendarDays, Inbox } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AssignDialog from "./AssignDialog"
+import ApproveProgrammeDialog from "./ApproveProgrammeDialog"
 import AppointmentDetailSheet from "./AppointmentDetailSheet"
 
 type Appointment = {
@@ -22,7 +23,7 @@ type Appointment = {
   assignedTime?:   string | null
   checkedInAt?:    Date | null
   slot?:           { date: Date; startTime: string } | null
-  service:         { name: string; durationMins: number }
+  service:         { name: string; durationMins: number; isProgramme?: boolean }
   doctor?:         { id: string; name: string } | null
   branch?:         { name: string } | null
 }
@@ -169,7 +170,7 @@ export default function RequestsQueue({
         </div>
       </div>
 
-      {assignTarget && (
+      {assignTarget && !assignTarget.service.isProgramme && (
         <AssignDialog
           appointmentId={assignTarget.id}
           serviceId={assignTarget.serviceId}
@@ -186,6 +187,25 @@ export default function RequestsQueue({
                   .concat({ ...assignTarget, status: "APPROVED", doctor: { id: "", name: doctorName }, assignedTime: time })
                   .filter(r => ["PENDING", "CHECKED_IN"].includes(r.status))
             )
+            setAssignTarget(null)
+            router.refresh()
+          }}
+        />
+      )}
+
+      {assignTarget && assignTarget.service.isProgramme && (
+        <ApproveProgrammeDialog
+          appointmentId={assignTarget.id}
+          serviceId={assignTarget.serviceId}
+          serviceName={assignTarget.service.name}
+          serviceDurationMins={assignTarget.service.durationMins}
+          preferredDate={assignTarget.preferredDate ?? null}
+          initialDoctorId={assignTarget.doctor?.id ?? null}
+          branchId={assignTarget.branchId ?? null}
+          open={!!assignTarget}
+          onClose={() => setAssignTarget(null)}
+          onApproved={() => {
+            setRows(prev => prev.filter(r => r.id !== assignTarget.id))
             setAssignTarget(null)
             router.refresh()
           }}

@@ -290,7 +290,7 @@ export default async function AdminDashboardPage() {
         <div className="rounded-xl border border-border bg-(--nextup-bg) p-4 shadow-sm" style={{ color: "var(--nextup-fg)" }}>
           <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--nextup-label)" }}>Next up</p>
           {nextAppointment ? (
-            <Link href={`/admin/appointments/${nextAppointment.id}`} className="group mt-3 block">
+            <Link href={`/admin/appointments?tab=today&detail=${nextAppointment.id}`} className="group mt-3 block">
               <p className="font-mono text-2xl font-bold">
                 {nextAppointment.assignedTime ?? (nextAppointment.slot ? formatTime(nextAppointment.slot.startTime) : "--:--")}
               </p>

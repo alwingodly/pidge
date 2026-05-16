@@ -47,13 +47,44 @@ function gcalUrl(
 
 // ── page ─────────────────────────────────────────────────────────────────────
 
+const ACCESS_DENIED = (
+  <div className="flex min-h-screen items-center justify-center bg-[#FDFAF7] px-4">
+    <div className="w-full max-w-sm rounded-2xl border border-[#E8E3DC] bg-white p-8 shadow-sm text-center">
+      <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-secondary text-primary mx-auto">
+        <Inbox className="size-5" />
+      </div>
+      <h1 className="text-base font-bold text-foreground">Confirmation not available</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Use the link from your booking confirmation email to view this page.
+      </p>
+    </div>
+  </div>
+)
+
 export default async function ConfirmationPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ ref: string }>
+  params:       Promise<{ ref: string }>
+  searchParams: Promise<{ ct?: string; email?: string }>
 }) {
   const { ref } = await params
+  const sp      = await searchParams
 
+  // Primary credential: ct = cancelToken (128-bit UUID, cryptographic, sent in the confirmation email)
+  // Fallback:           email (kept for backwards-compat with old confirmation links)
+  // Both cases return the same ACCESS_DENIED UI on failure so refs are not enumerable.
+  const apptCheck = await prisma.appointment.findUnique({
+    where:  { bookingRef: ref },
+    select: { patientEmail: true, cancelToken: true },
+  })
+
+  const ctVerified    = !!sp.ct    && !!apptCheck && sp.ct === apptCheck.cancelToken
+  const emailVerified = !!sp.email && !!apptCheck && sp.email.trim().toLowerCase() === apptCheck.patientEmail.trim().toLowerCase()
+
+  if (!ctVerified && !emailVerified) return ACCESS_DENIED
+
+  // Credential verified — fetch full appointment
   const appointment = await prisma.appointment.findUnique({
     where:   { bookingRef: ref },
     include: {
@@ -61,11 +92,11 @@ export default async function ConfirmationPage({
       service: true,
       doctor:  true,
       branch:  { select: { name: true, address: true, phone: true } },
-      tenant:  { select: { name: true, gdprEnabled: true } },
+      tenant:  { select: { name: true, gdprEnabled: true, patientCancelEnabled: true } },
     },
   })
 
-  if (!appointment) notFound()
+  if (!appointment) notFound() // safety — should never reach here after emailVerified check
 
   const isAssigned =
     !!(appointment.assignedDate && appointment.assignedTime) || !!appointment.slot
@@ -313,17 +344,19 @@ export default async function ConfirmationPage({
           <p className="text-sm font-medium text-foreground">Move to a different date</p>
         </Link>
 
-        <Link
-          href={cancelHref}
-          className="flex items-center gap-3 border-t border-border/60 px-5 py-3.5 transition-colors hover:bg-red-50"
-        >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-destructive">
-            <X className="size-4" />
-          </div>
-          <p className="text-sm font-medium text-destructive">
-            Cancel this {isAssigned ? "appointment" : "request"}
-          </p>
-        </Link>
+        {appointment.tenant.patientCancelEnabled && (
+          <Link
+            href={cancelHref}
+            className="flex items-center gap-3 border-t border-border/60 px-5 py-3.5 transition-colors hover:bg-red-50"
+          >
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-destructive">
+              <X className="size-4" />
+            </div>
+            <p className="text-sm font-medium text-destructive">
+              Cancel this {isAssigned ? "appointment" : "request"}
+            </p>
+          </Link>
+        )}
       </div>
 
       {/* ── GDPR erasure — very subtle, legal-only ───────────────────────── */}

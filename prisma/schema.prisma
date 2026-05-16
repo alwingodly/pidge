@@ -50,12 +50,15 @@ model Tenant {
   clinicStartTime  String?  // "09:00" — opening time shown on booking page
   clinicEndTime    String?  // "17:00" — closing time
   reviewLink           String?  // e.g. Google Maps review URL — sent to patients after COMPLETED
+  reviewEmailEnabled   Boolean  @default(false)  // send review request email when appointment is completed
   reminderEnabled      Boolean  @default(true)   // send appointment reminders to patients
   reminderHoursBefore  Int      @default(24)      // how many hours before to send the reminder
   bookingAlertsEnabled      Boolean  @default(true)  // send admin email when a new booking arrives
   assignmentEmailEnabled    Boolean  @default(true)  // send patient email when appointment is approved
   rescheduleEmailEnabled    Boolean  @default(true)  // send patient email when appointment is rescheduled
+  cancellationEmailEnabled  Boolean  @default(true)  // send patient email when appointment is cancelled
   notificationEmail    String?  // override recipient for booking alerts; defaults to tenant admin email
+  patientCancelEnabled    Boolean @default(true)   // allow patients to cancel via their confirmation link
   manualBookingEnabled    Boolean @default(false)
   recurrenceEnabled       Boolean @default(false)
   gdprEnabled             Boolean @default(false) // UK GDPR mode: consent checkbox, opt-out, erasure
@@ -64,6 +67,9 @@ model Tenant {
   onlinePaymentsEnabled Boolean @default(false) // when false, Stripe step is skipped — offline/cash only
   walkInEnabled Boolean @default(true)
   branchModeEnabled Boolean @default(false)
+  slotIntervalMins  Int     @default(30)  // appointment slot grid step in minutes
+  lunchBreakStart   String? // "13:00" — start of daily break (excluded from slot grid)
+  lunchBreakEnd     String? // "14:00" — end of daily break
   isActive            Boolean  @default(true)
   showDoctorSelection Boolean  @default(false) // super-admin feature flag
   createdAt      DateTime @default(now())
@@ -91,9 +97,12 @@ model Branch {
   slug      String
   address   String?
   phone     String?
-  timezone  String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  timezone         String?
+  isActive         Boolean  @default(true)
+  slotIntervalMins Int?     // overrides tenant default when set
+  lunchBreakStart  String?  // overrides tenant default when set
+  lunchBreakEnd    String?  // overrides tenant default when set
+  createdAt        DateTime @default(now())
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   adminUsers   AdminUser[]
@@ -135,6 +144,7 @@ model Doctor {
   bio              String?
   photoUrl         String?
   isActive         Boolean  @default(true)
+  showInBooking    Boolean  @default(true)  // false = internal/support staff, hidden from patient booking
   createdAt        DateTime @default(now())
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
@@ -153,8 +163,10 @@ model Service {
   name         String
   description  String?
   durationMins Int      @default(30)
-  price        Float    @default(0)
-  isActive     Boolean  @default(true)
+  price                Float    @default(0)
+  priceOnConsultation  Boolean  @default(false)
+  isProgramme          Boolean  @default(false)
+  isActive             Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   tenant         Tenant               @relation(fields: [tenantId], references: [id])
@@ -239,6 +251,7 @@ model Appointment {
   appointmentType String    @default("ONLINE")    // "ONLINE" | "WALK_IN"
   checkedInAt     DateTime?                       // wall-clock arrival time for walk-ins
   cancelToken     String    @unique
+  finalPrice        Float?
   reminderSent      Boolean   @default(false)
   reminderOptOut    Boolean   @default(false) // patient opted out of reminder emails
   consentGivenAt    DateTime?               // GDPR: timestamp of explicit data processing consent

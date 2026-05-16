@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { getScopeFromSession } from "@/lib/tenant"
 import AppointmentTable from "@/components/admin/AppointmentTable"
+import ProgrammesView from "@/components/admin/ProgrammesView"
 import NewAppointmentDialog from "@/components/admin/NewAppointmentDialog"
 import RequestsQueue from "@/components/admin/RequestsQueue"
 import TodaySchedule from "@/components/admin/TodaySchedule"
@@ -11,7 +12,7 @@ import { AlertTriangle } from "lucide-react"
 
 const PAGE_SIZE = 20
 
-type Tab = "requests" | "today" | "all" | "conflicts"
+type Tab = "requests" | "today" | "all" | "conflicts" | "programmes"
 
 export default async function AppointmentsPage({
   searchParams,
@@ -27,6 +28,7 @@ export default async function AppointmentsPage({
     page?: string
     conflict?:      string
     leaveConflict?: string
+    detail?:        string   // auto-open detail sheet for this appointment ID
   }>
 }) {
   const session = await auth()
@@ -34,7 +36,8 @@ export default async function AppointmentsPage({
   const { tenantId, branchId } = getScopeFromSession(session)
   const sp = await searchParams
 
-  const tab: Tab = (sp.tab === "today" || sp.tab === "all" || sp.tab === "conflicts") ? sp.tab : "requests"
+  const tab: Tab = (sp.tab === "today" || sp.tab === "all" || sp.tab === "conflicts" || sp.tab === "programmes") ? sp.tab : "requests"
+  const initialDetailId = sp.detail ?? null
 
   const statusFilter    = sp.status    ?? "ALL"
   const dateFilter      = sp.date      ?? "ALL"
@@ -257,7 +260,66 @@ export default async function AppointmentsPage({
           doctors={doctors}
           services={services}
           branches={branches}
+          initialDetailId={initialDetailId}
         />
+      </PageShell>
+    )
+  }
+
+  // ── Tab: Programmes ───────────────────────────────────────────────────────
+  if (tab === "programmes") {
+    const [seriesAppts, requestsCount, todayCount] = await Promise.all([
+      prisma.appointment.findMany({
+        where:   { tenantId, branchId: branchFilter, recurrenceGroupId: { not: null } },
+        select: {
+          id: true, recurrenceGroupId: true, recurrenceIndex: true, recurrenceTotal: true,
+          patientName: true, patientSurname: true, assignedDate: true, assignedTime: true, status: true,
+          service: { select: { name: true } },
+          doctor:  { select: { name: true } },
+        },
+        orderBy: [{ recurrenceGroupId: "asc" }, { recurrenceIndex: "asc" }],
+      }),
+      prisma.appointment.count({ where: { tenantId, branchId: branchFilter, status: { in: ["PENDING", "CHECKED_IN"] } } }),
+      prisma.appointment.count({
+        where: { tenantId, branchId: branchFilter, status: { notIn: ["CANCELLED"] },
+          OR: [{ assignedDate: { gte: todayStart, lt: todayEnd } }, { slot: { date: { gte: todayStart, lt: todayEnd } } }] },
+      }),
+    ])
+
+    // Group by series
+    const seriesMap = new Map<string, typeof seriesAppts>()
+    for (const appt of seriesAppts) {
+      if (!appt.recurrenceGroupId) continue
+      const list = seriesMap.get(appt.recurrenceGroupId) ?? []
+      list.push(appt)
+      seriesMap.set(appt.recurrenceGroupId, list)
+    }
+    const programmes = Array.from(seriesMap.values()).map(sessions => ({
+      groupId:      sessions[0].recurrenceGroupId!,
+      patientName:  [sessions[0].patientName, sessions[0].patientSurname].filter(Boolean).join(" "),
+      service:      sessions[0].service.name,
+      doctor:       sessions[0].doctor?.name ?? "—",
+      total:        sessions[0].recurrenceTotal ?? sessions.length,
+      completed:    sessions.filter(s => s.status === "COMPLETED").length,
+      cancelled:    sessions.filter(s => s.status === "CANCELLED").length,
+      firstDate:    sessions[0].assignedDate?.toISOString() ?? null,
+      lastDate:     sessions[sessions.length - 1].assignedDate?.toISOString() ?? null,
+      sessions:     sessions.map(s => ({
+        id:           s.id,
+        index:        s.recurrenceIndex ?? 0,
+        date:         s.assignedDate?.toISOString() ?? null,
+        time:         s.assignedTime ?? null,
+        status:       s.status,
+      })),
+    }))
+
+    return (
+      <PageShell tab={tab} requestsCount={requestsCount} todayCount={todayCount}
+        leaveConflictCount={leaveConflictCount} tenant={tenant}
+        services={services} doctors={doctors} branches={branches}
+        branchId={branchId} clinicStartTime={clinicStartTime ?? null} clinicEndTime={clinicEndTime ?? null}
+      >
+        <ProgrammesView programmes={programmes} />
       </PageShell>
     )
   }
@@ -328,6 +390,8 @@ export default async function AppointmentsPage({
     status:    statusWhere,
     doctorId:  doctorIdFilter  !== "ALL" ? doctorIdFilter  : undefined,
     serviceId: serviceIdFilter !== "ALL" ? serviceIdFilter : undefined,
+    // Hide sessions 2..N — only show standalone + first session of each series
+    OR: [{ recurrenceGroupId: null }, { recurrenceIndex: 1 }],
     ...(andFilters.length ? { AND: andFilters } : {}),
   }
 
@@ -448,10 +512,11 @@ function PageShell({
   children:           React.ReactNode
 }) {
   const tabs = [
-    { key: "requests",  label: "Requests",  count: requestsCount,      urgent: requestsCount > 0     },
-    { key: "today",     label: "Today",     count: todayCount,          urgent: false                 },
-    { key: "all",       label: "All",       count: null,                urgent: false                 },
-    { key: "conflicts", label: "Conflicts", count: leaveConflictCount,  urgent: leaveConflictCount > 0 },
+    { key: "requests",   label: "Requests",   count: requestsCount,     urgent: requestsCount > 0      },
+    { key: "today",      label: "Today",      count: todayCount,         urgent: false                  },
+    { key: "conflicts",  label: "Conflicts",  count: leaveConflictCount, urgent: leaveConflictCount > 0 },
+    { key: "programmes", label: "Programmes", count: null,               urgent: false                  },
+    { key: "all",        label: "All",        count: null,               urgent: false                  },
   ] as const
 
   return (

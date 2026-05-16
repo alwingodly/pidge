@@ -20,7 +20,7 @@ export default async function DoctorsPage() {
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { branchModeEnabled: true, clinicStartTime: true, clinicEndTime: true },
+    select: { branchModeEnabled: true, clinicStartTime: true, clinicEndTime: true, showDoctorSelection: true },
   })
 
   const [doctors, branches, services] = await Promise.all([
@@ -63,6 +63,9 @@ export default async function DoctorsPage() {
             tenantId={tenantId}
             defaultBranchId={branchId}
             isBranchAdmin={session.user.role === "BRANCH_ADMIN"}
+            clinicStartTime={tenant?.clinicStartTime ?? null}
+            clinicEndTime={tenant?.clinicEndTime ?? null}
+            showDoctorSelection={tenant?.showDoctorSelection ?? false}
           />
         </div>
       </div>
@@ -92,6 +95,7 @@ export default async function DoctorsPage() {
                 tenantId={tenantId}
                 defaultBranchId={branchId}
                 isBranchAdmin={session.user.role === "BRANCH_ADMIN"}
+                showDoctorSelection={tenant?.showDoctorSelection ?? false}
               />
             </div>
           </div>
@@ -154,6 +158,7 @@ export default async function DoctorsPage() {
                     tenantId={tenantId}
                     defaultBranchId={branchId}
                     isBranchAdmin={session.user.role === "BRANCH_ADMIN"}
+                    showDoctorSelection={tenant?.showDoctorSelection ?? false}
                   />
                 </div>
               </div>

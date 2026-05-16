@@ -13,23 +13,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import DoctorForm from "@/components/admin/DoctorForm"
-import WorkingHoursEditor, { DEFAULT_SCHEDULE } from "@/components/admin/WorkingHoursEditor"
+import WorkingHoursEditor, { makeDefaultSchedule } from "@/components/admin/WorkingHoursEditor"
 
 type Branch  = { id: string; name: string }
 type Service = { id: string; name: string; durationMins: number }
 
 type Props = {
-  branches:        Branch[]
-  services:        Service[]
-  tenantId:        string
-  defaultBranchId: string | null
-  isBranchAdmin:   boolean
+  branches:             Branch[]
+  services:             Service[]
+  tenantId:             string
+  defaultBranchId:      string | null
+  isBranchAdmin:        boolean
+  clinicStartTime?:     string | null
+  clinicEndTime?:       string | null
+  showDoctorSelection?: boolean
 }
 
 type Step = "profile" | "hours"
 type HoursMode = "default" | "custom"
 
-export default function AddDoctorDialog({ branches, services, tenantId, defaultBranchId, isBranchAdmin }: Props) {
+export default function AddDoctorDialog({ branches, services, tenantId, defaultBranchId, isBranchAdmin, clinicStartTime, clinicEndTime, showDoctorSelection }: Props) {
   const router = useRouter()
   const [open,     setOpen]   = useState(false)
   const [step,     setStep]   = useState<Step>("profile")
@@ -48,10 +51,11 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
     if (!doctorId) return
     setSaving(true)
     try {
+      const defaultSchedule = makeDefaultSchedule(clinicStartTime ?? "09:00", clinicEndTime ?? "18:00")
       await fetch("/api/working-hours", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ doctorId, schedule: DEFAULT_SCHEDULE }),
+        body:    JSON.stringify({ doctorId, schedule: defaultSchedule }),
       })
       router.refresh()
       setOpen(false)
@@ -96,6 +100,7 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
                 tenantId={tenantId}
                 defaultBranchId={defaultBranchId}
                 isBranchAdmin={isBranchAdmin}
+                showDoctorSelection={showDoctorSelection}
                 onSaved={(id) => { setDoctorId(id); setStep("hours") }}
                 className="border-0 p-0 shadow-none"
               />
@@ -135,7 +140,7 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
                     <span className="text-sm font-bold text-foreground">Default</span>
                     {mode === "default" && <Check className="size-4 text-primary" />}
                   </div>
-                  <p className="text-xs text-muted-foreground">Mon – Fri, 09:00 – 18:00</p>
+                  <p className="text-xs text-muted-foreground">Mon – Fri, {clinicStartTime ?? "09:00"} – {clinicEndTime ?? "18:00"}</p>
                 </button>
 
                 <button
@@ -157,7 +162,7 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
 
               {mode === "default" ? (
                 <div className="rounded-xl border border-border bg-secondary/30 px-5 py-4">
-                  <p className="text-sm font-semibold text-foreground">Mon – Fri · 09:00 – 18:00</p>
+                  <p className="text-sm font-semibold text-foreground">Mon – Fri · {clinicStartTime ?? "09:00"} – {clinicEndTime ?? "18:00"}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">Saturday and Sunday marked as day off.</p>
                   <Button
                     className="mt-4 rounded-xl"
@@ -174,6 +179,8 @@ export default function AddDoctorDialog({ branches, services, tenantId, defaultB
                 doctorId && (
                   <WorkingHoursEditor
                     doctorId={doctorId}
+                    clinicStartTime={clinicStartTime}
+                    clinicEndTime={clinicEndTime}
                     isWizard
                     onSaved={() => { setOpen(false); handleReset() }}
                   />

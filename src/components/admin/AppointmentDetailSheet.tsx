@@ -12,6 +12,7 @@ import {
   Building2,
 } from "lucide-react"
 import IosConfirmDialog from "@/components/admin/IosConfirmDialog"
+import ExpandToProgrammeModal from "@/components/admin/ExpandToProgrammeModal"
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 const STATUS_STYLES: Record<string, { ring: string; bg: string; text: string }> = {
@@ -34,6 +35,10 @@ function StatusBadge({ status }: { status: string }) {
 // ── Types ──────────────────────────────────────────────────────────────────────
 type Appointment = {
   id: string; bookingRef: string; status: string
+  serviceId?: string; doctorId?: string | null
+  recurrenceGroupId?: string | null
+  recurrenceIndex?: number | null; recurrenceTotal?: number | null
+  finalPrice?: number | null
   patientName: string; patientSurname?: string | null
   patientEmail: string; patientPhone: string
   patientDOB?: string | null; patientGender?: string | null
@@ -120,7 +125,10 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
   const [loading,       setLoading]       = useState(false)
   const [acting,        setActing]        = useState<Status | null>(null)
   const [error,         setError]         = useState<string | null>(null)
-  const [confirmStatus, setConfirmStatus] = useState<Status | null>(null)
+  const [confirmStatus,  setConfirmStatus]  = useState<Status | null>(null)
+  const [showProgramme,  setShowProgramme]  = useState(false)
+  const [showFinalPrice, setShowFinalPrice] = useState(false)
+  const [finalPrice,     setFinalPrice]     = useState("")
 
   function fetchAppt(id: string, showSpinner = true) {
     if (showSpinner) setLoading(true)
@@ -362,10 +370,20 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
               <div className="flex flex-wrap gap-2">
                 {availableActions.map(({ status, label, icon: Icon, style }) => {
                   const needsConfirm = status === "CANCELLED" || status === "NO_SHOW"
+                  const isFinalSession =
+                    status === "COMPLETED" &&
+                    appt?.recurrenceGroupId &&
+                    appt.recurrenceIndex != null &&
+                    appt.recurrenceTotal != null &&
+                    appt.recurrenceIndex === appt.recurrenceTotal
                   return (
                     <button
                       key={status}
-                      onClick={() => needsConfirm ? setConfirmStatus(status) : doAction(status)}
+                      onClick={() => {
+                        if (isFinalSession) { setFinalPrice(""); setShowFinalPrice(true) }
+                        else if (needsConfirm) setConfirmStatus(status)
+                        else doAction(status)
+                      }}
                       disabled={!!acting}
                       className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${style}`}
                     >
@@ -378,10 +396,90 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
                 })}
               </div>
             )}
+            {/* Expand to programme — shown for approved single appointments with doctor + date assigned */}
+            {appt.status === "APPROVED"
+              && !appt.recurrenceGroupId
+              && appt.doctorId
+              && appt.assignedDate
+              && appt.assignedTime
+              && (
+              <button
+                onClick={() => setShowProgramme(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+              >
+                <CalendarDays className="size-4" />
+                Make this a programme
+              </button>
+            )}
           </div>
         )}
       </SheetContent>
     </Sheet>
+
+    {/* ── Final-session price dialog ─────────────────────────────────────────── */}
+    {showFinalPrice && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-2xl">
+          <div className="flex size-12 items-center justify-center rounded-full bg-emerald-50 mx-auto">
+            <Check className="size-6 text-emerald-600" />
+          </div>
+          <h2 className="mt-3 text-center text-base font-bold text-foreground">Final session complete</h2>
+          <p className="mt-1 text-center text-sm text-muted-foreground">
+            This is the last session of the programme. Enter the final treatment price (optional).
+          </p>
+          <div className="mt-4 flex h-10 overflow-hidden rounded-xl border border-input focus-within:ring-2 focus-within:ring-ring">
+            <span className="flex items-center border-r border-input bg-secondary px-3 text-sm font-semibold text-muted-foreground">£</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={finalPrice}
+              onChange={e => setFinalPrice(e.target.value)}
+              placeholder="0.00"
+              className="flex-1 bg-background px-3 text-sm text-foreground outline-none"
+              autoFocus
+            />
+          </div>
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">Leave blank to skip — you can update this later.</p>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => setShowFinalPrice(false)}
+              className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={!!acting}
+              onClick={async () => {
+                setShowFinalPrice(false)
+                if (!appt) return
+                setActing("COMPLETED")
+                setError(null)
+                const body: Record<string, unknown> = { status: "COMPLETED" }
+                const parsed = parseFloat(finalPrice)
+                if (!isNaN(parsed) && parsed >= 0) body.finalPrice = parsed
+                const res  = await fetch(`/api/appointments/${appt.id}`, {
+                  method:  "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body:    JSON.stringify(body),
+                })
+                const data = await res.json()
+                if (!res.ok) setError(data.error ?? "Something went wrong.")
+                else {
+                  setAppt(prev => prev ? { ...prev, status: "COMPLETED", finalPrice: body.finalPrice as number ?? null } : prev)
+                  onStatusChange?.(appt.id, "COMPLETED")
+                  router.refresh()
+                }
+                setActing(null)
+              }}
+              className="flex-1 rounded-xl bg-[#7EACB5] py-2.5 text-sm font-semibold text-white"
+            >
+              {acting === "COMPLETED" ? "Saving…" : "Mark completed"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     <IosConfirmDialog
       open={!!confirmStatus}
@@ -408,6 +506,26 @@ export default function AppointmentDetailSheet({ appointmentId, onClose, onStatu
         }
       }}
     />
+
+    {appt?.doctorId && appt.serviceId && appt.assignedDate && appt.assignedTime && (
+      <ExpandToProgrammeModal
+        open={showProgramme}
+        onClose={() => setShowProgramme(false)}
+        onExpanded={() => {
+          setShowProgramme(false)
+          fetchAppt(appt.id)
+        }}
+        appointment={{
+          id:           appt.id,
+          doctorId:     appt.doctorId!,
+          serviceId:    appt.serviceId!,
+          assignedDate: appt.assignedDate!.slice(0, 10),
+          assignedTime: appt.assignedTime!,
+          serviceName:  appt.service.name,
+          doctorName:   appt.doctor?.name ?? "Unknown",
+        }}
+      />
+    )}
     </>
   )
 }

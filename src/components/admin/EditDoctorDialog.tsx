@@ -19,22 +19,24 @@ type Doctor = {
   bio?: string | null
   photoUrl?: string | null
   branchId?: string | null
+  showInBooking?: boolean | null
   doctorServices?: { serviceId: string }[]
 }
 type Branch  = { id: string; name: string }
 type Service = { id: string; name: string; durationMins: number }
 
 type Props = {
-  doctor:          Doctor
-  branches:        Branch[]
-  services:        Service[]
-  tenantId:        string
-  defaultBranchId: string | null
-  isBranchAdmin:   boolean
+  doctor:               Doctor
+  branches:             Branch[]
+  services:             Service[]
+  tenantId:             string
+  defaultBranchId:      string | null
+  isBranchAdmin:        boolean
+  showDoctorSelection?: boolean
 }
 
 export default function EditDoctorDialog({
-  doctor, branches, services, tenantId, defaultBranchId, isBranchAdmin,
+  doctor, branches, services, tenantId, defaultBranchId, isBranchAdmin, showDoctorSelection,
 }: Props) {
   const [open, setOpen] = useState(false)
 
@@ -72,6 +74,7 @@ export default function EditDoctorDialog({
             tenantId={tenantId}
             defaultBranchId={defaultBranchId}
             isBranchAdmin={isBranchAdmin}
+            showDoctorSelection={showDoctorSelection}
             onSaved={() => { setOpen(false) }}
             className="border-0 p-0 shadow-none"
           />

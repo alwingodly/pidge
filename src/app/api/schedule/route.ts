@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
     prisma.appointment.findMany({
       where: {
         tenantId,
+        ...(branchId ? { branchId } : {}),
         assignedDate: { gte: startDate, lte: endDate },
         assignedTime: { not: null },
         status:       { not: "CANCELLED" },
@@ -41,18 +42,21 @@ export async function GET(req: NextRequest) {
         doctor:  { select: { id: true, name: true } },
       },
     }),
-    prisma.workingHours.findMany({ where: { tenantId, isActive: true } }),
+    prisma.workingHours.findMany({ where: { tenantId, isActive: true, ...(branchId ? { branchId } : {}) } }),
+    // Branch admins see only their own branch; tenant admins see all
     prisma.branch.findMany({
-      where:   { tenantId, isActive: true },
+      where:   { tenantId, isActive: true, ...(branchId ? { id: branchId } : {}) },
       select:  { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    // Doctor leave periods that overlap the requested date range
+    // Doctor leave — scope to the doctors visible to this admin
     prisma.doctorLeave.findMany({
       where: {
         tenantId,
         startDate: { lte: endDate },
         endDate:   { gte: startDate },
+        // Branch admins only see leave for doctors in their branch
+        ...(branchId ? { doctor: { branchId } } : {}),
       },
       select: { doctorId: true, startDate: true, endDate: true, reason: true },
     }),

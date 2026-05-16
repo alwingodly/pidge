@@ -14,12 +14,16 @@ export type DaySchedule = {
 
 export const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-export const DEFAULT_SCHEDULE: DaySchedule[] = DAYS.map((_, i) => ({
-  dayOfWeek: i,
-  startTime: "09:00",
-  endTime:   "18:00",
-  isActive:  i >= 1 && i <= 5,
-}))
+export function makeDefaultSchedule(startTime = "09:00", endTime = "18:00"): DaySchedule[] {
+  return DAYS.map((_, i) => ({
+    dayOfWeek: i,
+    startTime,
+    endTime,
+    isActive: i >= 1 && i <= 5,
+  }))
+}
+
+export const DEFAULT_SCHEDULE = makeDefaultSchedule()
 
 const C = { primary: "var(--primary)", border: "var(--border)" }
 
@@ -39,8 +43,9 @@ type Props = {
 }
 
 export default function WorkingHoursEditor({ doctorId, clinicStartTime, clinicEndTime, onSaved, isWizard }: Props) {
-  const router = useRouter()
-  const [schedule, setSchedule] = useState<DaySchedule[]>(DEFAULT_SCHEDULE)
+  const router   = useRouter()
+  const clinicDefault = makeDefaultSchedule(clinicStartTime ?? "09:00", clinicEndTime ?? "18:00")
+  const [schedule, setSchedule] = useState<DaySchedule[]>(clinicDefault)
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
   const [saved,    setSaved]    = useState(false)
@@ -52,7 +57,7 @@ export default function WorkingHoursEditor({ doctorId, clinicStartTime, clinicEn
       .then((r) => r.json())
       .then((data) => {
         const rows: DaySchedule[] = data.data ?? []
-        setSchedule(DEFAULT_SCHEDULE.map((def) => {
+        setSchedule(clinicDefault.map((def) => {
           const match = rows.find((s) => s.dayOfWeek === def.dayOfWeek)
           return match ? { ...def, ...match } : def
         }))

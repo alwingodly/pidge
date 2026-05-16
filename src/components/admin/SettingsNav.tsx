@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 const NAV = [
   { href: "/admin/settings/general",       label: "General",       icon: Settings2,  roles: ["TENANT_ADMIN"] },
   { href: "/admin/settings/landing",       label: "Landing",       icon: FileText,   roles: ["TENANT_ADMIN"] },
-  { href: "/admin/settings/booking",       label: "Booking",       icon: Clock,      roles: ["TENANT_ADMIN"] },
+  { href: "/admin/settings/booking",       label: "Booking",       icon: Clock,      roles: ["TENANT_ADMIN", "BRANCH_ADMIN"] },
   { href: "/admin/settings/payments",      label: "Payments",      icon: CreditCard, roles: ["TENANT_ADMIN"] },
   { href: "/admin/settings/notifications", label: "Notifications", icon: Bell,       roles: ["TENANT_ADMIN"] },
   { href: "/admin/settings/team",          label: "Team",          icon: Users,      roles: ["TENANT_ADMIN"] },

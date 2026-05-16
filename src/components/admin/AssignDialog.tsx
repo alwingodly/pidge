@@ -9,6 +9,7 @@ import { AlertCircle, AlertTriangle, Check, Clock, Loader2, RefreshCw } from "lu
 
 type Doctor        = { id: string; name: string; speciality: string }
 type WorkingH      = { dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }
+type LeavePeriod   = { startDate: string; endDate: string; period: string }
 type BookedSlot    = { time: string; durationMins: number }
 type AvailableSlot = { id: string; startTime: string; endTime: string; durationMins: number }
 
@@ -78,8 +79,13 @@ export default function AssignDialog({
   const [time,             setTime]             = useState("")
   const [slotId,           setSlotId]           = useState("")
   const [workingHours,     setWorkingHours]     = useState<WorkingH[]>([])
+  const [leavePeriods,     setLeavePeriods]     = useState<LeavePeriod[]>([])
+  const [loadingHours,     setLoadingHours]     = useState(false)
   const [liveClinicStart,  setLiveClinicStart]  = useState<string | null>(clinicStartTime ?? null)
   const [liveClinicEnd,    setLiveClinicEnd]    = useState<string | null>(clinicEndTime   ?? null)
+  const [slotInterval,     setSlotInterval]     = useState(30)
+  const [lunchStart,       setLunchStart]       = useState<string | null>(null)
+  const [lunchEnd,         setLunchEnd]         = useState<string | null>(null)
   const [loadingDoctors,   setLoadingDoctors]   = useState(true)
   const [slotState,        setSlotState]        = useState<SlotState>({ status: "idle" })
   const [submitting,       setSubmitting]       = useState(false)
@@ -108,16 +114,22 @@ export default function AssignDialog({
   }, [branchId, open, serviceId])
 
   useEffect(() => {
-    if (!doctorId) { setWorkingHours([]); return }
-    fetch(`/api/working-hours?doctorId=${doctorId}`)
-      .then(r => r.ok ? r.json() : { data: [] })
-      .then(d => {
-        setWorkingHours(d.data ?? [])
-        // Always use live clinic times from the API — never trust stale props
-        setLiveClinicStart(d.clinicStartTime ?? null)
-        setLiveClinicEnd(d.clinicEndTime   ?? null)
-      })
-      .catch(() => setWorkingHours([]))
+    if (!doctorId) { setWorkingHours([]); setLeavePeriods([]); setLoadingHours(false); return }
+    setLoadingHours(true)
+    setTime(""); setSlotId("")
+    Promise.all([
+      fetch(`/api/working-hours?doctorId=${doctorId}`).then(r => r.ok ? r.json() : { data: [] }),
+      fetch(`/api/doctor-leave?doctorId=${doctorId}`).then(r => r.ok ? r.json() : { data: [] }),
+    ]).then(([wh, lv]) => {
+      setWorkingHours(wh.data ?? [])
+      setLeavePeriods(lv.data ?? [])
+      setLiveClinicStart(wh.clinicStartTime ?? null)
+      setLiveClinicEnd(wh.clinicEndTime   ?? null)
+      setSlotInterval(wh.slotIntervalMins ?? 30)
+      setLunchStart(wh.lunchBreakStart ?? null)
+      setLunchEnd(wh.lunchBreakEnd ?? null)
+    }).catch(() => { setWorkingHours([]); setLeavePeriods([]) })
+    .finally(() => setLoadingHours(false))
   }, [doctorId])
 
   useEffect(() => {
@@ -159,6 +171,14 @@ export default function AssignDialog({
   const booked     = ready ? slotState.booked   : []
   const availSlots = ready ? slotState.available : []
 
+  function isDateDisabled(d: Date) {
+    const today = new Date(new Date().setHours(0, 0, 0, 0))
+    if (d < today) return true
+    if (workingHours.length > 0 && !workingHours.some(h => h.dayOfWeek === d.getDay() && h.isActive)) return true
+    const ds = localDateStr(d)
+    return leavePeriods.some(l => l.period === "FULL" && l.startDate.slice(0, 10) <= ds && l.endDate.slice(0, 10) >= ds)
+  }
+
   const suggestedTimes: string[] = (() => {
     if (!date || !doctorId) return []
     const dow = date.getDay()
@@ -168,7 +188,10 @@ export default function AssignDialog({
     if (!rawStart || !rawEnd) return []
     const effStart = liveClinicStart && toMins(liveClinicStart) > toMins(rawStart) ? liveClinicStart : rawStart
     const effEnd   = liveClinicEnd   && toMins(liveClinicEnd)   < toMins(rawEnd)   ? liveClinicEnd   : rawEnd
-    return generateTimes(effStart, effEnd, serviceDurationMins).filter(t => !isPast(t))
+    const times = lunchStart && lunchEnd
+      ? [...generateTimes(effStart, lunchStart, slotInterval), ...generateTimes(lunchEnd, effEnd, slotInterval)]
+      : generateTimes(effStart, effEnd, slotInterval)
+    return times.filter(t => !isPast(t))
   })()
 
   const preCreatedTimes = ready ? availSlots.map(s => s.startTime) : []
@@ -208,7 +231,8 @@ export default function AssignDialog({
     const d = date; setDate(undefined); setTimeout(() => setDate(d), 0)
   }
 
-  const canConfirm = !!(doctorId && date && time && !isPast(time) && !submitting && slotState.status !== "loading")
+  const dateIsOff  = !!(date && doctorId && !loadingHours && isDateDisabled(date))
+  const canConfirm = !!(doctorId && date && time && !isPast(time) && !submitting && slotState.status !== "loading" && !dateIsOff)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -281,12 +305,24 @@ export default function AssignDialog({
             {/* Date */}
             <div className="border-b border-border px-4 py-3">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Date</p>
-              <DatePickerButton
-                value={date}
-                onChange={d => { setDate(d); setTime(""); setSlotId("") }}
-                placeholder="Pick a date"
-                disabled={d => d < new Date(new Date().setHours(0, 0, 0, 0))}
-              />
+              {loadingHours && doctorId ? (
+                <div className="flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-xs text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" /> Loading availability…
+                </div>
+              ) : (
+                <DatePickerButton
+                  value={date}
+                  onChange={d => { setDate(d); setTime(""); setSlotId("") }}
+                  placeholder="Pick a date"
+                  disabled={isDateDisabled}
+                />
+              )}
+              {!loadingHours && date && doctorId && isDateDisabled(date) && (
+                <p className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  <AlertTriangle className="size-3.5 shrink-0" />
+                  This day is off or on leave for the selected clinician — please pick another date.
+                </p>
+              )}
             </div>
 
             {/* Time */}
@@ -342,7 +378,11 @@ export default function AssignDialog({
                   {allTimes.map(t => {
                     const preSlot  = slotForTime(t)
                     const taken    = overlaps(t, serviceDurationMins, booked) || isPast(t)
-                    const selected = preSlot ? slotId === preSlot.id : (time === t && !slotId)
+                    // Highlight the selected time AND every 30-min slot within the appointment's footprint
+                    const inFootprint = !!time && !taken &&
+                      toMins(t) >= toMins(time) &&
+                      toMins(t) <  toMins(time) + serviceDurationMins
+                    const isStart  = preSlot ? slotId === preSlot.id : (time === t && !slotId)
                     return (
                       <button
                         key={t}
@@ -355,9 +395,10 @@ export default function AssignDialog({
                         }}
                         className="relative rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:cursor-not-allowed"
                         style={
-                          taken    ? { background: "#F5F5F5", color: "#BDBDBD", borderColor: "#E0E0E0" }
-                          : selected ? { background: C.primary, color: "#fff", borderColor: C.primary }
-                          :            { background: "#fff", color: "#444", borderColor: C.border }
+                          taken       ? { background: "#F5F5F5", color: "#BDBDBD", borderColor: "#E0E0E0" }
+                          : isStart   ? { background: C.primary, color: "#fff", borderColor: C.primary }
+                          : inFootprint ? { background: "color-mix(in srgb, var(--primary) 18%, #fff)", color: "var(--primary)", borderColor: "color-mix(in srgb, var(--primary) 40%, #fff)" }
+                          :              { background: "#fff", color: "#444", borderColor: C.border }
                         }
                       >
                         {t}

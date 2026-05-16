@@ -44,16 +44,17 @@ function timeStr(appt: Appointment): string | null {
 }
 
 export default function TodaySchedule({
-  appointments, doctors: _doctors, services: _services, branches: _branches,
+  appointments, doctors: _doctors, services: _services, branches: _branches, initialDetailId,
 }: {
-  appointments: Appointment[]
-  doctors:      Doctor[]
-  services:     Service[]
-  branches:     Branch[]
+  appointments:    Appointment[]
+  doctors:         Doctor[]
+  services:        Service[]
+  branches:        Branch[]
+  initialDetailId?: string | null
 }) {
   const router     = useRouter()
   const [rows,     setRows]     = useState(appointments)
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(initialDetailId ?? null)
   const [loading,  setLoading]  = useState<string | null>(null)
 
   useEffect(() => { setRows(appointments) }, [appointments])
