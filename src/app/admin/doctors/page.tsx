@@ -5,7 +5,6 @@ import Image from "next/image"
 import AddDoctorDialog from "@/components/admin/AddDoctorDialog"
 import EditDoctorDialog from "@/components/admin/EditDoctorDialog"
 import DoctorScheduleSheet from "@/components/admin/DoctorScheduleSheet"
-import BulkScheduleSheet from "@/components/admin/BulkScheduleSheet"
 import { PractitionerBadge } from "@/components/admin/DoctorForm"
 import { CalendarDays, Stethoscope, UserRound } from "lucide-react"
 
@@ -50,13 +49,6 @@ export default async function DoctorsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {activeCount > 0 && (
-            <BulkScheduleSheet
-              isTenantAdmin={session.user.role === "TENANT_ADMIN"}
-              branches={branches}
-              doctorCount={activeCount}
-            />
-          )}
           <AddDoctorDialog
             branches={branches}
             services={services}
